@@ -1,25 +1,20 @@
 import type { Knex } from "knex";
 
-
 export async function up(knex: Knex): Promise<void> {
-    // return knex.schema.createTable('cgar')
+    return knex.schema.createTable('chat_sessions',(table)=>{
+       table.uuid('id').primary().defaultTo(knex.raw('gen_random_uuid()'));
+       table.string('phone_number').notNullable();
+       table.uuid('chatbot_id').notNullable().references('chat_bot').inTable('chat_bot').onDelete('CASCADE');
+       table.uuid('chat_bot_node').notNullable().references('chat_bot_node').inTable('chat_bot_node').onDelete('CASCADE');
+       table.string('last_message').nullable();
+       table.timestamp('created_at').defaultTo(knex.fn.now());
+       table.timestamp('updated_at').defaultTo(knex.fn.now());
+       table.timestamp('deleted_at');
+    })
 }
 
 
 export async function down(knex: Knex): Promise<void> {
+  return knex.schema.dropTableIfExists('chat_sessions');
 }
 
-// -- CREATE TABLE chat_sessions (
-// --     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-
-// --     phone_number VARCHAR(20) NOT NULL,
-// --     chatbot_id UUID NOT NULL,
-
-// --     current_node_id UUID,
-// --     current_flow VARCHAR(20) CHECK (current_flow IN ('menu', 'form')),
-
-// --     last_message TEXT,
-
-// --     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-// --     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-// -- );

@@ -11,6 +11,7 @@ export async function up(knex: Knex): Promise<void> {
     table.enum('role', ['superadmin', 'admin', 'company']).notNullable().defaultTo('company');
     table.enum('status', ['active', 'inactive', 'suspended']).defaultTo('active');
     table.uuid('parent_user_id').references('id').inTable('users').onDelete('CASCADE');
+    table.string('user_id').nullable()
     table.string('avatar', 500);
     table.jsonb('permissions'); // Additional granular permissions
     table.jsonb('settings'); // User preferences
