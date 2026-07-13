@@ -5,7 +5,7 @@ export async function up(knex: Knex): Promise<void> {
     await knex.schema.createTable('chat_bot_node',(table)=>{
         table.uuid('id').primary().defaultTo(knex.raw('gen_random_uuid()'));
         table.uuid('user_id').notNullable().references('id').inTable('users').onDelete('CASCADE');
-        table.uuid('chatBotId').notNullable().references('id').inTable('chatBot').onDelete('CASCADE');
+        table.uuid('chatBotId').notNullable().references('id').inTable('chat_bot').onDelete('CASCADE');
         table.string('type').notNullable();
         table.jsonb('data');
         table.string('position');

@@ -123,7 +123,7 @@ class chatBotService {
         type: n.type,
         data: JSON.stringify(n.data),
         position: JSON.stringify(n.position || { x: 0, y: 0 }),
-        createdAt: new Date(),
+        created_at: new Date(),
       };
     });
 

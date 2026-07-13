@@ -6,6 +6,7 @@ export async function up(knex: Knex): Promise<void> {
     table.string('name', 255).notNullable();
     table.string('email', 255).notNullable().unique();
     table.string('phone', 50);
+    table.string('domain',50)
     table.string('business_id', 255); // Meta Business ID
     table.string('api_key', 255).unique();
     table.string('webhook_url', 500);

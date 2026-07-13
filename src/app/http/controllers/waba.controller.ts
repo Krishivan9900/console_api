@@ -153,7 +153,7 @@ class WabaController {
    */
   syncPhoneNumbers = tryCatchAsync(async (req: AuthRequest, res: Response) => {
     const { wabaId } = req.params;
-    const synced = await WabaService.syncPhoneNumbers(req.companyId!, wabaId);
+    const synced = await WabaService.syncPhoneNumbers(req.companyId!,req.userId!, wabaId);
     return successResponse(req, res, `${synced.length} phone numbers synced successfully`, synced);
   });
 

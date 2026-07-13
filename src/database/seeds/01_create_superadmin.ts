@@ -9,7 +9,7 @@ import bcrypt from 'bcrypt';
 export async function seed(knex: Knex): Promise<void> {
   // Check if superadmin already exists
   const existingUser = await knex('users')
-    .where({ email: 'accounts@csr.co' })
+    .where({ email: 'accounts@krishivan.co' })
     .first();
 
   if (existingUser) {
@@ -22,8 +22,8 @@ export async function seed(knex: Knex): Promise<void> {
 
   const company:any = await knex('companies').insert({
     id: knex.raw('gen_random_uuid()'),
-    name: 'CSR',
-    email: 'accounts@csr.co',
+    name: 'Krishivan',
+    email: 'accounts@krishivan.co',
     phone: '1234567890',
     // address: '123 Soft7 Street, Tech City',
     created_at: knex.fn.now(),
@@ -34,8 +34,8 @@ export async function seed(knex: Knex): Promise<void> {
   await knex('users').insert({
     id: knex.raw('gen_random_uuid()'),
     company_id:company.id,
-    name: 'CSR Admin',
-    email: 'accounts@csr.co',
+    name: 'Krishivan Admin',
+    email: 'accounts@krishivan.co',
     password: hashedPassword,
     role: 'superadmin',
     status: 'active',
@@ -44,7 +44,7 @@ export async function seed(knex: Knex): Promise<void> {
   });
 
   console.log('✅ Superadmin user created successfully!');
-  console.log('Email: accounts@csr.co');
-  console.log('Password: CSR@2026');
+  console.log('Email: accounts@krishivan.co');
+  console.log('Password: Krishivan@2026');
 }
 

@@ -9,7 +9,7 @@ export async function up(knex: Knex): Promise<void> {
     table.string('wamid', 255).unique(); // WhatsApp Message ID
     table.string('profile_name',255).nullable();
     table.enum('direction', ['inbound', 'outbound']).notNullable();
-    table.enum('type', ['text', 'image', 'video', 'document', 'audio', 'template', 'interactive', 'location', 'contacts', 'sticker']).notNullable();
+    table.enum('type', ['text', 'image', 'video', 'document', 'audio', 'template', 'interactive', 'location', 'contacts', 'sticker','order']).notNullable();
     table.string('from_phone', 50).notNullable();
     table.string('to_phone', 50).notNullable();
     table.enum('status', ['queued', 'sent', 'delivered', 'read', 'failed', 'deleted','received']).defaultTo('queued');

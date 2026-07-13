@@ -296,7 +296,7 @@ class WabaService {
   /**
    * Sync phone numbers from Meta
    */
-  async syncPhoneNumbers(companyId: string, wabaId: string) {
+  async syncPhoneNumbers(companyId: string,userId:string, wabaId: string) {
     const waba = await this.getWabaById(wabaId);
     const phoneNumbers = await MetaService.getPhoneNumbers(waba.waba_id);
 
@@ -307,6 +307,7 @@ class WabaService {
       if (!existing) {
         const created = await PhoneNumberModel.create({
           company_id: companyId,
+          user_id:userId,
           waba_id: wabaId,
           phone_number_id: phone.id,
           display_phone_number: phone.display_phone_number,

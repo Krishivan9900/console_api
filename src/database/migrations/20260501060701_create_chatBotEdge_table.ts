@@ -2,10 +2,10 @@ import type { Knex } from "knex";
 
 
 export async function up(knex: Knex): Promise<void> {
-    await knex.schema.createTable('chatBot_Edge', (table) => {
+    await knex.schema.createTable('chat_bot_edge', (table) => {
         table.uuid('id').primary().defaultTo(knex.raw('gen_random_uuid()'));
         table.uuid('user_id').notNullable().references('id').inTable('users').onDelete('CASCADE');
-        table.uuid('chatBotId').notNullable().references('id').inTable('chatBot').onDelete('CASCADE');
+        table.uuid('chatBotId').notNullable().references('id').inTable('chat_bot').onDelete('CASCADE');
         table.boolean('published').defaultTo(false);
         table.string('target',255);
         table.string('label',255)

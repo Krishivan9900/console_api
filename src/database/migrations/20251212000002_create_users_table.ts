@@ -8,7 +8,7 @@ export async function up(knex: Knex): Promise<void> {
     table.string('email', 255).unique();
     table.string('phone', 50).unique();
     table.string('password', 255).notNullable(); // Hashed password
-    table.enum('role', ['superadmin', 'admin', 'company']).notNullable().defaultTo('company');
+    table.enum('role', ['superadmin', 'admin', 'user','company']).notNullable().defaultTo('company');
     table.enum('status', ['active', 'inactive', 'suspended']).defaultTo('active');
     table.uuid('parent_user_id').references('id').inTable('users').onDelete('CASCADE');
     table.string('user_id').nullable()

@@ -11,7 +11,7 @@ dotenv.config({
 console.log('DATABASE_URL:', process.env.DATABASE_URL)
 
 const connection: Knex.StaticConnectionConfig = {
-  connectionString: process.env.DATABASE_URL,
+  connectionString: "postgresql://console_db_1qtd_user:n1Fix8SAwNPVLD2nJ2outmaOfU8KDauS@dpg-d98rieu7r5hc73aae2ug-a.oregon-postgres.render.com/console_db_1qtd",
   ssl: {
     rejectUnauthorized: false,
   },
