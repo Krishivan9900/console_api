@@ -230,7 +230,7 @@ class chatBotService {
 
         data: JSON.stringify(edgeData),
 
-        createdAt: new Date(),
+        created_at: new Date(),
       };
     });
     // ✅ 8. Insert Edges

@@ -10,6 +10,7 @@ export async function up(knex: Knex): Promise<void> {
         table.string('target',255);
         table.string('label',255)
         table.jsonb('data');
+        table.string('source',255)
         table.timestamp('created_at').defaultTo(knex.fn.now());
         table.timestamp('updated_at').defaultTo(knex.fn.now());
         table.timestamp('deleted_at');
