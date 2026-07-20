@@ -166,8 +166,8 @@ class catalogController {
             const authHeader:any = req.headers['authorization'];
             const token = authHeader.substring(7)
             console.log("JWT Auth Middleware - Authorization header:", token); // Debug log
-            const user_id = "ccc7bb1d-39b4-4d67-b687-c1a03a314146"
-            const company_id = "cb2a7274-f7c0-41e6-b752-71991edb699c"
+            const user_id = "d051edc7-52ae-45bd-abad-e021f94cf557"
+            const company_id = "e964154b-7ed9-423d-bee3-c6e190dc0ab2"
             const syncAllCatalog = await catalogService.syncOrganizationCatalog(user_id,company_id,token) 
             successResponse(req,res,"Sync Meta-variant successfully",syncAllCatalog,HttpStatusCode.OK)
         }catch(error:any){

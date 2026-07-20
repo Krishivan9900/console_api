@@ -14,7 +14,7 @@ import userModel from '../models/user.model';
 import phoneNumberModel from '../models/phoneNumber.model';
 import productGroupModel from '../models/productGroup.model';
 import productVariantModel from '../models/productVariant.model';
-
+import axios from 'axios'
 
 interface LoginCredentials {
   identifier: string; // email or phone
@@ -94,6 +94,180 @@ class AuthService {
       token,
       expiresIn: this.JWT_EXPIRES_IN,
     };
+  }
+
+  // {
+  // "id": "4e9c6c07-d5c5-4257-a4a6-3f301bdbc2ac",
+  // "name": "parth",
+  // "role": "farmer",
+  // "email": "parthvichare8@gmail.com",
+  // "photo": "https://storage.googleapis.com/krishione-dashboard.appspot.com/2276414856464447_1784090816741.jpg",
+  // "location": {
+  //   "latitude": 19.0234466,
+  //   "longitude": 72.8644724
+  // },
+  // "phone_number": "919372597458",
+
+  //   POST:https://l07yapr0ub.execute-api.ap-south-1.amazonaws.com/prod/farmer-function/register-user
+
+  // {
+  //   "_id": {
+  //     "$oid": "639d60ae2c2da10008d775ec"
+  //   },
+  //   "farming_mode": "Agriculture",
+  //   "created_by": "micro-entrepreneur",
+  //   "userType": "farmer",
+  //   "full_address": "XP29+QG Gangadevi Pally, Telangana, India",
+  //   "pincode": "506330",
+  //   "village": "machapur",
+  //   "sub_distric": "Gangadevi Pally",
+  //   "district": "Warangal",
+  //   "state": "Telangana",
+  //   "mobile_number": "9908863390",
+  //   "photo": "https://firebasestorage.googleapis.com/v0/b/krishivan-app.appspot.com/o/users%2FzUBZiGjUldguExYs6QQAIwnJwgv1.jpg?alt=media&token=9bd1fa82-1ec0-47e3-8b2e-8b842aabc283",
+  //   "role": "farmer",
+  //   "dob": "1998-07-14 0:00:00",
+  //   "gender": "Male",
+  //   "last_name": "anil",
+  //   "first_name": "singireddy",
+  //   "user_id": "zUBZiGjUldguExYs6QQAIwnJwgv1",
+  //   "coordinates": {
+  //     "type": "type",
+  //     "coordinates": [
+  //       79.7187787,
+  //       17.9519822
+  //     ]
+  //   },
+  //   "created_at": {
+  //     "$numberLong": "1671258286932"
+  //   },
+  //   "isDeleted": false,
+  //   "id": "FR48314814",
+  //   "createdById": "QVgmybHDDghAZZtWBj6mL7eyRbu2",
+  //   "sequence_value": 0,
+  //   "isMigrated": true,
+
+  //   "languages": [
+  //     "te",
+  //     "hi",
+  //     "en"
+  //   ],
+  //   "primary_language": "te"
+  // }
+
+
+  /**
+   * REGISTER krishivan user
+   */
+  async registerkrishivanUser(data: any) {
+    try {
+      const response = await axios.post(
+        'https://l07yapr0ub.execute-api.ap-south-1.amazonaws.com/prod/farmer-function/register-user',
+        data
+      );
+
+      return response.data;
+    } catch (error: any) {
+      if (error.response?.status === 409) {
+        console.log("⚠️ Mobile number already registered");
+
+        return {
+          success: false,
+          alreadyRegistered: true,
+          message: error.response.data.message
+        };
+      }
+
+      throw error; // only throw unexpected errors
+    }
+  }
+
+
+  /**
+   * REGISTER user
+   */
+  async registerUser(
+    companyDetails: any,
+    data: any,
+    parent_user_id?: any
+  ) {
+    const {
+      name,
+      role,
+      email,
+      native_language,
+      photo,
+      location,
+      phone_number
+    } = data.variables;
+
+    console.log("Register User data", data.variables);
+
+    const rolePrefix = (role || "USR").toUpperCase().slice(0, 3);
+    const randomNumber = Math.floor(100000 + Math.random() * 900000);
+    const roleCode = `${rolePrefix}${randomNumber}`;
+
+    const krishivanResponse = await this.registerkrishivanUser({
+      farming_mode: "Agriculture",
+      userType: role,
+      role,
+      coordinates: {
+        type: "type",
+        coordinates: location
+      },
+      id: roleCode,
+      createdById: "QVgmybHDDghAZZtWBj6mL7eyRbu2",
+      primary_language: native_language,
+      gender: "Male",
+      photo,
+      last_name: name,
+      first_name: name,
+      mobile_number: phone_number,
+      user_id: parent_user_id || null,
+      password: "123456"
+    });
+
+    console.log("Krishivan Response", krishivanResponse);
+
+    let user = await userModel.findByPhone(phone_number);
+
+    const userPayload = {
+      company_id: companyDetails.id,
+      name,
+      email,
+      phone: phone_number,
+      password: "123456",
+      role: "user",
+      role_id: roleCode,
+      native_language,
+      image_url: photo,
+      location
+    };
+
+    // Update existing user
+    if (user) {
+      user = await userModel.update(user.id, {
+        name,
+        email,
+        native_language,
+        image_url: photo,
+        location
+      });
+
+      console.log("User updated");
+      return user;
+    }
+
+    // Create new user
+    user = await userModel.create(userPayload);
+
+    console.log(
+      krishivanResponse?.alreadyRegistered
+        ? "User created locally (already existed in Krishivan)"
+        : "User created successfully"
+    );
+
+    return user;
   }
 
   async sendOtp(email: string, otp: string) {
@@ -377,45 +551,65 @@ class AuthService {
 
   async storedChatSession(phone_number: any, data: any) {
     try {
+      const existingSession = await chatSessionModel.findByPhoneNumber(phone_number);
 
-      const existingSessions: any = await chatSessionModel.findByPhoneNumber(phone_number)
-      console.log("EXISTISNG sessiosn", existingSessions)
-      if (existingSessions) {
-        const deactivateSessions = await chatSessionModel.update(existingSessions.id, { active: false })
-        console.log("Deactivate", deactivateSessions)
-        const existingPhoneNumber = await storesSessionModel.findByPhoneNumber(phone_number)
-
-        if (existingPhoneNumber) {
-          return {
-            success: false,
-            data: existingPhoneNumber.data
-          }
-        }
-        const companyDetails = await phoneNumberModel.findByPhoneNumberId(existingSessions.phoneNumberId)
-        console.log("Company Details", companyDetails)
-        if (companyDetails) {
-          const storedSession = await storesSessionModel.create({
-            user_id: companyDetails?.user_id,
-            company_id: companyDetails?.company_id,
-            phone_number: phone_number,
-            data: data
-          })
-
-          console.log("existing", existingPhoneNumber)
-          console.log("storedsession", storedSession)
-
-          return {
-            success: true,
-            data: storedSession
-          }
-        }
-
+      if (!existingSession) {
         return {
           success: false,
-        }
+          message: "No active session found"
+        };
       }
+
+      // Deactivate session immediately on API call
+      await chatSessionModel.update(existingSession.id, {
+        active: false
+      });
+
+      console.log(`Session ${existingSession.id} deactivated`);
+
+      const existingStoredSession =
+        await storesSessionModel.findByPhoneNumber(phone_number);
+
+      if (existingStoredSession) {
+        return {
+          success: false,
+          data: existingStoredSession.data
+        };
+      }
+
+      const companyDetails =
+        await phoneNumberModel.findByPhoneNumberId(
+          existingSession.phoneNumberId
+        );
+
+      if (!companyDetails) {
+        return {
+          success: false,
+          message: "Company details not found"
+        };
+      }
+
+      const storedSession = await storesSessionModel.create({
+        user_id: companyDetails.user_id,
+        company_id: companyDetails.company_id,
+        phone_number,
+        data
+      });
+
+      const userRegistration = await this.registerUser(
+        companyDetails,
+        data
+      );
+
+      return {
+        success: true,
+        data: storedSession,
+        created: userRegistration.created,
+        user: userRegistration.user
+      };
     } catch (error) {
-      throw error
+      console.error("storedChatSession Error:", error);
+      throw error;
     }
   }
 
@@ -441,6 +635,29 @@ class AuthService {
       success: true,
       data: retailerIds,
     };
+  }
+
+  async registerData(session_data: any) {
+    const { name, email, photo, role, phone, roleId, parent_user_id, user_id, native_language } = session_data
+    const registerUser = await userModel.create({
+      company_id: 'e964154b-7ed9-423d-bee3-c6e190dc0ab2',
+      name,
+      email,
+      parent_user_id,
+      password: '123456',
+      roleId,
+      photo,
+      phone,
+      user_id,
+      role: 'user',
+      user_role: role,
+      native_language
+    })
+
+    return {
+      success: true,
+      data: registerUser
+    }
   }
 }
 

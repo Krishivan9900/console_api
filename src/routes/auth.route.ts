@@ -17,7 +17,7 @@ AuthRoute.post('/check-user',AuthController.checkExistUser);
 AuthRoute.post('/media', uploadMediaMiddleware, AuthController.uploadMedia);
 AuthRoute.post('/check-category',AuthController.getVariantByCategory )
 AuthRoute.post('/org-variants/sync',catalogController.syncOrganizationVarinats)
-
+// AuthRoute.post('/user-register', AuthController.registerUser)
 AuthRoute.get("/verify", AuthController.verify);
 
 //Reset-password

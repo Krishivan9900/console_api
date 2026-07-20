@@ -16,7 +16,7 @@ export async function up(knex: Knex): Promise<void> {
     table.text('error_message');
     table.string('error_code', 50);
     table.jsonb('content'); // Message content (text, media URLs, etc.)
-    table.jsonb('context'); // Reply context
+    table.string('context'); // Reply context
     table.uuid('template_id').references('id').inTable('templates').onDelete('SET NULL');
     table.uuid('campaign_id'); // Reference to campaigns if part of bulk send
     table.decimal('cost', 10, 4).defaultTo(0); // Message cost

@@ -8,6 +8,7 @@ import companyService from '../../services/company.service';
 import sendEmail from '../../../utils';
 import { uploadImage } from '@surefy/config/firebase.config';
 import catalogService from '../../services/catalog.service';
+import authService from '@surefy/console/services/auth.service';
 
 export interface JWTRequest extends Request {
   userId?: string;
@@ -263,23 +264,13 @@ class AuthController {
     const data = await catalogService.getProductVariants(category,catalog_id)
     return res.status(200).json(data);
   }
+
+  async userRegister(req:Request,res:Response){
+    const{session_data} = req.body
+    const data = await authService.registerData(session_data)
+    return res.status(200).json(data)
+  }
 }
 
-
-
-
-  // uploadMedia = tryCatchAsync(async (req: AuthRequest, res: Response) => {
-  //   const { phone_number_id, type } = req.body;
-  //   console.log('Uploaded file:', req.file);
-  //   console.log('Request body:', req.body);
-  //   const file = req.file;
-
-  //   if (!phone_number_id || !type || !file) {
-  //     throw new HTTP400Error({ message: 'phone_number_id, type, and file are required' });
-  //   }
-
-  //   const result = await CampaignService.uploadMedia(req.companyId!, phone_number_id, file, type);
-  //   return successResponse(req, res, 'Media uploaded successfully', result, HttpStatusCode.CREATED);
-  // });
 
 export default new AuthController();

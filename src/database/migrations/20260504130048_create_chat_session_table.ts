@@ -6,7 +6,9 @@ export async function up(knex: Knex): Promise<void> {
        table.string('phone_number').notNullable();
        table.uuid('chatbot_id').notNullable().references('id').inTable('chat_bot').onDelete('CASCADE');
        table.uuid('chat_bot_node').notNullable().references('id').inTable('chat_bot_node').onDelete('CASCADE');
+       
        table.string('last_message').nullable();
+       table.string('phoneNumberId').notNullable()
        table.timestamp('created_at').defaultTo(knex.fn.now());
        table.timestamp('updated_at').defaultTo(knex.fn.now());
        table.timestamp('deleted_at');

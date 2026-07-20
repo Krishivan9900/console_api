@@ -30,14 +30,3 @@ catalogRoute.get('/groups/variants/:catalogId/sync', catalogController.syncMetaC
 export default catalogRoute
 
 
-//                 POST   /catalog/groups
-// GET    /catalog/groups
-// GET    /catalog/groups/:groupId
-// PUT    /catalog/groups/:groupId
-// DELETE /catalog/groups/:groupId
-
-// POST   /catalog/groups/:groupId/variants
-// GET    /catalog/groups/:groupId/variants
-// GET    /catalog/variants/:variantId
-// PUT    /catalog/variants/:variantId
-// DELETE /catalog/variants/:variantId
