@@ -199,9 +199,10 @@ class AuthService {
       photo,
       location,
       phone_number
-    } = data.variables;
+    } = data;
+    console.log("auth Session")
 
-    console.log("Register User data", data.variables);
+    console.log("Register User data", data);
 
     const rolePrefix = (role || "USR").toUpperCase().slice(0, 3);
     const randomNumber = Math.floor(100000 + Math.random() * 900000);
@@ -232,7 +233,7 @@ class AuthService {
     let user = await userModel.findByPhone(phone_number);
 
     const userPayload = {
-      company_id: companyDetails.id,
+      company_id: companyDetails.company_id,
       name,
       email,
       phone: phone_number,
