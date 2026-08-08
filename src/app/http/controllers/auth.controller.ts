@@ -9,7 +9,7 @@ import sendEmail from '../../../utils';
 import { uploadImage } from '@surefy/config/firebase.config';
 import catalogService from '../../services/catalog.service';
 import authService from '@surefy/console/services/auth.service';
-
+ 
 export interface JWTRequest extends Request {
   userId?: string;
   userRole?: string;
