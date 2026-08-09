@@ -59,7 +59,7 @@ class MessageController {
     const message = await MessageService.sendMessage({
       messageUUID: uuidv4(),
       user_id: user_id,
-      company_id: 'cb2a7274-f7c0-41e6-b752-71991edb699c',
+      company_id,
       phone_number_id,
       profile_name,
       to,
