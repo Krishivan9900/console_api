@@ -76,6 +76,12 @@ const createBaseApp = async (routes: RouteConfig[] = []): Promise<Application> =
     app.use(basePath, route);
   });
 
+  app.use((req, res, next) => {
+    console.log("CONTENT TYPE:", req.headers["content-type"]);
+    console.log("BODY:", req.body);
+    next();
+  });
+
   // 404 handler
   app.use((req, res) => {
     res.status(404).json({

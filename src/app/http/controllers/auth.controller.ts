@@ -227,6 +227,7 @@ class AuthController {
   }
 
   async storedChatSession(req:Request,res:Response){
+    console.log("Requests bodies",req.body)
     const{session_data} = req.body
     if(!session_data){
       return res.status(200).json({success:false, message:"Sessions required"})

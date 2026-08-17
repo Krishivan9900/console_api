@@ -329,7 +329,6 @@ class MessageService {
     });
   }
 
-
   /**
    * Save incoming message
    */

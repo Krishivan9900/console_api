@@ -160,11 +160,20 @@ class AuthService {
    * REGISTER krishivan user
    */
   async registerkrishivanUser(data: any) {
+    console.log("Krishivan Data", data)
     try {
       const response = await axios.post(
         'https://l07yapr0ub.execute-api.ap-south-1.amazonaws.com/prod/farmer-function/register-user',
-        data
+        data,
+        {
+          headers: {
+            'X-Internal-Api-Key': 'krishiwhatsappskjf4543k',
+            'Content-Type': 'application/json'
+          }
+        }
       );
+
+      console.log('Response krishivan', response)
 
       return response.data;
     } catch (error: any) {
@@ -186,89 +195,294 @@ class AuthService {
   /**
    * REGISTER user
    */
+  // async registerUser(
+  //   companyDetails: any,
+  //   data: any,
+  //   parent_user_id?: any
+  // ) {
+  //   console.log("User register",data,companyDetails)
+  //   const company = data.company_details || {};
+
+  //   const role = data.role || "FPO";
+
+  //   const name =
+  //     data.name ||
+  //     company.trade_name ||
+  //     company.legal_name;
+
+  //   const phone_number = data.phone_number;
+
+  //   const state =
+  //     company.state || null;
+
+  //   const state_info =
+  //     company.state_info || null;
+
+  //   const location =
+  //     data.location || {};
+
+  //   const native_language =
+  //     data.native_language || null;
+
+  //   const photo =
+  //     data.photo || null;
+
+  //   const email =
+  //     data.email || null;
+
+  //   const rolePrefix = role
+  //     .toUpperCase()
+  //     .slice(0, 3);
+
+  //   const randomNumber =
+  //     Math.floor(
+  //       100000 + Math.random() * 900000
+  //     );
+
+  //   const roleCode =
+  //     `${rolePrefix}${randomNumber}`;
+
+  //   const krishivanResponse =
+  //     await this.registerkrishivanUser({
+  //       farming_mode: "Agriculture",
+  //       userType: role,
+  //       role,
+  //       coordinates: {
+  //         type: "Point",
+  //         coordinates: [
+  //           location?.longitude || 0,
+  //           location?.latitude || 0
+  //         ]
+  //       },
+  //       id: roleCode,
+  //       createdById:
+  //         "QVgmybHDDghAZZtWBj6mL7eyRbu2",
+  //       primary_language:
+  //         native_language,
+  //       gender: "Male",
+  //       photo,
+  //       first_name: name,
+  //       last_name: name,
+  //       mobile_number: phone_number,
+  //       user_id:
+  //         parent_user_id || null,
+  //       password: "123456"
+  //     });
+
+  //   console.log(
+  //     "Krishivan Response",
+  //     krishivanResponse
+  //   );
+
+  //   const krishivanUserId =
+  //     krishivanResponse?.user_id ||
+  //     krishivanResponse?.id ||
+  //     null;
+
+  //   let user =
+  //     await userModel.findByPhone(
+  //       phone_number
+  //     );
+
+  //   const userPayload = {
+  //     company_id:
+  //       companyDetails.company_id,
+
+  //     user_id: krishivanUserId,
+
+  //     name,
+  //     email,
+
+  //     phone: phone_number,
+
+  //     password: "123456",
+
+  //     role,
+  //     role_id: roleCode,
+
+  //     native_language,
+
+  //     image_url: photo,
+
+  //     location,
+
+  //     state,
+  //     state_info,
+
+  //     company_details: company
+  //   };
+
+  //   if (user) {
+  //     return await userModel.update(
+  //       user.id,
+  //       {
+  //         ...userPayload
+  //       }
+  //     );
+  //   }
+
+  //   return await userModel.create(
+  //     userPayload
+  //   );
+  // }
+
   async registerUser(
     companyDetails: any,
     data: any,
     parent_user_id?: any
   ) {
-    const {
-      name,
-      role,
-      email,
-      native_language,
-      photo,
-      location,
-      phone_number
-    } = data;
-    console.log("auth Session")
+    // const isFPO = !!data.company_details;
 
-    console.log("Register User data", data);
+    const role = data.role || 'USER';
 
-    const rolePrefix = (role || "USR").toUpperCase().slice(0, 3);
-    const randomNumber = Math.floor(100000 + Math.random() * 900000);
+    const rolePrefix = role
+      .toUpperCase()
+      .slice(0, 3);
+
+    const randomNumber = Math.floor(
+      100000 + Math.random() * 900000
+    );
+
     const roleCode = `${rolePrefix}${randomNumber}`;
 
-    const krishivanResponse = await this.registerkrishivanUser({
+    const company = data.details || {};
+
+    const payload = {
       farming_mode: "Agriculture",
+
       userType: role,
+
+      created_by:"fpo",
+      createdById:data.fpo_id,
+
       role,
+
+      kyc_data: company
+        ? {
+          gst_no: data.gstin || null,
+          pan_no: company.pan || null,
+          company_name:
+            company.trade_name ||
+            company.legal_name,
+
+          address: {
+            full_address:
+              company?.pradr?.addr || null,
+            state:
+              company?.pradr?.state_in_address ||
+              company?.state_info?.name,
+            district:
+              company?.pradr?.district || null,
+            sub_distric: "",
+            village: "",
+            pincode:
+              company?.pradr?.pincode ||
+              company?.pradr?.pinc ||
+              null,
+          },
+        }
+        : null,
+
       coordinates: {
-        type: "type",
-        coordinates: location
+        type: "Point",
+        coordinates: [
+          data?.location?.longitude ||
+          company?.pradr?.longitude ||
+          null,
+
+          data?.location?.latitude ||
+          company?.pradr?.latitude ||
+          null,
+        ],
       },
+
       id: roleCode,
-      createdById: "QVgmybHDDghAZZtWBj6mL7eyRbu2",
-      primary_language: native_language,
+
+      primary_language:
+        data.native_language || null,
+
       gender: "Male",
-      photo,
-      last_name: name,
-      first_name: name,
-      mobile_number: phone_number,
-      user_id: parent_user_id || null,
-      password: "123456"
-    });
 
-    console.log("Krishivan Response", krishivanResponse);
+      photo: data.photo || null,
 
-    let user = await userModel.findByPhone(phone_number);
+      first_name:
+        data.name ||
+        company.trade_name ||
+        company.legal_name,
+
+      last_name:
+        data.name ||
+        company.trade_name ||
+        company.legal_name,
+
+      mobile_number:
+        data.phone_number,
+
+      user_id:
+        parent_user_id || null,
+
+      password: "123456",
+    };
+
+    const krishivanResponse =
+      await this.registerkrishivanUser(payload);
+
+    const krishivanUserId =
+      krishivanResponse?.user_id ||
+      krishivanResponse?.data?.user_id ||
+      null;
+
+    let user = await userModel.findByPhone(
+      data.phone_number
+    );
 
     const userPayload = {
       company_id: companyDetails.company_id,
-      name,
-      email,
-      phone: phone_number,
+
+      name:
+        data.name ||
+        company.trade_name ||
+        company.legal_name,
+
+      email: data.email || null,
+
+      phone: data.phone_number,
+
       password: "123456",
+
       role: "user",
+
       role_id: roleCode,
-      native_language,
-      image_url: photo,
-      location
+
+      native_language:
+        data.native_language || null,
+
+      image_url: data.photo || null,
+
+      location: data.location || {},
+
+      state: company.state || null,
+
+      state_info:
+        company.state_info || null,
+
+      parent_user_id: data.parent_user_id,
+
+      // company_details: company,
+
+      user_id: krishivanUserId
     };
 
-    // Update existing user
     if (user) {
-      user = await userModel.update(user.id, {
-        name,
-        email,
-        native_language,
-        image_url: photo,
-        location
-      });
-
-      console.log("User updated");
-      return user;
+      return await userModel.update(
+        user.id,
+        userPayload
+      );
     }
 
-    // Create new user
-    user = await userModel.create(userPayload);
-
-    console.log(
-      krishivanResponse?.alreadyRegistered
-        ? "User created locally (already existed in Krishivan)"
-        : "User created successfully"
+    return await userModel.create(
+      userPayload
     );
-
-    return user;
   }
 
   async sendOtp(email: string, otp: string) {
@@ -552,6 +766,7 @@ class AuthService {
 
   async storedChatSession(phone_number: any, data: any) {
     try {
+      console.log('details', phone_number, data)
       const existingSession = await chatSessionModel.findByPhoneNumber(phone_number);
 
       if (!existingSession) {
@@ -568,15 +783,15 @@ class AuthService {
 
       console.log(`Session ${existingSession.id} deactivated`);
 
-      const existingStoredSession =
-        await storesSessionModel.findByPhoneNumber(phone_number);
+      // const existingStoredSession =
+      //   await storesSessionModel.findByPhoneNumber(phone_number);
 
-      if (existingStoredSession) {
-        return {
-          success: false,
-          data: existingStoredSession.data
-        };
-      }
+      // if (existingStoredSession) {
+      //   return {
+      //     success: false,
+      //     data: existingStoredSession.data
+      //   };
+      // }
 
       const companyDetails =
         await phoneNumberModel.findByPhoneNumberId(

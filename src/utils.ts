@@ -199,44 +199,127 @@ export function safeJSON(data: any) {
 // }
 
 
+
 export function replaceVariables(
   obj: any,
   variables: Record<string, any>
 ): any {
-  console.log("Variables", obj,variables)
-  console.log("Typeof",typeof obj)
+  if (obj === null || obj === undefined) {
+    return obj;
+  }
 
-  if (typeof obj === "string") {
-     console.log("STRING VALUE:", obj);
+  const getValue = (key: string) => {
+    key = key.trim();
 
-    // Entire object injection
-    if (obj.trim() === "{{data}}" || "{{variable}}") {
-      console.log("MATCHED DATA");
-      return variables;
+
+            //     details: {
+            //     company_details:variables.http_response?.data?.company_details,
+            //     gstin: variables.gstin,
+            //     email:variables.email,
+            //     name: variables.name,
+            //     role:variables.role || "fpo",
+            //     photo:variables.photo,
+            //     location:{
+            //         latitude: variables.latitude,
+            //         longitude: variables.longitude,
+            //     },
+            //     phone_number:variables.phone_number,
+            //     parent_user_id: variables.parent_user_id
+            // }
+
+    // aliases
+    if (key === "data" || key === "variable") {
+      // return variables?.details;
+      console.log("Variables",variables)
+      return{
+        name:variables.name,
+        details:variables.details.company_details,
+        gstin:variables.gstin,
+        role:variables.role,
+        email:variables.email,
+        photo:variables.photo,
+        location:{
+  latitude:
+    variables?.location?.latitude ||
+    variables?.details?.company_details?.pradr?.latitude ||
+    null,
+
+  longitude:
+    variables?.location?.longitude ||
+    variables?.details?.company_details?.pradr?.longitude ||
+    null,
+        },
+        phone_number:variables.phone_number,
+        parent_user_id: variables.parent_user_id
+      }
     }
 
-    return obj.replace(/\{\{(.*?)\}\}/g, (_, key) => {
-      const value = key
-        .trim()
-        .split(".")
-        .reduce(
-          (o: any, k: string) => o?.[k],
-          variables
-        );
+    if (key === "gstin") {
+      return variables?.gstin;
+    }
 
-      return value ?? "";
-    });
+    // support nested paths
+    return key.split(".").reduce(
+      (acc: any, part: string) => acc?.[part],
+      variables
+    );
+  };
+
+  if (typeof obj === "string") {
+    const fullMatch = obj.match(
+      /^{{\s*([^}]+)\s*}}$/
+    );
+
+    // Entire value is a variable
+    if (fullMatch) {
+      const key = fullMatch[1];
+      const value = getValue(key);
+
+      return value !== undefined
+        ? value
+        : obj;
+    }
+
+    // Variable inside string
+    return obj.replace(
+      /{{\s*([^}]+)\s*}}/g,
+      (_, key) => {
+        const value = getValue(key);
+
+        if (
+          value === null ||
+          value === undefined
+        ) {
+          return "";
+        }
+
+        if (
+          typeof value === "object"
+        ) {
+          return JSON.stringify(value);
+        }
+
+        return String(value);
+      }
+    );
   }
 
   if (Array.isArray(obj)) {
-    return obj.map(item => replaceVariables(item, variables));
+    return obj.map(item =>
+      replaceVariables(item, variables)
+    );
   }
 
-  if (obj && typeof obj === "object") {
+  if (typeof obj === "object") {
     const result: any = {};
 
-    for (const key in obj) {
-      result[key] = replaceVariables(obj[key], variables);
+    for (const [key, value] of Object.entries(
+      obj
+    )) {
+      result[key] = replaceVariables(
+        value,
+        variables
+      );
     }
 
     return result;
@@ -244,6 +327,92 @@ export function replaceVariables(
 
   return obj;
 }
+
+// export function replaceVariables(
+//   obj: any,
+//   variables: Record<string, any>
+// ): any {
+//   if (obj === null || obj === undefined) {
+//     return obj;
+//   }
+
+//   if (typeof obj === "string") {
+//     const fullMatch = obj.match(/^{{\s*([^}]+)\s*}}$/);
+
+//     // Handle entire variable replacement
+//     if (fullMatch) {
+//       const key = fullMatch[1].trim();
+
+//       // {{data}}
+//       if (key === "data") {
+//         return variables?.data;
+//       }
+
+//       // {{gstin}}
+//       if (key === "gstin" && variables?.data) {
+//         return variables.data;
+//       }
+
+//       // nested path support
+//       const value = key
+//         .split(".")
+//         .reduce((o: any, k: string) => o?.[k], variables);
+
+//       return value ?? obj;
+//     }
+
+//     // Handle variables inside strings
+//     return obj.replace(
+//       /{{\s*([^}]+)\s*}}/g,
+//       (_, key) => {
+//         const variableKey = key.trim();
+
+//         // {{gstin}}
+//         if (
+//           variableKey === "gstin" &&
+//           variables?.data
+//         ) {
+//           return String(variables.data);
+//         }
+
+//         // {{data}}
+//         if (variableKey === "data") {
+//           return typeof variables?.data === "object"
+//             ? JSON.stringify(variables.data)
+//             : String(variables?.data ?? "");
+//         }
+
+//         // nested path support
+//         const value = variableKey
+//           .split(".")
+//           .reduce(
+//             (o: any, k: string) => o?.[k],
+//             variables
+//           );
+
+//         return value != null ? String(value) : "";
+//       }
+//     );
+//   }
+
+//   if (Array.isArray(obj)) {
+//     return obj.map(item =>
+//       replaceVariables(item, variables)
+//     );
+//   }
+
+//   if (typeof obj === "object") {
+//     const result: any = {};
+
+//     for (const [k, v] of Object.entries(obj)) {
+//       result[k] = replaceVariables(v, variables);
+//     }
+
+//     return result;
+//   }
+
+//   return obj;
+// }
 
 
 export const downloadImage = async (mediaId: string) => {
