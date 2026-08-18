@@ -231,32 +231,33 @@ export const executeNode = async ({
         const mergedVariables = {
             ...variables,
 
-            api_response: variables.http_response,
+            api_response: variables?.http_response,
 
             gstin:
-                variables.http_response?.data?.gstin,
+                variables?.http_response?.data?.gstin,
 
             valid:
-                variables.http_response?.data?.valid,
+                variables?.http_response?.data?.valid,
 
             // company_details:
             //     variables.http_response?.data?.company_details,
             // phone_number: variables.phone_number
             //     ?? variables.http_response?.data?.phone_number
-
             details: {
-                company_details:variables.http_response?.data?.company_details,
-                gstin: variables.gstin,
-                email:variables.email,
-                name: variables.name,
-                role:variables.role || "fpo",
-                photo:variables.photo,
-                location:{
-                    latitude: variables.latitude,
-                    longitude: variables.longitude,
+                company_details: variables?.http_response
+                    ? variables?.http_response.data.company_details
+                    : null,
+                gstin: variables?.gstin,
+                email: variables?.email,
+                name: variables?.name,
+                role: variables?.role || "fpo",
+                photo: variables?.photo,
+                location: {
+                    latitude: variables?.latitude,
+                    longitude: variables?.longitude,
                 },
-                phone_number:variables.phone_number,
-                parent_user_id: variables.parent_user_id
+                phone_number: variables?.phone_number,
+                parent_user_id: variables?.parent_user_id
             }
 
         };

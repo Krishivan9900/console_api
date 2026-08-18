@@ -6,6 +6,7 @@ import messageService from "@surefy/console/services/message.service"
 import nodemailer from "nodemailer";
 import { flowRouter } from './flow.router';
 import contactModel from '@surefy/console/models/contact.model';
+import userModel from '../../models/user.model';
 
 export const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST,
@@ -43,21 +44,47 @@ export async function handleIncomingMessageChatBot(phoneNumberId: any, message: 
     // 1️⃣ Get bot
     console.log("🔍 Finding bot for phone number:", phoneNumberId);
     const bot: any = await chatBotModel.getPublishedBotByPhoneNumberId(phoneNumberId);
+
+    const numberMatch = incomingText.match(/\d{10,13}/);
+    let fpo_info
+
+    if(numberMatch){
+      const fpoNumber = numberMatch[0];
+      const cleanNumber = fpoNumber.replace(/\D/g, "");
+
+      // Add 91 if not already present
+      const phoneNumber = cleanNumber.startsWith("91")
+            ? cleanNumber
+            : `91${cleanNumber}`;
+      
+      fpo_info = await userModel.findByPhone(phoneNumber)
+    }
+
     console.log("🤖 Found bot:", bot ? bot.name : "No bot");
     if (!bot) return null;
 
+    const mappedUserId = fpo_info.id ? fpo_info?.id : bot.user_id
+
     //check exist contact
-    const existContact = await contactModel.findByPhone(bot.user_id,message.from)
+    const existContact = await contactModel.findByUserPhoneNumber(message.from)
     console.log("Existing Contant",existContact)
     if(!existContact){
       const newContact = await contactModel.create({
-        user_id: bot.user_id,
+        user_id: mappedUserId,
         company_id:bot.company_id,
         phone_number:message.from,
         name:profile_name
       })
       console.log("New Contact", newContact)
+    }else{
+        // Update contact mapping if FPO user found
+  if (existContact.user_id !== mappedUserId) {
+    await contactModel.update(existContact.id, {
+      user_id: mappedUserId,
+    });
+  }
     }
+
 
     // 2️⃣ Load nodes + edges
     const rawNodes = await chatBotNodeModel.findByChatBotId(bot.id) || [];

@@ -15,6 +15,8 @@ import phoneNumberModel from '../models/phoneNumber.model';
 import productGroupModel from '../models/productGroup.model';
 import productVariantModel from '../models/productVariant.model';
 import axios from 'axios'
+import contactModel from '../models/contact.model';
+import { PhoneNumber } from 'libphonenumber-js';
 
 interface LoginCredentials {
   identifier: string; // email or phone
@@ -346,6 +348,7 @@ class AuthService {
     const roleCode = `${rolePrefix}${randomNumber}`;
 
     const company = data.details || {};
+    const fpo_info = await userModel.findByPhone(data.phone_number)
 
     const payload = {
       farming_mode: "Agriculture",
@@ -353,7 +356,7 @@ class AuthService {
       userType: role,
 
       created_by:"fpo",
-      createdById:data.fpo_id,
+      createdById: fpo_info.user_id,
 
       role,
 
@@ -478,6 +481,7 @@ class AuthService {
         user.id,
         userPayload
       );
+      
     }
 
     return await userModel.create(

@@ -13,6 +13,15 @@ class ContactModel extends BaseModel {
       .first();
   }
 
+  
+  async findByUserPhoneNumber(phoneNumber: string) {
+    return this.query()
+      .where({ phone_number: phoneNumber })
+      .whereNull('deleted_at')
+      .first();
+  }
+
+
 
   async findByCompany(companyId: string, filters: any = {}) {
     let query = this.query()

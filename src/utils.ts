@@ -233,11 +233,16 @@ export function replaceVariables(
       console.log("Variables",variables)
       return{
         name:variables.name,
-        details:variables.details.company_details,
-        gstin:variables.gstin,
+        details: variables?.details?.company_details ?? null,
+        native_language:variables?.native_language,
+        gstin:variables?.gstin,
         role:variables.role,
         email:variables.email,
         photo:variables.photo,
+        chat: variables.chat,
+        image_url:variables.image_url,
+        voice:variables.voice,
+
         location:{
   latitude:
     variables?.location?.latitude ||
@@ -250,7 +255,7 @@ export function replaceVariables(
     null,
         },
         phone_number:variables.phone_number,
-        parent_user_id: variables.parent_user_id
+        parent_user_id: variables.parent_user_id ? variables.parent_user_id : variables?.api_response?.data?.parent_user_id
       }
     }
 
