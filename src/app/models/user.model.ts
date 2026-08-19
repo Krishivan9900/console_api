@@ -203,6 +203,10 @@ class UserModel extends BaseModel {
       .returning('*')
       .then((res: any) => res[0]);
   }
+
+  async findByUserId(userId:string){
+    return await this.query().where('user_id',userId).first()
+  }
 }
 
 export default new UserModel();

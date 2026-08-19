@@ -41,6 +41,7 @@ class ContactController {
    * Get all contacts with filters
    */
   getContacts = tryCatchAsync(async (req: AuthRequest, res: Response) => {
+    console.log("Request",)
     const filters = {
       is_valid: req.query.is_valid,
       search: req.query.search,
