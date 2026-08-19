@@ -13,7 +13,7 @@ class ContactModel extends BaseModel {
       .first();
   }
 
-  
+
   async findByUserPhoneNumber(phoneNumber: string) {
     return this.query()
       .where({ phone_number: phoneNumber })
@@ -107,49 +107,33 @@ class ContactModel extends BaseModel {
     return Promise.all(promises);
   }
 
-  findWithFilters(userId: string, filters: any) {
+  findWithFilters(userId: string, filters: any, phoneNumberId?: string) {
+    console.log("UserId", userId, phoneNumberId);
+
     let query = this.query()
-      .distinct('contacts.*')
-      .select(
-        'contacts.*',
-        'contact_assignments.show_details',
-        'contact_assignments.can_chat'
-      )
-      .leftJoin('contact_assignments', function () {
-        this.on('contact_assignments.contact_id', '=', 'contacts.id')
-          .andOnVal('contact_assignments.assigned_to', userId);
-      })
-      .where(function () {
-        this.where('contacts.user_id', userId)
-          .orWhere('contact_assignments.assigned_to', userId);
-      })
-      .whereNull('contacts.deleted_at');
+      .where("user_id", userId)
+      .whereNull("deleted_at");
+
+    if (phoneNumberId) {
+      query = query.where("phone_number_id", phoneNumberId);
+    }
 
     if (filters.is_valid !== undefined) {
-      query = query.where('contacts.is_valid', filters.is_valid);
+      query = query.where("is_valid", filters.is_valid);
     }
 
     if (filters.search) {
-      query = query.where((builder: Knex.QueryBuilder) => {
+      query = query.where((builder: any) => {
         builder
-          .whereILike('contacts.name', `%${filters.search}%`)
-          .orWhereILike('contacts.email', `%${filters.search}%`)
-          .orWhere('contacts.phone_number', 'like', `%${filters.search}%`);
+          .where("name", "ilike", `%${filters.search}%`)
+          .orWhere("phone_number", "like", `%${filters.search}%`)
+          .orWhere("email", "ilike", `%${filters.search}%`);
       });
     }
 
     if (filters.attributes) {
       for (const [key, value] of Object.entries(filters.attributes)) {
-        if (
-          typeof value === 'string' ||
-          typeof value === 'number' ||
-          typeof value === 'boolean'
-        ) {
-          query = query.whereRaw(
-            `contacts.attributes->>? = ?`,
-            [key, String(value)]
-          );
-        }
+        query = query.whereRaw("attributes->>? = ?", [key, value]);
       }
     }
 

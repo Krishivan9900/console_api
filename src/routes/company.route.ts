@@ -24,7 +24,7 @@ companyRoute.get("/subscriptions",CompanyController.getCompaniesSubscription)
 
 // companyRoute.get('/:id', CompanyController.getById);
 companyRoute.get('/user-details/:userId',companyController.getUserDetails)
-// companyRoute.get("/user/:userId/",CompanyController.getUserById)
+companyRoute.get("/user/:userId/",CompanyController.getUserById)
 
 companyRoute.post('/:planId/regenerate-keys', CompanyController.regenerateKeys);
 companyRoute.get('/stats', CompanyController.getUserStats)

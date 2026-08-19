@@ -17,7 +17,7 @@ import productVariantModel from '../models/productVariant.model';
 import axios from 'axios'
 import contactModel from '../models/contact.model';
 import { PhoneNumber } from 'libphonenumber-js';
-import {normalizeRole} from '../../utils';
+import { normalizeRole } from '../../utils';
 
 interface LoginCredentials {
   identifier: string; // email or phone
@@ -349,7 +349,7 @@ class AuthService {
     const randomNumber = Math.floor(
       100000 + Math.random() * 900000
     );
-    
+
 
     const roleCode = `${rolePrefix}${randomNumber}`;
 
@@ -361,7 +361,7 @@ class AuthService {
 
       userType: normalizeRole,
 
-      created_by:"fpo",
+      created_by: "fpo",
       createdById: data.fpo_id || null,
 
       role: normalizedRole,
@@ -480,7 +480,7 @@ class AuthService {
       parent_user_id: data.parent_user_id,
 
       // company_details: company,
-      role_type:normalizedRole,
+      role_type: normalizedRole,
       user_id: krishivanUserId
     };
 
@@ -489,12 +489,14 @@ class AuthService {
         user.id,
         userPayload
       );
-      
+
     }
 
-    return await userModel.create(
-      userPayload
-    );
+    // return await userModel.create(
+    //   userPayload
+    // );
+
+    return await this.registerUserDetails(userPayload)
   }
 
   async sendOtp(email: string, otp: string) {
@@ -553,9 +555,12 @@ class AuthService {
     return { resetToken };
   }
 
+
+
+
   /**
-   * Register new user (company role)
-   */
+ * Register new user (company role)
+ */
   async register(data: {
     name: string;
     email?: string;
@@ -607,6 +612,127 @@ class AuthService {
 
     // Remove password from response
     const { password: _, ...userWithoutPassword } = user;
+
+    return userWithoutPassword;
+  }
+
+
+  async registerUserDetails(data: {
+    company_id?: string;
+
+    name: string;
+    email?: string;
+    phone?: string;
+    password: string;
+
+    role: string;
+    role_id?: string;
+    role_type?: string;
+
+    native_language?: string | null;
+
+    image_url?: string | null;
+
+    location?: any;
+
+    state?: string | null;
+    state_info?: any;
+
+    parent_user_id?: string;
+
+    user_id?: string;
+
+    user_role?: any;
+  }) {
+    const {
+      company_id,
+      name,
+      email,
+      phone,
+      password,
+      role,
+      role_id,
+      role_type,
+      native_language,
+      image_url,
+      location,
+      state,
+      state_info,
+      parent_user_id,
+      user_id,
+      user_role,
+    } = data;
+
+    console.log("Registering user with data:", data);
+
+    // Validate
+    if (!email && !phone) {
+      throw new HTTP400Error({
+        message: "Either email or phone is required",
+      });
+    }
+
+    // Check existing email
+    if (email) {
+      const existingUser = await UserModel.findByEmail(email);
+
+      if (existingUser) {
+        throw new HTTP400Error({
+          message: "Email already registered",
+        });
+      }
+    }
+
+    // Check existing phone
+    if (phone) {
+      const existingUser = await UserModel.findByPhone(phone);
+
+      if (existingUser) {
+        throw new HTTP400Error({
+          message: "Phone number already registered",
+        });
+      }
+    }
+
+    // Hash password
+    const hashedPassword = await this.hashPassword(password);
+
+    // Create user
+    const user = await UserModel.create({
+      company_id,
+
+      name,
+      email: email || null,
+      phone: phone || null,
+
+      password: hashedPassword,
+
+      role,
+      role_id,
+      role_type,
+      user_role,
+
+      native_language: native_language || null,
+
+      image_url: image_url || null,
+
+      location: location || {},
+
+      state: state || null,
+      state_info: state_info || null,
+
+      parent_user_id: parent_user_id || null,
+
+      user_id: user_id || null,
+
+      status: "active",
+    });
+
+    // Remove password from response
+    const {
+      password: _,
+      ...userWithoutPassword
+    } = user;
 
     return userWithoutPassword;
   }
