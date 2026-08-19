@@ -21,6 +21,7 @@ import {normalizeRole} from '../../utils';
 
 interface LoginCredentials {
   identifier: string; // email or phone
+
   password: string;
 }
 
@@ -45,6 +46,7 @@ class AuthService {
    * Login with email or phone number
    */
   async login(credentials: LoginCredentials, ipAddress: string) {
+    // const { identifier, password } = credentials;
     const { identifier, password } = credentials;
 
     if (!identifier || !password) {
@@ -92,8 +94,8 @@ class AuthService {
     const { password: _, ...userWithoutPassword } = user;
 
     return {
-      user: userWithoutPassword,
-      company,
+      // user: userWithoutPassword,
+      // company,
       token,
       expiresIn: this.JWT_EXPIRES_IN,
     };
