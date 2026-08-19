@@ -63,7 +63,7 @@ export async function handleIncomingMessageChatBot(phoneNumberId: any, message: 
     console.log("🤖 Found bot:", bot ? bot.name : "No bot");
     if (!bot) return null;
 
-    const mappedUserId = fpo_info.id ? fpo_info?.id : bot.user_id
+    const mappedUserId = fpo_info?.id || bot.user_id;
 
     //check exist contact
     const existContact = await contactModel.findByUserPhoneNumber(message.from)
@@ -87,8 +87,8 @@ export async function handleIncomingMessageChatBot(phoneNumberId: any, message: 
 
 
     // 2️⃣ Load nodes + edges
-    const rawNodes = await chatBotNodeModel.findByChatBotId(bot.id) || [];
-    const rawEdges = await chatBotEdgeModel.findByChatBotId(bot.id) || [];
+    const rawNodes = await chatBotNodeModel.findByChatBotId(bot?.id) || [];
+    const rawEdges = await chatBotEdgeModel.findByChatBotId(bot?.id) || [];
 
     bot.nodes = rawNodes.map((n: any) => ({
       ...n,

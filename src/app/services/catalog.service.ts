@@ -74,7 +74,7 @@ class catalogService {
                 product_id: variant.product_id,
                 variant_id: variant.variant_id,
 
-                name: variant.variantName,
+                name: variant.variantName.toLowerCase(),
                 description: `Product ${variant.productName}`,
 
                 brand: variant.brandName,
@@ -389,22 +389,48 @@ class catalogService {
     /**
      * Get Product Variant data
      */
-    async getProductVariants(category: string, catalog_id: string) {
-        console.log("Category", category, catalog_id)
-        const existingCategory = await productGroupModel.findGroupByCategory(category, catalog_id)
-        const existingProductVariant = await productVariantModel.findByCategory(category, catalog_id,)
-        if (!existingCategory || !existingProductVariant || existingProductVariant.length === 0) {
-            return { success: false, message: "Product Variant with those category not exists" }
-        }
-        const retailerIds = existingProductVariant.map(
-            (product) => product.retailer_id
-        );
+    // async getProductVariants(category: string, catalog_id: string) {
+    //     console.log("Category", category, catalog_id)
+    //     const existingCategory = await productGroupModel.findGroupByCategory(category, catalog_id)
+    //     const existingProductVariant = await productVariantModel.findByCategory(category, catalog_id,)
+    //     if (!existingCategory || !existingProductVariant || existingProductVariant.length === 0) {
+    //         return { success: false, message: "Product Variant with those category not exists" }
+    //     }
+    //     const retailerIds = existingProductVariant.map(
+    //         (product) => product.retailer_id
+    //     );
 
+    //     return {
+    //         success: true,
+    //         data: retailerIds,
+    //     };
+    // }
+
+
+async getProductVariants(name: string, catalog_id: string) {
+    console.log("Product Name:", name, "Catalog ID:", catalog_id);
+
+    const existingProductVariants =
+        await productVariantModel.findByProductName(name, catalog_id);
+
+    console.log("Existing Products",existingProductVariants)
+
+    if (!existingProductVariants || existingProductVariants.length === 0) {
         return {
-            success: true,
-            data: retailerIds,
+            success: false,
+            message: "No matching product variants found",
         };
     }
+
+    const retailerIds = existingProductVariants.map(
+        (product: any) => product.retailer_id
+    );
+
+    return {
+        success: true,
+        data: retailerIds,
+    };
+}
 
     /**
      * Get Catalog Groups

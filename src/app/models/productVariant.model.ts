@@ -5,7 +5,7 @@ class productVariantModel extends BaseModel {
         super('product_variants');
     }
 
-    async getGroupVariants( groupId: string) {
+    async getGroupVariants(groupId: string) {
         const query = this.query()
             .where('product_group_id', groupId)
             .whereNull('deleted_at');
@@ -14,30 +14,48 @@ class productVariantModel extends BaseModel {
         return data
     }
 
-    async findByRetailerId(retailer_id:string){
+    async findByRetailerId(retailer_id: string) {
         const query = this.query()
-          .where('retailer_id',retailer_id)
-          .whereNull('deleted_at')
-          .first()
+            .where('retailer_id', retailer_id)
+            .whereNull('deleted_at')
+            .first()
         return query
     }
 
-    async findByCategory(category:string,catalog_id:string){
+    async findByCategory(category: string, catalog_id: string) {
         const query = this.query()
-           .where('catalog_id',catalog_id)
-           .andWhere('category',category)
-           .whereNull('deleted_at')
+            .where('catalog_id', catalog_id)
+            .andWhere('category', category)
+            .whereNull('deleted_at')
         return query
     }
 
-    async findByProductId(product_id:string){
+    async findByProductId(product_id: string) {
         const query = this.query()
-           .where('product_id',product_id)
-           .whereNull('deleted_at')
-           .first()
+            .where('product_id', product_id)
+            .whereNull('deleted_at')
+            .first()
         return query
     }
 
+
+    async findByProductName(productName: string, catalog_id: string) {
+        const keywords = productName
+            .trim()
+            .toLowerCase()
+            .split(/\s+/)
+            .filter(Boolean)
+            .slice(0, 2);
+
+        const query = this.query()
+            .where("catalog_id", catalog_id);
+
+        for (const keyword of keywords) {
+            query.whereILike("name", `%${keyword}%`);
+        }
+
+        return query;
+    }
 
 }
 

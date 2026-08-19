@@ -245,7 +245,7 @@ export const executeNode = async ({
             //     ?? variables.http_response?.data?.phone_number
             details: {
                 company_details: variables?.http_response
-                    ? variables?.http_response.data.company_details
+                    ? variables?.http_response?.data?.company_details
                     : null,
                 gstin: variables?.gstin,
                 email: variables?.email,

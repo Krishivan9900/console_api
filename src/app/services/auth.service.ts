@@ -17,6 +17,7 @@ import productVariantModel from '../models/productVariant.model';
 import axios from 'axios'
 import contactModel from '../models/contact.model';
 import { PhoneNumber } from 'libphonenumber-js';
+import {normalizeRole} from '../../utils';
 
 interface LoginCredentials {
   identifier: string; // email or phone
@@ -337,28 +338,31 @@ class AuthService {
 
     const role = data.role || 'USER';
 
-    const rolePrefix = role
+    const normalizedRole = normalizeRole(role)
+
+    const rolePrefix = normalizedRole
       .toUpperCase()
       .slice(0, 3);
 
     const randomNumber = Math.floor(
       100000 + Math.random() * 900000
     );
+    
 
     const roleCode = `${rolePrefix}${randomNumber}`;
 
     const company = data.details || {};
-    const fpo_info = await userModel.findByPhone(data.phone_number)
+    // const fpo_info = await userModel.findByPhone(data.phone_number)
 
     const payload = {
       farming_mode: "Agriculture",
 
-      userType: role,
+      userType: normalizeRole,
 
       created_by:"fpo",
-      createdById: fpo_info.user_id,
+      createdById: data.fpo_id || null,
 
-      role,
+      role: normalizedRole,
 
       kyc_data: company
         ? {
@@ -442,6 +446,8 @@ class AuthService {
     const userPayload = {
       company_id: companyDetails.company_id,
 
+      // native_language:data.native_language,
+
       name:
         data.name ||
         company.trade_name ||
@@ -472,7 +478,7 @@ class AuthService {
       parent_user_id: data.parent_user_id,
 
       // company_details: company,
-
+      role_type:normalizedRole,
       user_id: krishivanUserId
     };
 

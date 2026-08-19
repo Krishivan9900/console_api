@@ -199,6 +199,87 @@ export function safeJSON(data: any) {
 // }
 
 
+export function normalizeRole(role: string): string {
+  if (!role) return "USER";
+
+  const normalized = role.trim().toLowerCase();
+
+  const roleMap: Record<string, string> = {
+    // Farmer
+    "farmer": "farmer",
+    "किसान": "farmer",
+    "రైతు": "farmer",
+
+    // Trader
+    "trader": "trader",
+    "व्यापारी": "trader",
+    "వ్యాపారి": "trader",
+
+    // FPO
+    "fpo": "fpo",
+    "किसान उत्पादक(fpo)": "fpo",
+    "రైతు ఉత్పత్తిదారు(fpo)": "fpo",
+
+    // Transport
+    "agricultural transport service": "agricultural_transport_service",
+    "कृषि परिवहन सेवा": "agricultural_transport_service",
+    "వ్యవసాయ రవాణా సేవ": "agricultural_transport_service",
+
+    // Micro Entrepreneur
+    "micro entrepreneur": "micro_entrepreneur",
+    "सूक्ष्म उद्यमी": "micro_entrepreneur",
+    "సూక్ష్మ వ్యాపారవేత్త": "micro_entrepreneur",
+
+    // Machinery
+    "agricultural machinery service provider": "agricultural_machinery_service_provider",
+    "कृषि मशीन सेवा प्रदाता": "agricultural_machinery_service_provider",
+    "వ్యవసాయ యంత్ర సేవా ప్రదాత": "agricultural_machinery_service_provider",
+
+    // Input Supplier
+    "agricultural input supplier": "agricultural_input_supplier",
+    "कृषि इनपुट आपूर्तिकर्ता": "agricultural_input_supplier",
+    "వ్యవసాయ ఇన్‌పుట్ సరఫరాదారు": "agricultural_input_supplier",
+
+    // Livestock
+    "livestock farmer": "livestock_farmer",
+    "पशुपालक": "livestock_farmer",
+    "పశుపోషకుడు": "livestock_farmer",
+  };
+
+  return roleMap[normalized] || role.toUpperCase();
+}
+
+
+export function normalizeLanguage(language: string) {
+  if (!language) return "english";
+
+  const normalized = language.trim().toLowerCase();
+
+  const languageMap: any = {
+    "english": "english",
+    "eng": "english",
+    "अंग्रेज़ी": "english",
+    "इंग्लिश": "english",
+    "ఇంగ్లీష్": "english",
+
+    "hindi": "hindi",
+    "hin": "hindi",
+    "हिंदी": "hindi",
+    "हिन्दी": "hindi",
+    "హిందీ": "hindi",
+
+    "telugu": "telugu",
+    "tel": "telugu",
+    "तेलुगु": "telugu",
+    "తెలుగు": "telugu",
+  };
+
+  return languageMap[normalized] || "english";
+}
+
+
+
+
 
 export function replaceVariables(
   obj: any,
@@ -210,51 +291,36 @@ export function replaceVariables(
 
   const getValue = (key: string) => {
     key = key.trim();
-
-
-            //     details: {
-            //     company_details:variables.http_response?.data?.company_details,
-            //     gstin: variables.gstin,
-            //     email:variables.email,
-            //     name: variables.name,
-            //     role:variables.role || "fpo",
-            //     photo:variables.photo,
-            //     location:{
-            //         latitude: variables.latitude,
-            //         longitude: variables.longitude,
-            //     },
-            //     phone_number:variables.phone_number,
-            //     parent_user_id: variables.parent_user_id
-            // }
-
+    
     // aliases
     if (key === "data" || key === "variable") {
       // return variables?.details;
-      console.log("Variables",variables)
-      return{
-        name:variables.name,
+      const normalizedLanguage = normalizeLanguage(variables?.native_language)
+      console.log("Variables", variables)
+      return {
+        name: variables.name,
         details: variables?.details?.company_details ?? null,
-        native_language:variables?.native_language,
-        gstin:variables?.gstin,
-        role:variables.role,
-        email:variables.email,
-        photo:variables.photo,
+        native_language: normalizedLanguage,
+        gstin: variables?.gstin,
+        role: variables.role,
+        email: variables.email,
+        photo: variables.photo,
         chat: variables.chat,
-        image_url:variables.image_url,
-        voice:variables.voice,
+        image_url: variables.image_url,
+        voice: variables.voice,
 
-        location:{
-  latitude:
-    variables?.location?.latitude ||
-    variables?.details?.company_details?.pradr?.latitude ||
-    null,
+        location: {
+          latitude:
+            variables?.location?.latitude ||
+            variables?.details?.company_details?.pradr?.latitude ||
+            null,
 
-  longitude:
-    variables?.location?.longitude ||
-    variables?.details?.company_details?.pradr?.longitude ||
-    null,
+          longitude:
+            variables?.location?.longitude ||
+            variables?.details?.company_details?.pradr?.longitude ||
+            null,
         },
-        phone_number:variables.phone_number,
+        phone_number: variables.phone_number,
         parent_user_id: variables.parent_user_id ? variables.parent_user_id : variables?.api_response?.data?.parent_user_id
       }
     }
@@ -421,26 +487,26 @@ export function replaceVariables(
 
 
 export const downloadImage = async (mediaId: string) => {
-    console.log("MediaId:", mediaId);
-    try {
-      const mediaUrl = metaService.handleMedia(mediaId)
-      console.log("Media Url",mediaUrl)
-      return mediaUrl
-    } catch (error: any) {
-        console.error(
-            '❌ Error downloading image:',
-            error.response?.status,
-            error.response?.data || error.message
-        );
-        throw error;
-    }
+  console.log("MediaId:", mediaId);
+  try {
+    const mediaUrl = metaService.handleMedia(mediaId)
+    console.log("Media Url", mediaUrl)
+    return mediaUrl
+  } catch (error: any) {
+    console.error(
+      '❌ Error downloading image:',
+      error.response?.status,
+      error.response?.data || error.message
+    );
+    throw error;
+  }
 };
 
 
-export default function sendEmail(to: string, subject: string, text: string,html?: string) {
+export default function sendEmail(to: string, subject: string, text: string, html?: string) {
   console.log(`📧 Sending email to ${to}: ${subject}\n${text}`);
   return transporter.sendMail({
-    from : `"Your App Name" <${process.env.SMTP_USER}>`,
+    from: `"Your App Name" <${process.env.SMTP_USER}>`,
     to,
     subject,
     text,
@@ -581,13 +647,13 @@ export function replaceBodyVariables(
   });
 }
 
-export async function buildProductMessage(category:string,catalog_id:string){
-  console.log("Build Product Message",catalog_id,category)
-  const getProductVariants = await catalogService.getProductVariants(category,catalog_id)
-  console.log("Product Variants",getProductVariants)
+export async function buildProductMessage(category: string, catalog_id: string) {
+  console.log("Build Product Message", catalog_id, category)
+  const getProductVariants = await catalogService.getProductVariants(category, catalog_id)
+  console.log("Product Variants", getProductVariants)
 }
 
-export async function buildResponse(node: any,session?:any, bot?:any) {
+export async function buildResponse(node: any, session?: any, bot?: any) {
   console.log('NextNode', JSON.stringify(node))
   const data = safeJSON(node.data);
 
@@ -623,16 +689,63 @@ export async function buildResponse(node: any,session?:any, bot?:any) {
     };
   }
 
+  // if (key === "@whatsapp/send-product-message") {
+  //   //Get catalog_id from message.action.catalog_id
+  //   //Get category from session.variable.category
+  //   //call catalogService pass the catalog_id,category
+  //   // create function buildProductMessage 
+  //   console.log("Product session", session.variables.category)
+  //   console.log("Product node", data.attributes.message.interactive.action.catalog_id)
+  //   const catalog_id = data.attributes.message.interactive.action.catalog_id
+  //   const category = session.variables.category
+  //   const productVariants = await catalogService.getProductVariants(category, catalog_id)
+  //   const productItems = productVariants.data?.map((id: string) => {
+  //     return {
+  //       product_retailer_id: id
+  //     };
+  //   })
+
+  //   console.log("Product Items", productItems)
+
+  //   return {
+  //     type: "interactive",
+
+  //     interactive: {
+  //       type: "product_list",
+
+  //       header: {
+  //         type: "text",
+  //         text: "View Krishivan Catalog"
+  //       },
+
+  //       body: {
+  //         text: "Select a product to place order"
+  //       },
+  //       action: {
+  //         catalog_id: catalog_id,
+  //         sections: [
+  //           {
+  //             title: `View selected ${category}`,
+  //             product_items: productItems
+  //           }
+  //         ]
+  //       }
+
+  //     }
+
+  //   }
+  // }
+
   if (key === "@whatsapp/send-product-message") {
     //Get catalog_id from message.action.catalog_id
     //Get category from session.variable.category
     //call catalogService pass the catalog_id,category
     // create function buildProductMessage 
-    console.log("Product session", session.variables.category)
-    console.log("Product node", data.attributes.message.interactive.action.catalog_id)
-    const catalog_id = data.attributes.message.interactive.action.catalog_id
-    const category = session.variables.category
-    const productVariants = await catalogService.getProductVariants(category, catalog_id)
+    console.log("Product node",session.variables)
+    const catalog_id = '795853123055079'
+    const product_name = session.variables.product_name
+    console.log("Product Name",product_name)
+    const productVariants = await catalogService.getProductVariants(product_name, catalog_id)
     const productItems = productVariants.data?.map((id: string) => {
       return {
         product_retailer_id: id
@@ -659,7 +772,7 @@ export async function buildResponse(node: any,session?:any, bot?:any) {
           catalog_id: catalog_id,
           sections: [
             {
-              title: `View selected ${category}`,
+              title: `View Krishivan Products`,
               product_items: productItems
             }
           ]
@@ -678,11 +791,11 @@ export async function buildResponse(node: any,session?:any, bot?:any) {
       interactive: {
         type: "button",
 
-        header:{
+        header: {
           type: "text",
           text: data?.attributes
-           ? data?.attributes?.message?.interactive?.header?.text || "" 
-           : ""
+            ? data?.attributes?.message?.interactive?.header?.text || ""
+            : ""
         },
 
         body: {
