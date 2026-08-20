@@ -84,7 +84,8 @@ export const jwtAuthMiddleware = async (
     // 2. Verify JWT
     // --------------------------------------------------
 
-    const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret';
+    // const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret';
+    const JWT_SECRET = 'your_jwt_secret';
 
     let jwtPayload: JWTPayload;
 

@@ -14,7 +14,7 @@ class ContactModel extends BaseModel {
   }
 
 
-  async findByUserPhoneNumber(phoneNumber: string) {
+  async findByUserPhoneNumber(phoneNumber: any) {
     return this.query()
       .where({ phone_number: phoneNumber })
       .whereNull('deleted_at')

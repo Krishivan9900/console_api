@@ -496,6 +496,7 @@ class AuthService {
     //   userPayload
     // );
 
+
     return await this.registerUserDetails(userPayload)
   }
 
@@ -727,6 +728,16 @@ class AuthService {
 
       status: "active",
     });
+
+    const existingContact = await contactModel.findByUserPhoneNumber(phone)
+
+    if(existingContact){
+      await contactModel.update(existingContact.id,{
+        role_type: role_type,
+        reference_id: user_id,
+        role_id: role_id,
+      })
+    }
 
     // Remove password from response
     const {
