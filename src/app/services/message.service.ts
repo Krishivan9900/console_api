@@ -17,6 +17,7 @@ import { downloadImage } from '@surefy/console/utils';
 import productVariantModel from '../models/productVariant.model';
 import axios from 'axios';
 import chatSessionModel from '../models/chatSession.model';
+import phoneNumberModel from '@surefy/console/models/phoneNumber.model';
 
 class MessageService {
   /**
@@ -535,7 +536,8 @@ class MessageService {
   }
 
   async getLeadConversations(leadNumber: any, phone_number_id: any, userId: string,time_frame:any) {
-    return MessageModel.getLeadConversations(leadNumber, phone_number_id, userId,time_frame)
+    const phoneNumber = await phoneNumberModel.findByPhoneNumberId(phone_number_id)
+    return MessageModel.getLeadConversations(leadNumber, phoneNumber.id, userId,time_frame)
   }
 
 
