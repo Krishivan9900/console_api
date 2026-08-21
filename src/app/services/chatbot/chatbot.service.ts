@@ -56,6 +56,8 @@ export async function handleIncomingMessageChatBot(phoneNumberId: any, message: 
       const phoneNumber = cleanNumber.startsWith("91")
             ? cleanNumber
             : `91${cleanNumber}`;
+
+      console.log("Phone Number",phoneNumber)
       
       fpo_info = await userModel.findByPhone(phoneNumber)
     }
@@ -65,27 +67,29 @@ export async function handleIncomingMessageChatBot(phoneNumberId: any, message: 
     console.log("🤖 Found bot:", bot ? bot.name : "No bot");
     if (!bot) return null;
 
-    const mappedUserId = fpo_info?.id ? fpo_info?.id: bot.user_id ;
+    const mappedUserId = fpo_info?.id ? fpo_info?.id: bot.user_id;
 
     //check exist contact
     const existContact = await contactModel.findByUserPhoneNumber(message.from)
     console.log("Existing Contant",existContact)
     if(!existContact){
       const newContact = await contactModel.create({
-        user_id: mappedUserId,
+        // user_id: mappedUserId,
+        user_id: bot.user_id,
         company_id:bot.company_id,
         phone_number:message.from,
         name:profile_name
       })
       console.log("New Contact", newContact)
-    }else{
-        // Update contact mapping if FPO user found
-  if (existContact.user_id !== mappedUserId) {
-    await contactModel.update(existContact.id, {
-      user_id: mappedUserId,
-    });
-  }
     }
+  //   else{
+  //       // Update contact mapping if FPO user found
+  // if (existContact.user_id !== mappedUserId) {
+  //   await contactModel.update(existContact.id, {
+  //     name:profile_name
+  //   });
+  // }
+  //   }
 
 
     // 2️⃣ Load nodes + edges
