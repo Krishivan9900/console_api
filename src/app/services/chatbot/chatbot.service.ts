@@ -60,10 +60,12 @@ export async function handleIncomingMessageChatBot(phoneNumberId: any, message: 
       fpo_info = await userModel.findByPhone(phoneNumber)
     }
 
+    console.log("Fpo Info",fpo_info)
+
     console.log("🤖 Found bot:", bot ? bot.name : "No bot");
     if (!bot) return null;
 
-    const mappedUserId = fpo_info?.id || bot.user_id;
+    const mappedUserId = fpo_info?.id ? fpo_info?.id: bot.user_id ;
 
     //check exist contact
     const existContact = await contactModel.findByUserPhoneNumber(message.from)
