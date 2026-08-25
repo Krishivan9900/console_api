@@ -765,19 +765,11 @@ class MessageService {
     const response = await axios.post("https://l07yapr0ub.execute-api.ap-south-1.amazonaws.com/prod/farmer-function/order", payload)
     console.log("Order Confirmation Response:", response.data)
 
-    // A chat session is optional. Order placement must not depend on it.
-    if (from) {
-      try {
-        const existingSession = await chatSessionModel.findByPhoneNumber(from);
-
-        if (existingSession) {
-          await chatSessionModel.update(existingSession.id, { active: false });
-        }
-      } catch (sessionError: any) {
-        console.error("Order placed, but chat session cleanup failed:", sessionError.message);
-      }
+    const existingSessions = await chatSessionModel.findByPhoneNumber(from)
+    console.log("Session",existingSessions)
+    if(existingSessions){
+      await chatSessionModel.update(existingSessions.id,{active:false})
     }
-
     return response
   }
 }

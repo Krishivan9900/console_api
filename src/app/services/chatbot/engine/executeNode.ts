@@ -235,6 +235,12 @@ export const executeNode = async ({
 
             gstin:
                 variables?.http_response?.data?.gstin,
+            
+            data:{
+                company_details: variables?.http_response
+                    ? variables?.http_response?.data?.company_details
+                    : null,
+            },
 
             valid:
                 variables?.http_response?.data?.valid,

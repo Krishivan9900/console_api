@@ -15,6 +15,7 @@ class productVariantModel extends BaseModel {
     }
 
     async findByRetailerId(retailer_id: string) {
+        console.log('Retailer Id',retailer_id)
         const query = this.query()
             .where('retailer_id', retailer_id)
             .whereNull('deleted_at')
