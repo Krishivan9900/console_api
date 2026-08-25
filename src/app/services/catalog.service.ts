@@ -46,8 +46,7 @@ class catalogService {
      */
     private async syncVariant(variant: any) {
         try {
-            console.log("Variant",variant)
-            const variantName = String(variant.variantsName ?? variant.variantsName ?? variant.productName ?? "Unnamed variant");
+            const variantName = String(variant.variantsName ?? variant.variantName ?? variant.productName ?? "Unnamed variant");
             const productName = String(variant.productName ?? "");
             const categoryName = String(variant.categoryName ?? "");
             const subCategoryName = String(variant.subCategoryName ?? "");
@@ -78,18 +77,16 @@ class catalogService {
                 `[SYNC] Found Catalog: ${existingCatalog.id}`
             );
 
-            // Check if variant already exists
-            const existingVariant =
-                variant.product_id
-                    ? await productVariantModel.findByProductId(variant.product_id)
-                    : await productVariantModel.findByVariantId(sourceVariantId);
+            // variant_id identifies one variant. product_id can have many variants.
+            const existingVariant = await productVariantModel.findByVariantId(sourceVariantId);
+            const isNewVariant = !existingVariant;
 
             const retailer_id = `${variantName}-${sourceVariantId}`
                 .replace(/[^a-zA-Z0-9]+/g, "_")
                 .replace(/^_+|_+$/g, "");
 
             const dbpayloadVariant = {
-                retailer_id: existingVariant?.retailer_id ? existingVariant.retailer_id : retailer_id ,
+                retailer_id: existingVariant?.retailer_id || retailer_id,
                 product_group_id: existingCatalog.id,
                 catalog_id: existingCatalog.catalog_id,
 
@@ -99,19 +96,19 @@ class catalogService {
                 name: variantName.toLowerCase(),
                 description: `Product ${productName}`,
 
-                brand: variant.brandName,
+                brand: String(variant.brandName ?? ""),
                 color: variant.color || null,
                 size: variant.sizeColor || null,
 
-                price: parseFloat(String(variant.salePrice)),
-                quantity: Number(variant.quantity || "0"),
-                unit: variant.unit,
+                price: Number(variant.salePrice) || 0,
+                quantity: String(variant.quantity ?? "0"),
+                unit: String(variant.unit ?? ""),
 
                 currency: "INR",
                 availability: "in stock",
                 condition: "new",
 
-                image_url: variant.productImage,
+                image_url: String(variant.productImage ?? ""),
                 url: variant.url || "https://example.com",
 
                 gst: variant.gst,
@@ -119,108 +116,53 @@ class catalogService {
                 category: categoryName.toLowerCase(),
 
                 product_added_by: variant.user_id,
-                meta_status: "synced",
+                meta_status: "pending",
             };
-    //   "name": "Running Shoes red size 44",
-    //   "description": "Comfortable running shoes",
-    //   "color": "Red",
-    //   "size": "42",
-    //   "price": "499900",
-    //   "currency": "INR",
-    //   "availability": "in stock",
-    //   "condition": "new",
-    //   "brand": "Krishione",
-    //   "image_index": 0,
-    //   "url": "https://example.com/products/shoe-red-42"
 
             const metaPayloadVariant = {
                 name: variantName,
                 description: `Product ${productName}`,
-                color:variant.sizeColor,
-                price: Math.round(parseFloat(String(variant.salePrice)) * 100),
-                size:variant.sizeColor,
+                color: variant.color || null,
+                price: Math.round((Number(variant.salePrice) || 0) * 100),
+                size: variant.sizeColor || null,
                 availability: "in stock",
                 condition: "new",
-                brand: variant.brandName,
-                image_url: variant.productImage,
+                brand: String(variant.brandName ?? ""),
+                image_url: String(variant.productImage ?? ""),
                 url: variant.url || "https://example.com/products/shoe-red-42",
                 currency: "INR"
             };
 
-            console.log(
-                "[SYNC] Payload:",
-                JSON.stringify(metaPayloadVariant, null, 2)
-            );
+            // Store locally before contacting Meta. This makes local sync durable.
+            const savedVariant = isNewVariant
+                ? await productVariantModel.create(dbpayloadVariant)
+                : await productVariantModel.update(existingVariant.id, dbpayloadVariant);
 
-            if (!existingVariant) {
-                console.log(
-                    `[SYNC] Creating new variant ${variant.variant_id}`
+            try {
+                const response = await metaService.createProductVariantBatch(
+                    existingCatalog.catalog_id,
+                    {
+                        method: isNewVariant ? "CREATE" : "UPDATE",
+                        item_type: "PRODUCT_ITEM",
+                        retailer_id: dbpayloadVariant.retailer_id,
+                        data: metaPayloadVariant,
+                    },
                 );
-
-                // Meta Sync
-
-                const response =
-                    await metaService.createProductVariantBatch(
-                        existingCatalog.catalog_id,
-                        {
-                            method: "CREATE",
-                            item_type: "PRODUCT_ITEM",
-                            retailer_id,
-                            data: metaPayloadVariant,
-                        }
-                    );
 
                 if (!response?.handles) {
-                    throw new Error(
-                        response?.error?.message ||
-                        "Meta Variant Upload Failed"
-                    );
+                    throw new Error(response?.error?.message || "Meta Variant Upload Failed");
                 }
 
+                return await productVariantModel.update(savedVariant.id, {
+                    meta_status: "synced",
+                });
+            } catch (metaError: any) {
+                await productVariantModel.update(savedVariant.id, {
+                    meta_status: "failed",
+                });
 
-                const savedVariant =
-                    await productVariantModel.create(
-                        dbpayloadVariant
-                    );
-
-                console.log(
-                    "[SYNC] Variant Created:",
-                    savedVariant
-                );
-
-                return savedVariant;
+                throw new Error(`Variant stored locally but Meta sync failed: ${metaError.message}`);
             }
-
-            console.log(
-                `[SYNC] Variant ${variant.variant_id} already exists. Updating...`
-            );
-
-            const response = await metaService.createProductVariantBatch(
-                        existingCatalog.catalog_id,
-                        {
-                            method: "UPDATE",
-                            item_type: "PRODUCT_ITEM",
-                            retailer_id,
-                            data: metaPayloadVariant,
-                        }
-                    );
-
-            if (!response?.handles) {
-                throw new Error(
-                    response?.error?.message ||
-                    "Meta Variant Upload Failed"
-                );
-            }
-
-            // Update existing variant
-            const updatedVariant = await productVariantModel.update(existingVariant.id,dbpayloadVariant)
-                
-            console.log(
-                "[SYNC] Variant Updated:",
-                updatedVariant
-            );
-
-            return updatedVariant;
         } catch (error: any) {
             console.error(
                 `[SYNC ERROR] Variant ${variant?.variant_id}`,
