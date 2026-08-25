@@ -14,20 +14,31 @@ class catalogService {
     /**
      *POST /v1/  
      */
-    private async getAllOrgVariants(accessToken: string) {
-        console.log('Acess Token', accessToken)
-        const response = await axios.post(
-            'https://l07yapr0ub.execute-api.ap-south-1.amazonaws.com/prod/farmer-function/all-org-variants',
-            {},
-            {
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${accessToken}`,
-                }
-            },
-        )
-        // console.log("Response",response.data)
-        return response.data.data
+    private async getAllOrgVariants() {
+        const url = 'https://l07yapr0ub.execute-api.ap-south-1.amazonaws.com/prod/farmer-function/api/integrations/whatsapp/product-variants';
+
+        try {
+            const { data } = await axios.get(
+                url,
+                // {}, // Empty request body: this endpoint returns all organization variants.
+                {
+                    headers: {
+                        'X-Internal-Api-Key': 'krishiwhatsappskjf4543k',
+                        // 'Content-Type': 'application/json',
+                    },
+                },
+            );
+
+            if (!data?.success || !Array.isArray(data?.data)) {
+                throw new Error(data?.message || 'Invalid product variants response');
+            }
+
+            console.log(`Fetched ${data.data.length} organization variants`);
+            return data.data;
+        } catch (error: any) {
+            const message = error.response?.data?.message || error.message;
+            throw new Error(`Failed to fetch organization variants: ${message}`);
+        }
     }
 
     /**
@@ -35,20 +46,31 @@ class catalogService {
      */
     private async syncVariant(variant: any) {
         try {
+            console.log("Variant",variant)
+            const variantName = String(variant.variantsName ?? variant.variantsName ?? variant.productName ?? "Unnamed variant");
+            const productName = String(variant.productName ?? "");
+            const categoryName = String(variant.categoryName ?? "");
+            const subCategoryName = String(variant.subCategoryName ?? "");
+            const sourceVariantId = String(variant.variant_id ?? variant._id ?? "");
+
+            if (!sourceVariantId) {
+                throw new Error("Variant id is missing");
+            }
+
             console.log(
-                `[SYNC] Processing Variant: ${variant.variant_id}`
+                `[SYNC] Processing Variant: ${sourceVariantId}`
             );
 
             // Find matching product group/category
             const existingCatalog =
                 await productGroupModel.findGroupByCategory(
-                    variant.categoryName,
+                    categoryName,
                     "795853123055079"
                 );
 
             if (!existingCatalog) {
                 throw new Error(
-                    `Category '${variant.categoryName}' does not exist`
+                    `Category '${categoryName}' does not exist`
                 );
             }
 
@@ -58,11 +80,11 @@ class catalogService {
 
             // Check if variant already exists
             const existingVariant =
-                await productVariantModel.findByProductId(
-                    variant.product_id
-                );
+                variant.product_id
+                    ? await productVariantModel.findByProductId(variant.product_id)
+                    : await productVariantModel.findByVariantId(sourceVariantId);
 
-            const retailer_id = variant.variantName
+            const retailer_id = `${variantName}-${sourceVariantId}`
                 .replace(/[^a-zA-Z0-9]+/g, "_")
                 .replace(/^_+|_+$/g, "");
 
@@ -71,11 +93,11 @@ class catalogService {
                 product_group_id: existingCatalog.id,
                 catalog_id: existingCatalog.catalog_id,
 
-                product_id: variant.product_id,
-                variant_id: variant.variant_id,
+                product_id: variant.product_id || null,
+                variant_id: sourceVariantId,
 
-                name: variant.variantName.toLowerCase(),
-                description: `Product ${variant.productName}`,
+                name: variantName.toLowerCase(),
+                description: `Product ${productName}`,
 
                 brand: variant.brandName,
                 color: variant.color || null,
@@ -93,8 +115,8 @@ class catalogService {
                 url: variant.url || "https://example.com",
 
                 gst: variant.gst,
-                sub_category: variant.subCategoryName.toLowerCase(),
-                category: variant.categoryName.toLowerCase(),
+                sub_category: subCategoryName.toLowerCase() || null,
+                category: categoryName.toLowerCase(),
 
                 product_added_by: variant.user_id,
                 meta_status: "synced",
@@ -112,8 +134,8 @@ class catalogService {
     //   "url": "https://example.com/products/shoe-red-42"
 
             const metaPayloadVariant = {
-                name: variant.variantName,
-                description: `Product ${variant.productName}`,
+                name: variantName,
+                description: `Product ${productName}`,
                 color:variant.sizeColor,
                 price: Math.round(parseFloat(String(variant.salePrice)) * 100),
                 size:variant.sizeColor,
@@ -459,10 +481,9 @@ async getProductVariants(name: string, catalog_id: string) {
     async syncOrganizationCatalog(
         user_id: string,
         company_id: string,
-        accessToken: string
     ) {
         try {
-            const orgData = await this.getAllOrgVariants(accessToken);
+            const orgData = await this.getAllOrgVariants();
 
             console.log(
                 `Found ${orgData?.length || 0} variants to sync`

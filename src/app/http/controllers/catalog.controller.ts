@@ -163,12 +163,10 @@ class catalogController {
      */
     syncOrganizationVarinats = tryCatchAsync(async(req:Request,res:Response)=>{
         try{
-            const authHeader:any = req.headers['authorization'];
-            const token = authHeader.substring(7)
-            console.log("JWT Auth Middleware - Authorization header:", token); // Debug log
             const user_id = "d051edc7-52ae-45bd-abad-e021f94cf557"
             const company_id = "e964154b-7ed9-423d-bee3-c6e190dc0ab2"
-            const syncAllCatalog = await catalogService.syncOrganizationCatalog(user_id,company_id,token) 
+            const syncAllCatalog = await catalogService.syncOrganizationCatalog(user_id,company_id)
+            console.log("Catalog",syncAllCatalog)
             successResponse(req,res,"Sync Meta-variant successfully",syncAllCatalog,HttpStatusCode.OK)
         }catch(error:any){
             return res.status(error.statusCode || 500).json({

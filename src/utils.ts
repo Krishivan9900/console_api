@@ -291,7 +291,7 @@ export function replaceVariables(
 
   const getValue = (key: string) => {
     key = key.trim();
-    
+
     // aliases
     if (key === "data" || key === "variable") {
       // return variables?.details;
@@ -628,24 +628,49 @@ export const normalizePhoneNumber = (
   };
 };
 
-export function replaceBodyVariables(
-  text: string,
-  variables: Record<string, any> = {}
-): string {
-  if (!text) return "";
+// export function replaceBodyVariables(
+//   text: string,
+//   variables: Record<string, any> = {}
+// ): string {
+//   if (!text) return "";
 
-  return text.replace(/\{\{(.*?)\}\}/g, (_, variable) => {
-    const value = variable
-      .trim()
-      .split(".")
-      .reduce(
-        (obj: any, key: string) => obj?.[key],
-        variables
-      );
+//   return text.replace(/\{\{(.*?)\}\}/g, (_, variablePath) => {
+//     const value = variablePath
+//       .trim()
+//       .split(".")
+//       .reduce(
+//         (obj: any, key: string) => obj?.[key],
+//         variables
+//       );
 
-    return value ?? "";
+//     console.log(
+//       `Variable: ${variablePath} =>`,
+//       value
+//     );
+
+//     return value !== undefined && value !== null
+//       ? String(value)
+//       : "";
+//   });
+// }
+
+
+function getNestedValue(obj: any, path: string) {
+  return path.split(".").reduce((current, key) => {
+    return current?.[key];
+  }, obj);
+}
+
+function replaceBodyVariables(text: string, variables: any) {
+  return text.replace(/\{\{([^}]+)\}\}/g, (_, key) => {
+    const value = getNestedValue(variables, key.trim());
+
+    return value !== undefined && value !== null
+      ? String(value)
+      : "";
   });
 }
+
 
 export async function buildProductMessage(category: string, catalog_id: string) {
   console.log("Build Product Message", catalog_id, category)
@@ -674,14 +699,46 @@ export async function buildResponse(node: any, session?: any, bot?: any) {
     };
   }
 
-  if (key === "@whatsapp/send-text-message") {
-    let text =
-      data?.attributes?.message?.text?.body || "";
+  // if (key === "@whatsapp/send-text-message") {
+  //   // const text = `Welcome to Krishivan Organization! 🎉l
+  //   let text =
+  //     data?.attributes?.message?.text?.body || "";
 
-    text = replaceBodyVariables(
-      text,
-      session?.variables || {}
-    );
+  //   text = replaceBodyVariables(
+  //     text,
+  //     session?.variables || {}
+  //   );
+  //   return {
+  //     type: "text",
+  //     text,
+  //   };
+  // }
+
+  if (key === "@whatsapp/send-text-message") {
+    const text = `Welcome to Krishivan Organization! 🎉
+
+Hello Ritesh,
+
+Your account has been created successfully .
+
+📧 Email: ritesh45@gmail.com
+   Company Name: JAIVIK KISAN UPAJ PRODUCER COMPANY LIMITED
+   PAN Number: AAECJ8814A
+   Address: 881, SETELIGHT JUCTION, A.B. ROAD, INDORE, Indore, Madhya Pradesh, 452010
+🔐 Password: 123456
+👤 Role: FPO
+
+Your Information has been verified through your gst number
+
+You can login using the link below:
+
+🔗 https://fpo-krishivan.web.app/login
+
+Please keep your login credentials safe.
+
+Welcome aboard! 🚀`;
+
+    console.log("TEXT", text);
 
     return {
       type: "text",
@@ -741,10 +798,10 @@ export async function buildResponse(node: any, session?: any, bot?: any) {
     //Get category from session.variable.category
     //call catalogService pass the catalog_id,category
     // create function buildProductMessage 
-    console.log("Product node",session.variables)
+    console.log("Product node", session.variables)
     const catalog_id = '795853123055079'
     const product_name = session.variables.product_name
-    console.log("Product Name",product_name)
+    console.log("Product Name", product_name)
     const productVariants = await catalogService.getProductVariants(product_name, catalog_id)
     const productItems = productVariants.data?.map((id: string) => {
       return {
