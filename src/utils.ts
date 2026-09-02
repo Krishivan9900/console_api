@@ -724,7 +724,9 @@ export async function buildProductMessage(category: string, catalog_id: string) 
 
 export async function buildResponse(node: any, session?: any, bot?: any) {
   console.log('NextNode', JSON.stringify(node))
+  console.log()
   const data = safeJSON(node.data);
+  
 
   // if (node.type === "message") {
   //   return {
@@ -752,9 +754,12 @@ export async function buildResponse(node: any, session?: any, bot?: any) {
     //   text,
     //   session?.variables || {}
     // );
+
+    console.log('Next Node',node?.nextNodeId)
     return {
       type: "text",
       text,
+      nextNodeId: node?.nextNodeId || null,
     };
   }
 

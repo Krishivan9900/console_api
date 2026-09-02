@@ -110,6 +110,27 @@ class MetaService {
 
   }
 
+  /** Download an inbound Meta media document without converting or uploading it. */
+  async downloadMediaBuffer(mediaId: string): Promise<{ buffer: Buffer; mimeType?: string; fileName?: string }> {
+    try {
+      const mediaResponse = await this.client.get(`/${mediaId}`);
+      const downloadResponse = await axios.get(mediaResponse.data.url, {
+        responseType: 'arraybuffer',
+        headers: { Authorization: `Bearer ${this.accessToken}` },
+      });
+
+      return {
+        buffer: Buffer.from(downloadResponse.data),
+        mimeType: mediaResponse.data.mime_type,
+        fileName: mediaResponse.data.file_name,
+      };
+    } catch (error: any) {
+      throw new HTTP400Error({
+        message: 'Failed to download Meta media document',
+        details: error.response?.data || error.message,
+      });
+    }
+  }
   /**
    * Mark message as read
    */

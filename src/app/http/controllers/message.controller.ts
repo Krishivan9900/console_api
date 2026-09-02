@@ -6,6 +6,8 @@ import { AuthRequest } from '@surefy/middleware/auth.middleware';
 import HTTP400Error from '@surefy/exceptions/HTTP400Error';
 import { v4 as uuidv4, validate as uuidValidate } from "uuid";
 import { handleIncomingMessageChatBot } from  "@surefy/console/app/services/chatbot/chatbot.service"
+import MetaService from '@surefy/console/services/meta.service';
+import AuthService from '@surefy/console/services/auth.service';
 
 class MessageController {
   /**
@@ -192,6 +194,51 @@ class MessageController {
               content: message,
               context: message?.context?.id,
             });
+
+            const document = message.document;
+            const filename = String(document?.filename || '').toLowerCase();
+            const isSpreadsheet = message.type === 'document' && Boolean(document?.id) && (
+              [
+                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                'application/vnd.ms-excel',
+                'text/csv',
+                'application/csv',
+              ].includes(document?.mime_type) ||
+              /\.(xlsx|xls|csv)$/.test(filename)
+            );
+
+            if (isSpreadsheet) {
+              try {
+                const media = await MetaService.downloadMediaBuffer(document.id);
+                const result = await AuthService.importFpoLeads(
+                  media.buffer,
+                  value.metadata.phone_number_id,
+                  message.from
+                );
+
+                await MessageService.sendChatBotMessage(
+                  value.metadata.phone_number_id,
+                  message.from,
+                  {
+                    type: 'text',
+                    text: `FPO lead file processed: ${result.imported_count} imported, ${result.failed_count} failed.`,
+                  }
+                );
+              } catch (error: any) {
+                console.error('FPO lead Excel import failed:', error?.message || error);
+                await MessageService.sendChatBotMessage(
+                  value.metadata.phone_number_id,
+                  message.from,
+                  {
+                    type: 'text',
+                    text: 'We could not process this Excel file. Please use the FPO lead template and try again.',
+                  }
+                );
+              }
+
+              // A spreadsheet is handled as a lead import, not as chatbot input.
+              continue;
+            }
 
             await handleIncomingMessageChatBot(value.metadata.phone_number_id,message,value.contacts?.[0]?.profile?.name)
           }

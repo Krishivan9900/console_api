@@ -9,6 +9,7 @@ import sendEmail from '../../../utils';
 import { uploadImage } from '@surefy/config/firebase.config';
 import catalogService from '../../services/catalog.service';
 import authService from '@surefy/console/services/auth.service';
+import * as fs from 'fs';
  
 export interface JWTRequest extends Request {
   userId?: string;
@@ -226,6 +227,38 @@ class AuthController {
     });
   }
 
+  /**
+   * POST /v1/auth/fpo-leads/import
+   * Form-data fields: file (.xlsx/.xls/.csv) and phone_number_id.
+   */
+  importFpoLeads = tryCatchAsync(async (req: Request, res: Response) => {
+    const file = req.file;
+    const { phone_number_id } = req.body;
+
+    if (!file) {
+      throw new HTTP400Error({ message: 'Excel file is required' });
+    }
+    if (!phone_number_id) {
+      throw new HTTP400Error({ message: 'phone_number_id is required' });
+    }
+
+    try {
+      const result = await AuthService.importFpoLeads(file.path, phone_number_id);
+      return successResponse(req, res, 'FPO leads import completed', result, HttpStatusCode.CREATED);
+    } finally {
+      if (fs.existsSync(file.path)) {
+        fs.unlinkSync(file.path);
+      }
+    }
+  });
+
+  /** GET /v1/auth/fpo-leads/import/sample */
+  downloadFpoLeadsTemplate = tryCatchAsync(async (_req: Request, res: Response) => {
+    const buffer = AuthService.generateFpoLeadsTemplate();
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', 'attachment; filename=fpo_leads_import_sample.xlsx');
+    res.send(buffer);
+  });
   async storedChatSession(req:Request,res:Response){
     console.log("Requests bodies",req.body)
     const{session_data} = req.body

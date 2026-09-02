@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { jwtAuthMiddleware, requireRole } from '@surefy/middleware/jwtAuth.middleware';
 import AuthController from '@surefy/console/http/controllers/auth.controller';
 import messageController from '../app/http/controllers/message.controller';
-import { uploadMediaMiddleware } from '@surefy/middleware/upload.middleware';
+import { uploadMediaMiddleware, uploadXLSXMiddleware } from '@surefy/middleware/upload.middleware';
 import catalogController from '../app/http/controllers/catalog.controller';
 
 const AuthRoute = Router();
@@ -12,6 +12,8 @@ AuthRoute.post('/login', AuthController.login);
 AuthRoute.post('/register', AuthController.register); 
 AuthRoute.post('/register-company', AuthController.onboard);
 AuthRoute.post('/stored-chat-session',AuthController.storedChatSession);
+AuthRoute.get('/fpo-leads/import/sample', AuthController.downloadFpoLeadsTemplate);
+AuthRoute.post('/fpo-leads/import', uploadXLSXMiddleware, AuthController.importFpoLeads);
 AuthRoute.post('/send-message',  messageController.sendPublicMessage);
 AuthRoute.post('/check-user',AuthController.checkExistUser);
 AuthRoute.post('/media', uploadMediaMiddleware, AuthController.uploadMedia);

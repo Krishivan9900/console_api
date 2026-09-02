@@ -348,5 +348,26 @@ export const executeNode = async ({
     /**
      * NORMAL Message NODES
     */
-    return buildResponse(currentNode, session)
+    const response = await buildResponse(currentNode, session, bot);
+
+    // Text nodes, such as the welcome message, do not wait for user input.
+    // Follow their outgoing edge immediately and persist the next node.
+    if (key !== "@whatsapp/send-text-message") return response;
+
+    const edge = bot.edges.find((e: any) => e.source === currentNode.id);
+    if (!edge) return response;
+
+    const nextNode = bot.nodes.find((n: any) => n.id === edge.target);
+    if (!nextNode) return response;
+
+    await chatSessionModel.update(session.id, { current_node_id: nextNode.id });
+
+    const nextResponse = await executeNode({
+        bot,
+        session: { ...session, current_node_id: nextNode.id },
+        currentNode: nextNode,
+    });
+
+    const messages = (result: any) => result?.messages || (result ? [result] : []);
+    return { messages: [...messages(response), ...messages(nextResponse)] };
 }

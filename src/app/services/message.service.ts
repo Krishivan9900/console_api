@@ -349,7 +349,19 @@ class MessageService {
 
     const type = content?.type;
 
-    if (["image", "video", "audio", "document"].includes(type)) {
+    const documentFilename = String(content?.document?.filename || '').toLowerCase();
+    const isSpreadsheetDocument = type === 'document' && (
+      [
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'application/vnd.ms-excel',
+        'text/csv',
+        'application/csv',
+      ].includes(content?.document?.mime_type) ||
+      /\.(xlsx|xls|csv)$/.test(documentFilename)
+    );
+
+    // Keep spreadsheet metadata intact: it is parsed by the webhook lead importer.
+    if (["image", "video", "audio", "document"].includes(type) && !isSpreadsheetDocument) {
       let mediaId: string | undefined;
 
       switch (type) {
@@ -412,8 +424,16 @@ class MessageService {
   /**
  * Handle Send ChatBot message
  */
-  async sendChatBotMessage(phoneNumberId: string, to: string, response: any) {
+  async sendChatBotMessage(phoneNumberId: string, to: string, response: any): Promise<any> {
     console.log('Response', JSON.stringify(response))
+
+    if (Array.isArray(response?.messages)) {
+      const results = [];
+      for (const message of response.messages) {
+        results.push(await this.sendChatBotMessage(phoneNumberId, to, message));
+      }
+      return results;
+    }
 
     const { type } = response
 

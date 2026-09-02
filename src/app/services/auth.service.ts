@@ -18,6 +18,7 @@ import axios from 'axios'
 import contactModel from '../models/contact.model';
 import { PhoneNumber } from 'libphonenumber-js';
 import { normalizeRole } from '../../utils';
+import * as XLSX from 'xlsx';
 
 interface LoginCredentials {
   identifier: string; // email or phone
@@ -339,6 +340,8 @@ class AuthService {
     // const isFPO = !!data.company_details;
 
     const role = data.role || 'USER';
+
+    console.log("Register User",companyDetails,data,parent_user_id)
 
     const normalizedRole = normalizeRole(role)
 
@@ -918,17 +921,17 @@ class AuthService {
       console.log('details', phone_number, data)
       const existingSession = await chatSessionModel.findByPhoneNumber(phone_number);
 
-      if (!existingSession) {
-        return {
-          success: false,
-          message: "No active session found"
-        };
-      }
+      // if (!existingSession) {
+      //   return {
+      //     success: false,
+      //     message: "No active session found"
+      //   };
+      // }
 
-      // Deactivate session immediately on API call
-      await chatSessionModel.update(existingSession.id, {
-        active: false
-      });
+      // // Deactivate session immediately on API call
+      // await chatSessionModel.update(existingSession.id, {
+      //   active: false
+      // });
 
       console.log(`Session ${existingSession.id} deactivated`);
 
@@ -978,6 +981,195 @@ class AuthService {
     }
   }
 
+  /**
+   * Import FPO leads from an Excel/CSV file and store each row in the same
+   * shape used by storedChatSession.
+   */
+  async importFpoLeads(file: string | Buffer, phoneNumberId: string, uploadingFpoPhone?: string) {
+    const phoneNumber = await phoneNumberModel.findByPhoneNumberId(phoneNumberId);
+    if (!phoneNumber) {
+      throw new HTTP400Error({ message: 'Invalid phone_number_id' });
+    }
+
+    const workbook = Buffer.isBuffer(file)
+      ? XLSX.read(file, { type: 'buffer', cellText: true, cellDates: true })
+      : XLSX.readFile(file, { cellText: true, cellDates: true });
+    const firstSheet = workbook.SheetNames[0];
+    if (!firstSheet) {
+      throw new HTTP400Error({ message: 'The Excel file does not contain a worksheet' });
+    }
+
+    const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(
+      workbook.Sheets[firstSheet],
+      { defval: '', raw: false }
+    );
+
+    console.log("Rows",JSON.stringify(rows))
+    console.log("Row length",JSON.stringify(rows.length))
+
+    if (!rows.length) {
+      throw new HTTP400Error({ message: 'The Excel file does not contain any lead rows' });
+    }
+
+    const getValue = (row: Record<string, unknown>, key: string) =>
+      String(row[key] ?? '').trim();
+
+    const normalisePhone = (value: string) => {
+      const digits = value.replace(/\D/g, '');
+      if (digits.length === 10) return `${digits}`;
+      return digits;
+    };
+
+    const uploadingFpo = uploadingFpoPhone
+      ? await userModel.findByPhone(normalisePhone(uploadingFpoPhone))
+      : null;
+
+    const imported: any[] = [];
+    const failed: Array<{ row: number; phone_number?: string; error: string }> = [];
+
+    for (const [index, row] of rows.entries()) {
+      const rowNumber = index + 2; // Row 1 is the header row.
+      const leadPhone = normalisePhone(getValue(row, 'phone_number'));
+
+      try {
+        if (leadPhone.length < 10 || leadPhone.length > 13) {
+          throw new Error('phone_number must contain a valid 10- to 13-digit number');
+        }
+
+        const fpoPhone = normalisePhone(getValue(row, 'fpo_phone_number'));
+        // Prefer the spreadsheet mapping; when Excel has rendered that number
+        // in scientific notation, use the WhatsApp sender's FPO account.
+        const fpo = (fpoPhone ? await userModel.findByPhone(fpoPhone) : null) || uploadingFpo;
+        if (fpoPhone && !fpo) {
+          throw new Error(`No FPO user found for fpo_phone_number ${fpoPhone}`);
+        }
+        if (!getValue(row, 'name')) {
+          throw new Error('name is required');
+        }
+        const role = normalizeRole(getValue(row, 'role') || 'farmer');
+
+        const parseCoordinate = (key: string) => {
+          const value = getValue(row, key);
+          const coordinate = Number(value);
+          return value && Number.isFinite(coordinate) ? coordinate : null;
+        };
+        const latitude = parseCoordinate('latitude');
+        const longitude = parseCoordinate('longitude');
+        const location = {
+          address: getValue(row, 'address'),
+          village: getValue(row, 'village'),
+          district: getValue(row, 'district'),
+          state: getValue(row, 'state'),
+          pincode: getValue(row, 'pincode'),
+          latitude,
+          longitude,
+        };
+
+        const sessionData = {
+          phone_number: leadPhone,
+          name: getValue(row, 'name'),
+          email: getValue(row, 'email') || null,
+          role,
+          native_language: getValue(row, 'native_language') || 'english',
+          address: location.address,
+          location,
+          details: {
+            address: location.address,
+            village: location.village,
+            district: location.district,
+            state: location.state,
+            pincode: location.pincode,
+          },
+          fpo_phone_number: fpo?.phone || fpoPhone || null,
+          fpo_id: fpo?.id || phoneNumber.user_id,
+          parent_user_id: fpo?.id || phoneNumber.user_id,
+          created_by: 'fpo_excel_import',
+        };
+
+        const registeredUser = await this.registerUser(phoneNumber, sessionData);
+        console.log('Registered sessions',registeredUser)
+        const storedSession = await storesSessionModel.create({
+          user_id: phoneNumber.user_id,
+          company_id: phoneNumber.company_id,
+          phone_number: leadPhone,
+          data: sessionData,
+        });
+
+        imported.push({ row: rowNumber, phone_number: leadPhone, stored_session_id: storedSession.id, user_id: registeredUser.id });
+      } catch (error: any) {
+        failed.push({
+          row: rowNumber,
+          phone_number: leadPhone || undefined,
+          error: error?.message || 'Unable to import lead',
+        });
+      }
+    }
+
+    return {
+      success: failed.length === 0,
+      total_rows: rows.length,
+      imported_count: imported.length,
+      failed_count: failed.length,
+      imported,
+      failed,
+    };
+  }
+
+  generateFpoLeadsTemplate(): Buffer {
+    const rows = [
+      {
+        phone_number: '919876543210',
+        name: 'Ramesh Kumar',
+        email: 'ramesh@example.com',
+        role: 'farmer',
+        native_language: 'hindi',
+        fpo_phone_number: '919372597458',
+        address: '12 Market Road',
+        village: 'Kheda',
+        district: 'Indore',
+        state: 'Madhya Pradesh',
+        pincode: '452001',
+        latitude: '22.7196',
+        longitude: '75.8577',
+      },
+      {
+        phone_number: '919876543211',
+        name: 'Sita Traders',
+        email: 'sita.traders@example.com',
+        role: 'trader',
+        native_language: 'english',
+        fpo_phone_number: '919372597458',
+        address: '45 Grain Market',
+        village: 'Rau',
+        district: 'Indore',
+        state: 'Madhya Pradesh',
+        pincode: '453331',
+        latitude: '22.6840',
+        longitude: '75.8730',
+      },
+      {
+        phone_number: '919876543212',
+        name: 'Green Transport',
+        email: 'green.transport@example.com',
+        role: 'agricultural transport service',
+        native_language: 'telugu',
+        fpo_phone_number: '919372597458',
+        address: '8 Farm Link Road',
+        village: 'Dewas',
+        district: 'Dewas',
+        state: 'Madhya Pradesh',
+        pincode: '455001',
+        latitude: '22.9676',
+        longitude: '76.0534',
+      },
+    ];
+
+    const worksheet = XLSX.utils.json_to_sheet(rows);
+    worksheet['!cols'] = Object.keys(rows[0]).map((key) => ({ wch: Math.max(key.length + 2, 18) }));
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'FPO Leads');
+    return XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+  }
   async checkExistUser(phone_number: any) {
     console.log("Phone number", phone_number)
     const existUser = await userModel.findByPhone(phone_number)
