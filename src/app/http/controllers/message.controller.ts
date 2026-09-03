@@ -216,12 +216,21 @@ class MessageController {
                   message.from
                 );
 
+                const roleSummary = Object.entries(result.role_counts || {})
+                  .map(([role, count]) => {
+                    const roleName = role
+                      .replace(/_/g, ' ')
+                      .replace(/\b\w/g, (character) => character.toUpperCase());
+                    return `${count} ${roleName}`;
+                  })
+                  .join('\n');
+
                 await MessageService.sendChatBotMessage(
                   value.metadata.phone_number_id,
                   message.from,
                   {
                     type: 'text',
-                    text: `FPO lead file processed: ${result.imported_count} imported, ${result.failed_count} failed.`,
+                    text: roleSummary || 'No leads were imported.',
                   }
                 );
               } catch (error: any) {

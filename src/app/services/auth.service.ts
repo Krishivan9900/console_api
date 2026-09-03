@@ -1026,6 +1026,7 @@ class AuthService {
 
     const imported: any[] = [];
     const failed: Array<{ row: number; phone_number?: string; error: string }> = [];
+    const role_counts: Record<string, number> = {};
 
     for (const [index, row] of rows.entries()) {
       const rowNumber = index + 2; // Row 1 is the header row.
@@ -1095,7 +1096,8 @@ class AuthService {
           data: sessionData,
         });
 
-        imported.push({ row: rowNumber, phone_number: leadPhone, stored_session_id: storedSession.id, user_id: registeredUser.id });
+        imported.push({ row: rowNumber, phone_number: leadPhone, role, stored_session_id: storedSession.id, user_id: registeredUser.id });
+        role_counts[role] = (role_counts[role] || 0) + 1;
       } catch (error: any) {
         failed.push({
           row: rowNumber,
@@ -1110,6 +1112,7 @@ class AuthService {
       total_rows: rows.length,
       imported_count: imported.length,
       failed_count: failed.length,
+      role_counts,
       imported,
       failed,
     };
