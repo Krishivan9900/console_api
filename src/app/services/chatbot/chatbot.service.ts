@@ -43,7 +43,7 @@ export async function handleIncomingMessageChatBot(phoneNumberId: any, message: 
 
     // 1️⃣ Get bot
     console.log("🔍 Finding bot for phone number:", phoneNumberId);
-    const bot: any = await chatBotModel.getPublishedBotByPhoneNumberId(phoneNumberId);
+    const bot: any = await chatBotModel.getPublishedBotByPhoneNumber(phoneNumberId);
 
     const numberMatch = incomingText.match(/\d{10,13}/);
     let fpo_info
@@ -129,6 +129,21 @@ export async function handleIncomingMessageChatBot(phoneNumberId: any, message: 
     if (response) {
       await messageService.sendChatBotMessage(phoneNumberId, phone, response);
     } else {
+      const chatSession = await chatSessionModel.findByPhoneNumber(phone)
+      if (!chatSession) {
+        return null
+      }
+      await chatSessionModel.update(chatSession.id, {
+        active: false,
+        current_node_id: null,
+        // completed_at: new Date(),
+        updated_at: new Date(),
+      })
+      //       await chatSessionModel.deactivateActiveSession({
+      //   phoneNumber: phone,
+      //   chatbotId: bot.id,
+      //   phoneNumberId,
+      // });
       console.log("⚠️ No response generated to send");
     }
 
@@ -136,7 +151,7 @@ export async function handleIncomingMessageChatBot(phoneNumberId: any, message: 
 
   } catch (error) {
     console.error("❌ Chatbot Error:", error);
-    return null;
+    return;
   }
 }
 

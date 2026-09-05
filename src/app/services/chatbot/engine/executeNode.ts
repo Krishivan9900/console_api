@@ -3,6 +3,17 @@ import chatSessionModel from "@surefy/console/app/models/chatSession.model";
 import { buildResponse } from "@surefy/console/utils";
 import { replaceVariables } from '@surefy/console/utils';
 
+
+export const endSession = async (
+  sessionId: string
+): Promise<void> => {
+  await chatSessionModel.update(sessionId, {
+    active: false,
+    current_node_id: null,
+    completed_at: new Date(),
+  });
+};
+
 export const executeNode = async ({
     bot,
     session,
@@ -141,6 +152,7 @@ export const executeNode = async ({
             );
 
             if (!edge) {
+                await endSession(session.id);
                 console.log(
                     "No outgoing edge found from HTTP node"
                 );
@@ -235,8 +247,8 @@ export const executeNode = async ({
 
             gstin:
                 variables?.http_response?.data?.gstin,
-            
-            data:{
+
+            data: {
                 company_details: variables?.http_response
                     ? variables?.http_response?.data?.company_details
                     : null,
@@ -354,8 +366,21 @@ export const executeNode = async ({
     // Follow their outgoing edge immediately and persist the next node.
     if (key !== "@whatsapp/send-text-message") return response;
 
-    const edge = bot.edges.find((e: any) => e.source === currentNode.id);
-    if (!edge) return response;
+    const edge = bot.edges.find(
+        (e: any) => e.source === currentNode.id
+    );
+
+    if (!edge) {
+
+        // await chatSessionModel.update(session.id, {
+        //     active: false,
+        //     current_node_id: null,
+        //     completed_at: new Date()
+        // });
+        await endSession(session.id);
+
+        return response;
+    }
 
     const nextNode = bot.nodes.find((n: any) => n.id === edge.target);
     if (!nextNode) return response;

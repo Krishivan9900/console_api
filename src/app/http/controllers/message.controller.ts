@@ -8,6 +8,7 @@ import { v4 as uuidv4, validate as uuidValidate } from "uuid";
 import { handleIncomingMessageChatBot } from  "@surefy/console/app/services/chatbot/chatbot.service"
 import MetaService from '@surefy/console/services/meta.service';
 import AuthService from '@surefy/console/services/auth.service';
+import { stringify } from 'querystring';
 
 class MessageController {
   /**
@@ -163,6 +164,8 @@ class MessageController {
   handleWebhook = tryCatchAsync(async (req: Request, res: Response) => {
     const { entry } = req.body;
 
+    console.log('JSON stringify',JSON.stringify(entry))
+
     for (const item of entry || []) {
       for (const change of item.changes || []) {
         if (change.field === 'messages') {
@@ -184,6 +187,8 @@ class MessageController {
                message.productItems = message.order.product_items
                await MessageService.processIncomingOrderMessage(message)
             }
+
+            console.log('message',message)
 
             await MessageService.saveIncomingMessage({
               phone_number_id: value.metadata.phone_number_id,

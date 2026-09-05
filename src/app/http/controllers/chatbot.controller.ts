@@ -15,24 +15,24 @@ class chatBotController {
      * POST /v1/chatbot
      * Create New Chatbot
      */
-    createChatBot =  tryCatchAsync(async(req:AuthRequest,res:Response)=>{
-        const {name, description,phoneNumberId} = req.body
+    createChatBot = tryCatchAsync(async (req: AuthRequest, res: Response) => {
+        const { name, description, phoneNumberId } = req.body
         console.log("Req", req.body)
-        const phoneNumber:any = await phoneNumberModel.findByPhoneNumberId(phoneNumberId)
+        const phoneNumber: any = await phoneNumberModel.findByPhoneNumberId(phoneNumberId)
         console.log("PhoneNumber found:", phoneNumber); // Debug log
 
-        if(!phoneNumber || !phoneNumber.phone_number_id){
+        if (!phoneNumber || !phoneNumber.phone_number_id) {
             throw new HTTP400Error({ message: 'Associated WABA account not found for user' });
         }
 
         const result = await chatBotService.createChatBot({
-            user_id:req.userId!,
-            company_id:req.companyId!,
+            user_id: req.userId!,
+            company_id: req.companyId!,
             name,
-            description, 
-            status:'draft',
-            published:false,
-            phoneNumberId:phoneNumber.phone_number_id
+            description,
+            status: 'draft',
+            published: false,
+            phoneNumberId: phoneNumber.phone_number_id
         })
         // await userPlansModel.incrementUsage(req.userId!, 'Chatbot');
 
@@ -55,19 +55,32 @@ class chatBotController {
         async (req: AuthRequest, res: Response) => {
             const { chatBotId } = req.params;
             // const {status, published} = req.body
-             
-            const result = await chatBotService.publishedChatBot(req.userId!,chatBotId);
+
+            const result = await chatBotService.publishedChatBot(req.userId!, chatBotId);
             return successResponse(req, res, 'ChatBot published successfully', result);
         }
     )
 
     unpublishedChatBot = tryCatchAsync(
-        async (req: AuthRequest, res: Response) => {
-            const { chatBotId } = req.params;                       
-            const result = await chatBotService.unpublishedChatBot(req.userId!,chatBotId,'unpublished', false);
-            return successResponse(req, res, 'ChatBot unpublished successfully', result);
-        }       
-    )
+        async (
+            req: AuthRequest,
+            res: Response
+        ) => {
+            const { chatBotId } = req.params;
+
+            const result =
+                await chatBotService.unpublishedChatBot(
+                    chatBotId
+                );
+
+            return successResponse(
+                req,
+                res,
+                "ChatBot unpublished successfully",
+                result
+            );
+        }
+    );
 
     getChatBotById = tryCatchAsync(
         async (req: AuthRequest, res: Response) => {
@@ -88,26 +101,27 @@ class chatBotController {
     createChatBotFlow = tryCatchAsync(
         async (req: AuthRequest, res: Response) => {
             const { chatBotId } = req.params;
-            const { name, nodes, edges } = req.body;
+            const { name, nodes, edges, phoneNumberIds } = req.body;
 
             console.log("Creating chatbot flow:", { chatBotId, name }); // Debug log
 
             //Logic should be if thier is more then 4messages type will be consider as form
             const messageCount = nodes.filter(
-                (n:any) => n.type === 'message'
+                (n: any) => n.type === 'message'
             ).length
 
-            console.log('Message Count',messageCount)
+            console.log('Message Count', messageCount)
 
             const flowType = messageCount >= 3 ? "form" : "menu"
 
-            await chatbotModel.update(chatBotId,{flow_type:flowType})
+            await chatbotModel.update(chatBotId, { flow_type: flowType })
 
-            const result = await chatBotService.createFlow(req.userId!,{
+            const result = await chatBotService.createFlow(req.userId!, {
                 chatBotId,
                 name,
                 nodes,
                 edges,
+                phoneNumberIds
             });
 
             return res.status(200).json({
