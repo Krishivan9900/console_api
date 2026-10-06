@@ -19,7 +19,7 @@ class ChatbotTriggerModel extends BaseModel {
     }
 
     const normalizedTriggers = triggers.map((trigger) =>
-      trigger.trim().toLowerCase()
+      trigger.trim().toLowerCase().replace(/\s+/g, ' ')
     );
 
     const query = this.query()
@@ -31,9 +31,10 @@ class ChatbotTriggerModel extends BaseModel {
       ])
       .where('phone_number_id', phoneNumberId)
       .where('active', true)
+      .whereIn('chatbot_id', this.db('chat_bot').select('id').where('published', true))
       .whereRaw(
-        'LOWER(TRIM(trigger_word)) IN (?)',
-        [normalizedTriggers]
+        `LOWER(TRIM(trigger_word)) IN (${normalizedTriggers.map(() => '?').join(', ')})`,
+        normalizedTriggers
       );
 
     if (excludeChatBotId) {

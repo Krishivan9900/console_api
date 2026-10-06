@@ -12,6 +12,7 @@ import chatbotTriggerModel from '../models/chatbotTrigger.model';
 import wabaModel from '../models/waba.model';
 import { v4 as uuidv4 } from 'uuid';
 import { values } from 'lodash';
+import { getConditionBranch } from './chatbot/engine/condition.logic';
 
 class chatBotService {
   async createChatBot(data: chatBot) {
@@ -53,33 +54,27 @@ class chatBotService {
       });
     }
 
-    // Check already published bot for same phone number
-    const existingPublishedBot =
-      await chatBotModel.getPublishedBotByPhoneNumber(
-        bot.phoneNumberId,
-        chatBotId // exclude current
-      );
-
-    if (existingPublishedBot) {
-      throw new HTTP400Error({
-        message:
-          "Another chatbot is already published for this phone number.",
-      });
+    if (bot.user_id !== userId) {
+      throw new HTTP400Error({ message: "ChatBot does not belong to this user" });
     }
 
-    // Publish chatbot
-    await chatBotModel.update(chatBotId, {
-      status: "published",
-      published: true,
-    });
+    const triggers = await chatbotTriggerModel.findAll({ chatbot_id: chatBotId });
+    if (!triggers.length) {
+      throw new HTTP400Error({ message: "Save a flow with trigger keywords before publishing" });
+    }
 
-    // Activate triggers
-    await chatbotTriggerModel.updateByChatBot(
-      chatBotId,
-      {
-        active: true,
+    for (const trigger of triggers) {
+      const conflicts = await chatbotTriggerModel.findConflicts({
+        phoneNumberId: trigger.phone_number_id,
+        triggers: [trigger.trigger_word],
+        excludeChatBotId: chatBotId,
+      });
+      if (conflicts.length) {
+        throw new HTTP400Error({ message: "Some trigger keywords are already assigned to another published chatbot.", conflicts } as any);
       }
-    );
+    }
+
+    await chatBotModel.setPublishedState(chatBotId, true);
 
     return {
       success: true,
@@ -104,6 +99,7 @@ class chatBotService {
   }
 
   async unpublishedChatBot(
+    userId: string,
     chatBotId: string
   ) {
     const bot =
@@ -115,17 +111,11 @@ class chatBotService {
       });
     }
 
-    await chatBotModel.update(chatBotId, {
-      status: "draft",
-      published: false,
-    });
+    if (bot.user_id !== userId) {
+      throw new HTTP400Error({ message: "ChatBot does not belong to this user" });
+    }
 
-    await chatbotTriggerModel.updateByChatBot(
-      chatBotId,
-      {
-        active: false,
-      }
-    );
+    await chatBotModel.setPublishedState(chatBotId, false);
 
     return {
       success: true,
@@ -201,6 +191,10 @@ class chatBotService {
       ),
     ];
 
+    if (!triggerWords.length) {
+      throw new HTTP400Error({ message: "At least one non-empty trigger keyword is required" });
+    }
+
     // ---------------------------------
     // Validate Phone Numbers
     // ---------------------------------
@@ -212,6 +206,38 @@ class chatBotService {
       throw new HTTP400Error({
         message: "At least one phone number is required",
       });
+    }
+
+    // Validate conditions before replacing the saved flow.
+    for (const node of nodes) {
+      if (node.data?.key !== '@condition/condition-action') continue;
+      const title = node.data.title || node.id;
+      const conditions = node.data.attributes?.conditions;
+      if (Array.isArray(conditions)) {
+        for (const condition of conditions) {
+          const field = typeof condition?.field === 'string'
+            ? condition.field.trim().replace(/^\{\{\s*|\s*\}\}$/g, '').trim()
+            : '';
+          const comparator = String(condition?.comparator || 'equals').replace(/[\s_-]/g, '').toLowerCase();
+          if (['http_response.success', 'http_response_success'].includes(field) &&
+              ['equals', 'equal', 'eq', '==', '===', 'notequals', 'notequal', 'neq', '!=', '!=='].includes(comparator) &&
+              (condition.value == null || (typeof condition.value === 'string' && !condition.value.trim()))) {
+            throw new HTTP400Error({
+              message: `Condition "${title}" compares HTTP success with an empty value. Set the value to true or false.`,
+            });
+          }
+        }
+      }
+      for (const branch of [true, false]) {
+        const targets = new Set(edges
+          .filter((edge: any) => edge.source === node.id && getConditionBranch(edge) === branch)
+          .map((edge: any) => edge.target));
+        if (targets.size > 1) {
+          throw new HTTP400Error({
+            message: `Condition "${title}" has multiple destinations for its ${branch} branch. Connect that branch to one destination.`,
+          });
+        }
+      }
     }
 
     // ---------------------------------
@@ -287,18 +313,34 @@ class chatBotService {
     );
 
     // create edges
-    const formattedEdges = edges.map(
-      (edge: any) => ({
+    const formattedEdges = edges.map((edge: any) => {
+      const edgeData = {
+        ...(typeof edge.data === 'string' ? JSON.parse(edge.data) : edge.data || {}),
+      };
+      // React Flow puts connection handles at the top level; persist them in JSON.
+      if (edge.sourceHandle != null) edgeData.sourceHandle = edge.sourceHandle;
+      if (edge.targetHandle != null) edgeData.targetHandle = edge.targetHandle;
+      const sourceNode = nodes.find((node: any) => node.id === edge.source);
+      if (sourceNode?.data?.key === '@condition/condition-action') {
+        const branch = getConditionBranch({ ...edge, data: edgeData });
+        if (branch !== undefined) edgeData.condition = branch;
+        for (const branchName of ['true', 'false']) {
+          if (edgeData.sourceHandle === `condition-${branchName}-${edge.source}`) {
+            edgeData.sourceHandle = `condition-${branchName}-${nodeIdMap[edge.source]}`;
+          }
+        }
+      }
+      return {
         id: uuidv4(),
         user_id: userId,
         chatBotId,
         source: nodeIdMap[edge.source],
         target: nodeIdMap[edge.target],
         label: edge.label || null,
-        data: JSON.stringify(edge.data || {}),
+        data: JSON.stringify(edgeData),
         created_at: new Date(),
-      })
-    );
+      };
+    });
 
     await chatBotEdgeModel.createEdges(
       formattedEdges
@@ -312,17 +354,16 @@ class chatBotService {
       chatBotId
     );
 
-    for (const phoneNumberId of phoneNumberIds) {
-      for (const triggerWord of triggerWords) {
-        await chatbotTriggerModel.create({
+    const triggerRows = [...new Set(phoneNumberIds)].flatMap((phoneNumberId) =>
+      triggerWords.map((triggerWord) => ({
           chatbot_id: chatBotId,
           phone_number_id: phoneNumberId,
           trigger_word: triggerWord,
-          active: true,
+          active: bot.published === true,
           created_at: new Date(),
-        });
-      }
-    }
+      }))
+    );
+    await chatbotTriggerModel.createMany(triggerRows);
 
     return {
       chatBotId,

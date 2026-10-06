@@ -1,0 +1,5 @@
+[
+  {
+    "definition": "CHECK ((role = ANY (ARRAY['admin'::text, 'manager'::text, 'user'::text])))"
+  }
+]

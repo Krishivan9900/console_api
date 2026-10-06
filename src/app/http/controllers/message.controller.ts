@@ -185,7 +185,7 @@ class MessageController {
           for (const message of value.messages || []) {
             if(message.type === 'order' && message.order && Array.isArray(message.order.product_items)){
                message.productItems = message.order.product_items
-               await MessageService.processIncomingOrderMessage(message)
+               await MessageService.processIncomingOrderMessage({ ...message, phone_number_id: value.metadata.phone_number_id })
             }
 
             console.log('message',message)

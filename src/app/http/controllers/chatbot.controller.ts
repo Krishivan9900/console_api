@@ -70,6 +70,7 @@ class chatBotController {
 
             const result =
                 await chatBotService.unpublishedChatBot(
+                    req.userId!,
                     chatBotId
                 );
 
@@ -101,6 +102,7 @@ class chatBotController {
     createChatBotFlow = tryCatchAsync(
         async (req: AuthRequest, res: Response) => {
             const { chatBotId } = req.params;
+            console.log('User found',req.userId!)
             const { name, nodes, edges, phoneNumberIds } = req.body;
 
             console.log("Creating chatbot flow:", { chatBotId, name }); // Debug log

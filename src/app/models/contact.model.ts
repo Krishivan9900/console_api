@@ -1,5 +1,6 @@
 import { BaseModel } from '@surefy/models/base.model';
 import { Knex } from 'knex';
+import { getPhoneNumberVariants } from '../../phone';
 
 class ContactModel extends BaseModel {
   constructor() {
@@ -16,7 +17,7 @@ class ContactModel extends BaseModel {
 
   async findByUserPhoneNumber(phoneNumber: any) {
     return this.query()
-      .where({ phone_number: phoneNumber })
+      .whereIn('phone_number', getPhoneNumberVariants(phoneNumber))
       .whereNull('deleted_at')
       .first();
   }

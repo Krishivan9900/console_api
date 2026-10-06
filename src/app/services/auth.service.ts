@@ -17,7 +17,7 @@ import productVariantModel from '../models/productVariant.model';
 import axios from 'axios'
 import contactModel from '../models/contact.model';
 import { PhoneNumber } from 'libphonenumber-js';
-import { normalizeRole } from '../../utils';
+import { normalizeRegistrationPhoneNumber, normalizeRole } from '../../utils';
 import * as XLSX from 'xlsx';
 
 interface LoginCredentials {
@@ -166,11 +166,19 @@ class AuthService {
    * REGISTER krishivan user
    */
   async registerkrishivanUser(data: any) {
-    console.log("Krishivan Data", data)
+    const payload = {
+      ...data,
+      mobile_number: normalizeRegistrationPhoneNumber(data.mobile_number),
+    };
+    console.log("Krishivan registration request", {
+      mobile_number: payload.mobile_number,
+      role: payload.role,
+      createdById: payload.createdById,
+    });
     try {
       const response = await axios.post(
         'https://l07yapr0ub.execute-api.ap-south-1.amazonaws.com/prod/farmer-function/register-user',
-        data,
+        payload,
         {
           headers: {
             'X-Internal-Api-Key': 'krishiwhatsappskjf4543k',
@@ -339,7 +347,12 @@ class AuthService {
   ) {
     // const isFPO = !!data.company_details;
 
-    const role = data.role || 'USER';
+    const role = [data.role, data.details?.role].find(
+      value => typeof value === 'string' && value.trim()
+    );
+    if (!role) {
+      throw new HTTP400Error({ message: 'Please select a role before registering' });
+    }
 
     console.log("Register User",companyDetails,data,parent_user_id)
 
@@ -359,13 +372,24 @@ class AuthService {
     const company = data.details || {};
     // const fpo_info = await userModel.findByPhone(data.phone_number)
 
+    const mappedFpoId = data.parent_user_id || data.details?.parent_user_id;
+    let createdById = data.fpo_id || null;
+    // Older payloads may omit fpo_id or use the local FPO ID instead.
+    if (mappedFpoId && (!createdById || createdById === mappedFpoId)) {
+      const mappedFpo = await userModel.findById(mappedFpoId);
+      createdById = mappedFpo?.user_id || null;
+    }
+    if (mappedFpoId && !createdById) {
+      throw new HTTP400Error({ message: 'Mapped FPO is missing its Krishivan user_id' });
+    }
+
     const payload = {
       farming_mode: "Agriculture",
 
-      userType: normalizeRole,
+      userType: normalizedRole,
 
       created_by: "fpo",
-      createdById: data.fpo_id || null,
+      createdById,
 
       role: normalizedRole,
 
@@ -428,7 +452,7 @@ class AuthService {
         company.legal_name,
 
       mobile_number:
-        data.phone_number,
+        normalizeRegistrationPhoneNumber(data.phone_number),
 
       user_id:
         parent_user_id || null,
@@ -460,11 +484,11 @@ class AuthService {
 
       email: data.email || null,
 
-      phone: data.phone_number,
+      phone: normalizeRegistrationPhoneNumber(data.phone_number),
 
       password: "123456",
 
-      role: "user",
+      role: normalizedRole,
 
       role_id: roleCode,
 
@@ -985,110 +1009,160 @@ class AuthService {
    * Import FPO leads from an Excel/CSV file and store each row in the same
    * shape used by storedChatSession.
    */
-  async importFpoLeads(file: string | Buffer, phoneNumberId: string, uploadingFpoPhone?: string) {
+  async importFpoLeads(
+    file: string | Buffer,
+    phoneNumberId: string,
+    uploadingFpoPhone?: string
+  ) {
     const phoneNumber = await phoneNumberModel.findByPhoneNumberId(phoneNumberId);
+
     if (!phoneNumber) {
-      throw new HTTP400Error({ message: 'Invalid phone_number_id' });
+      throw new HTTP400Error({
+        message: 'Invalid phone_number_id',
+      });
     }
 
     const workbook = Buffer.isBuffer(file)
-      ? XLSX.read(file, { type: 'buffer', cellText: true, cellDates: true })
-      : XLSX.readFile(file, { cellText: true, cellDates: true });
+      ? XLSX.read(file, {
+        type: 'buffer',
+        cellText: true,
+        cellDates: true,
+      })
+      : XLSX.readFile(file, {
+        cellText: true,
+        cellDates: true,
+      });
+
     const firstSheet = workbook.SheetNames[0];
+
     if (!firstSheet) {
-      throw new HTTP400Error({ message: 'The Excel file does not contain a worksheet' });
+      throw new HTTP400Error({
+        message: 'The Excel file does not contain a worksheet',
+      });
     }
 
     const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(
       workbook.Sheets[firstSheet],
-      { defval: '', raw: false }
+      {
+        defval: '',
+        raw: false,
+      }
     );
 
-    console.log("Rows",JSON.stringify(rows))
-    console.log("Row length",JSON.stringify(rows.length))
-
     if (!rows.length) {
-      throw new HTTP400Error({ message: 'The Excel file does not contain any lead rows' });
+      throw new HTTP400Error({
+        message: 'The Excel file does not contain any lead rows',
+      });
     }
 
-    const getValue = (row: Record<string, unknown>, key: string) =>
-      String(row[key] ?? '').trim();
+    const getValue = (
+      row: Record<string, unknown>,
+      key: string
+    ) => String(row[key] ?? '').trim();
 
     const normalisePhone = (value: string) => {
-      const digits = value.replace(/\D/g, '');
-      if (digits.length === 10) return `${digits}`;
-      return digits;
+      return value.replace(/\D/g, '');
     };
 
-    const uploadingFpo = uploadingFpoPhone
-      ? await userModel.findByPhone(normalisePhone(uploadingFpoPhone))
-      : null;
+    // Find FPO once
+    let uploadingFpo = null;
+
+    if (uploadingFpoPhone) {
+      uploadingFpo = await userModel.findByPhone(
+        normalisePhone(uploadingFpoPhone)
+      );
+    }
+
+    if (!uploadingFpo) {
+      throw new HTTP400Error({
+        message: 'Uploading FPO not found',
+      });
+    }
+
+    if (!uploadingFpo.user_id) {
+      throw new HTTP400Error({ message: 'Uploading FPO is missing its Krishivan user_id' });
+    }
 
     const imported: any[] = [];
-    const failed: Array<{ row: number; phone_number?: string; error: string }> = [];
+    const failed: any[] = [];
     const role_counts: Record<string, number> = {};
 
     for (const [index, row] of rows.entries()) {
-      const rowNumber = index + 2; // Row 1 is the header row.
-      const leadPhone = normalisePhone(getValue(row, 'phone_number'));
+      const rowNumber = index + 2;
 
       try {
-        if (leadPhone.length < 10 || leadPhone.length > 13) {
-          throw new Error('phone_number must contain a valid 10- to 13-digit number');
+        const leadPhone = normalizeRegistrationPhoneNumber(
+          getValue(row, 'Mobile Number')
+        );
+
+        if (!leadPhone || leadPhone.length !== 10) {
+          throw new Error('Invalid mobile number');
         }
 
-        const fpoPhone = normalisePhone(getValue(row, 'fpo_phone_number'));
-        // Prefer the spreadsheet mapping; when Excel has rendered that number
-        // in scientific notation, use the WhatsApp sender's FPO account.
-        const fpo = (fpoPhone ? await userModel.findByPhone(fpoPhone) : null) || uploadingFpo;
-        if (fpoPhone && !fpo) {
-          throw new Error(`No FPO user found for fpo_phone_number ${fpoPhone}`);
-        }
-        if (!getValue(row, 'name')) {
-          throw new Error('name is required');
-        }
-        const role = normalizeRole(getValue(row, 'role') || 'farmer');
+        const name = getValue(row, 'Name');
 
-        const parseCoordinate = (key: string) => {
-          const value = getValue(row, key);
-          const coordinate = Number(value);
-          return value && Number.isFinite(coordinate) ? coordinate : null;
+        if (!name) {
+          throw new Error('Name is required');
+        }
+
+        const role = normalizeRole(
+          getValue(row, 'Role') || 'farmer'
+        );
+
+        const parseCoordinate = (column: string) => {
+          const value = getValue(row, column);
+
+          if (!value) return null;
+
+          const num = Number(value);
+
+          return Number.isFinite(num) ? num : null;
         };
-        const latitude = parseCoordinate('latitude');
-        const longitude = parseCoordinate('longitude');
+
         const location = {
-          address: getValue(row, 'address'),
-          village: getValue(row, 'village'),
-          district: getValue(row, 'district'),
-          state: getValue(row, 'state'),
-          pincode: getValue(row, 'pincode'),
-          latitude,
-          longitude,
+          village: getValue(row, 'Village'),
+          district: getValue(row, 'District'),
+          state: getValue(row, 'State'),
+          pincode: getValue(row, 'Pincode'),
+          latitude: parseCoordinate('Latitude'),
+          longitude: parseCoordinate('Longitude'),
         };
 
         const sessionData = {
           phone_number: leadPhone,
-          name: getValue(row, 'name'),
-          email: getValue(row, 'email') || null,
+          name,
           role,
-          native_language: getValue(row, 'native_language') || 'english',
-          address: location.address,
+
           location,
+
           details: {
-            address: location.address,
             village: location.village,
             district: location.district,
             state: location.state,
             pincode: location.pincode,
+            sub_district: getValue(row, 'Sub District'),
+            total_land: getValue(row, 'Total Land'),
+            gender: getValue(row, 'Gender'),
           },
-          fpo_phone_number: fpo?.phone || fpoPhone || null,
-          fpo_id: fpo?.id || phoneNumber.user_id,
-          parent_user_id: fpo?.id || phoneNumber.user_id,
+
+          // Parent FPO Mapping
+          fpo_id: uploadingFpo.user_id,
+          parent_user_id: uploadingFpo.id,
+          fpo_phone_number: uploadingFpo.phone,
+
           created_by: 'fpo_excel_import',
         };
 
-        const registeredUser = await this.registerUser(phoneNumber, sessionData);
-        console.log('Registered sessions',registeredUser)
+        const registeredUser = await this.registerUser(
+          phoneNumber,
+          sessionData
+        );
+
+        // Ensure imported user has parent FPO
+        await userModel.update(registeredUser.id, {
+          parent_user_id: uploadingFpo.id,
+        });
+
         const storedSession = await storesSessionModel.create({
           user_id: phoneNumber.user_id,
           company_id: phoneNumber.company_id,
@@ -1096,12 +1170,18 @@ class AuthService {
           data: sessionData,
         });
 
-        imported.push({ row: rowNumber, phone_number: leadPhone, role, stored_session_id: storedSession.id, user_id: registeredUser.id });
+        imported.push({
+          row: rowNumber,
+          phone_number: leadPhone,
+          role,
+          stored_session_id: storedSession.id,
+          user_id: registeredUser.id,
+        });
+
         role_counts[role] = (role_counts[role] || 0) + 1;
       } catch (error: any) {
         failed.push({
           row: rowNumber,
-          phone_number: leadPhone || undefined,
           error: error?.message || 'Unable to import lead',
         });
       }

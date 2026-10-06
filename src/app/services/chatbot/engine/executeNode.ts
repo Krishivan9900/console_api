@@ -2,16 +2,21 @@ import axios from 'axios';
 import chatSessionModel from "@surefy/console/app/models/chatSession.model";
 import { buildResponse } from "@surefy/console/utils";
 import { replaceVariables } from '@surefy/console/utils';
+import contactTagModel from '@surefy/console/app/models/contactTag.model';
+import contactModel from '@surefy/console/app/models/contact.model';
+import contactTagRelationModel from '@surefy/console/app/models/contactTagRelation.model';
+import columnModel from '@surefy/console/app/models/column.model';
+import { evaluateConditions, getConditionBranch, getConditionValue } from './condition.logic';
 
 
 export const endSession = async (
-  sessionId: string
+    sessionId: string
 ): Promise<void> => {
-  await chatSessionModel.update(sessionId, {
-    active: false,
-    current_node_id: null,
-    completed_at: new Date(),
-  });
+    await chatSessionModel.update(sessionId, {
+        active: false,
+        current_node_id: null,
+        completed_at: new Date(),
+    });
 };
 
 export const executeNode = async ({
@@ -133,8 +138,9 @@ export const executeNode = async ({
 
             // Treat non-success status as error
             if (response.status >= 400) {
-                throw new Error(
-                    `Request failed with status ${response.status}`
+                throw Object.assign(
+                    new Error(`Request failed with status ${response.status}`),
+                    { response }
                 );
             }
 
@@ -142,7 +148,8 @@ export const executeNode = async ({
                 ...(session.variables || {}),
                 http_response: response.data,
                 http_status: response.status,
-                http_headers: response.headers
+                http_headers: response.headers,
+                http_error: null
             };
 
             console.log('Update variables', updatedVariables)
@@ -187,16 +194,38 @@ export const executeNode = async ({
 
             console.error("HTTP NODE ERROR");
 
+            // Log the endpoint without query parameters or URL credentials.
+            let endpoint = "(invalid URL)";
+            try {
+                const url = new URL(data?.attributes?.url);
+                endpoint = `${url.origin}${url.pathname}`;
+            } catch {}
+            console.error("Request:", {
+                nodeId: currentNode.id,
+                method: data?.attributes?.method || "GET",
+                endpoint,
+            });
+
             if (error.response) {
                 console.error("Status:", error.response.status);
-                console.error("Data:", error.response.data);
+                console.error("Request ID:",
+                    error.response.headers?.["rndr-id"] ||
+                    error.response.headers?.["cf-ray"] ||
+                    error.response.headers?.["x-request-id"] ||
+                    null
+                );
             }
 
             console.error("Message:", error.message);
 
             const updatedVariables = {
                 ...(session.variables || {}),
-                http_error: error.message
+                http_error: error.message,
+                http_status: error.response?.status ?? null,
+                http_response: error.response?.data && typeof error.response.data === "object"
+                    ? error.response.data
+                    : null,
+                http_headers: error.response?.headers || {},
             };
 
             await chatSessionModel.update(session.id, {
@@ -205,7 +234,11 @@ export const executeNode = async ({
 
             return {
                 type: "text",
-                text: "Something went wrong"
+                text: error.response?.status >= 500
+                    ? "Our service is temporarily unavailable. Please try again in a few minutes."
+                    : error.code === "ECONNABORTED" || error.code === "ETIMEDOUT"
+                        ? "The service took too long to respond. Please try again in a few minutes."
+                        : "We could not complete this step. Please try again later."
             };
         }
     }
@@ -214,128 +247,80 @@ export const executeNode = async ({
      * CONDITION Node
      */
     if (key === "@condition/condition-action") {
-        // const conditions = data.attributes.conditions || [];
-        let updateVariable: any = {};
-        const conditionVariable = data?.attributes?.variable || "";
-
+        const updateVariable: Record<string, any> = {};
+        const conditionVariable = typeof data?.attributes?.variable === 'string'
+            ? data.attributes.variable.trim().replace(/^\{\{\s*|\s*\}\}$/g, '').trim()
+            : '';
         const variables = session.variables || {};
-        console.log("Condition variabes", variables)
-
-        console.log("condition Variable", conditionVariable)
+        const responseData = variables.http_response?.data;
 
         if (conditionVariable) {
-            const value = variables?.http_response?.data[
-                conditionVariable
-            ]
-
-            console.log("Condition Value", value)
-
+            const value = getConditionValue(responseData, conditionVariable);
             if (value !== undefined) {
                 updateVariable[conditionVariable] = value;
             }
         }
 
-        // const mergedVariables = {
-        //     ...variables,
-        //     ...updateVariable
-        // }
-
+        const extractedVariables = { ...variables, ...updateVariable };
         const mergedVariables = {
-            ...variables,
-
-            api_response: variables?.http_response,
-
-            gstin:
-                variables?.http_response?.data?.gstin,
-
+            ...extractedVariables,
+            api_response: variables.http_response ?? variables.api_response,
+            gstin: responseData?.gstin !== undefined ? responseData.gstin : extractedVariables.gstin,
+            valid: responseData?.valid !== undefined ? responseData.valid : extractedVariables.valid,
             data: {
-                company_details: variables?.http_response
-                    ? variables?.http_response?.data?.company_details
-                    : null,
+                ...variables.data,
+                ...(responseData?.company_details !== undefined
+                    ? { company_details: responseData.company_details }
+                    : {}),
             },
-
-            valid:
-                variables?.http_response?.data?.valid,
-
-            // company_details:
-            //     variables.http_response?.data?.company_details,
-            // phone_number: variables.phone_number
-            //     ?? variables.http_response?.data?.phone_number
             details: {
-                company_details: variables?.http_response
-                    ? variables?.http_response?.data?.company_details
-                    : null,
-                gstin: variables?.gstin,
-                email: variables?.email,
-                name: variables?.name,
-                role: variables?.role || "fpo",
-                photo: variables?.photo,
+                ...variables.details,
+                ...(responseData?.company_details !== undefined
+                    ? { company_details: responseData.company_details }
+                    : {}),
+                gstin: extractedVariables.gstin ?? variables.details?.gstin,
+                email: extractedVariables.email ?? variables.details?.email,
+                name: extractedVariables.name ?? variables.details?.name,
+                role: extractedVariables.role ?? variables.details?.role,
+                photo: extractedVariables.photo ?? variables.details?.photo,
                 location: {
-                    latitude: variables?.latitude,
-                    longitude: variables?.longitude,
+                    ...variables.details?.location,
+                    ...(extractedVariables.latitude !== undefined ? { latitude: extractedVariables.latitude } : {}),
+                    ...(extractedVariables.longitude !== undefined ? { longitude: extractedVariables.longitude } : {}),
                 },
-                phone_number: variables?.phone_number,
-                parent_user_id: variables?.parent_user_id
-            }
-
+                phone_number: extractedVariables.phone_number ?? variables.details?.phone_number,
+                parent_user_id: extractedVariables.parent_user_id !== undefined
+                    ? extractedVariables.parent_user_id
+                    : variables.details?.parent_user_id,
+            },
         };
-        console.log("Merged Variable", mergedVariables)
+        let evaluation: boolean;
+        let matchingEdges: any[];
+        try {
+            evaluation = evaluateConditions(data.attributes, mergedVariables);
+            matchingEdges = bot.edges.filter((edge: any) =>
+                edge.source === currentNode.id && getConditionBranch(edge) === evaluation
+            );
+        } catch (error: any) {
+            console.error('CONDITION NODE ERROR', { nodeId: currentNode.id, message: error.message });
+            await endSession(session.id);
+            return { type: 'text', text: 'We could not continue this conversation. Please try again later.' };
+        }
 
-        const success = variables?.http_response?.success === true
-        console.log("HTTP Success", success)
+        // Duplicate saved edges are harmless when they all lead to the same node.
+        const matchingTargets = [...new Set(matchingEdges.map((edge: any) => edge.target))];
+        const nextNode = matchingTargets.length === 1
+            ? bot.nodes.find((node: any) => node.id === matchingTargets[0])
+            : null;
+        console.log('CONDITION RESULT', { nodeId: currentNode.id, evaluation, nextNodeId: nextNode?.id });
 
-
-        // let evaluation = true;
-
-        // for(const condition of conditions){
-        //     const variablePath = condition.field
-        //          .replace("{{","")
-        //          .replace("}}","");
-
-        //     const actualValue = variablePath
-        //         .split(".")
-        //         .reduce(
-        //          (obj:any,key:string)=> obj?.[key],
-        //          variables
-        //         );
-
-        //     console.log("Actual Value",actualValue)
-        //     console.log("Condition",condition)
-
-        //     const expectedValue = condition.value;
-        //     if(condition.comparator === 'equals'){
-        //         evaluation = 
-        //           String(actualValue).toLowerCase() === 
-        //           String(expectedValue).toLowerCase();
-        //     }
-
-        //     console.log("Expected Value",expectedValue)
-        // }
-        // console.log("CONDITION Result:", evaluation)
-
-        // const handle = evaluation 
-        //  ? `condition-true-${currentNode.id}`
-        //  : `condition-false-${currentNode.id}`
-
-        // console.log("Handle", handle)
-
-        const edge = bot.edges.find(
-            (e: any) =>
-                e.source === currentNode.id &&
-                String(e.data.condition) === String(success)
-        )
-
-        console.log("Edge", edge)
-
-        if (!edge) return null;
-
-        const nextNode = bot.nodes.find(
-            (n: any) => n.id === edge.target
-        );
-
-        console.log("NextNode", nextNode)
-
-        if (!nextNode) return null;
+        if (!nextNode) {
+            console.error('CONDITION BRANCH NOT FOUND OR AMBIGUOUS', {
+                nodeId: currentNode.id, evaluation, matchingEdges: matchingEdges.length, matchingTargets,
+            });
+            await endSession(session.id);
+            return { type: 'text', text: 'We could not continue this conversation. Please try again later.' };
+        }
 
         await chatSessionModel.update(session.id, {
             variables: mergedVariables,
@@ -361,6 +346,219 @@ export const executeNode = async ({
      * NORMAL Message NODES
     */
     const response = await buildResponse(currentNode, session, bot);
+    if (response?.stopChatbot) {
+        console.log(
+            "Session ended:",
+            session.id
+        );
+
+        return response;
+    }
+
+
+    // ----------------------------------------
+    // UPDATE CONTACT TAGS
+    // ----------------------------------------
+
+    if (key === "@whatsapp/update-tag") {
+        try {
+            const tags =
+                data?.attributes?.tags || [];
+
+            if (!Array.isArray(tags) || tags.length === 0) {
+                console.log("No tags provided");
+                return null;
+            }
+
+            console.log('Sessions variable',session)
+
+            const phone = session?.phone_number;
+            const userId = session?.variables?.user_id ?? bot?.user_id;
+
+            if (!phone) {
+                console.log(
+                    "Phone number not found in session"
+                );
+                return null;
+            }
+
+            console.log("Updating tags:", {
+                phone,
+                tags,
+            });
+
+            // Get the contact
+            if (!userId) {
+                console.log("Bot owner user_id not found");
+                return null;
+            }
+
+            const contact =
+                await contactModel.findByPhone(
+                    userId,
+                    phone
+                );
+
+            if (!contact) {
+                console.log(
+                    "Contact not found for:",
+                    phone
+                );
+                return null;
+            }
+
+            // Add tags to contact
+            await contactTagRelationModel.bulkAddTags(
+                contact.user_id,
+                contact.id,
+                tags
+            );
+
+            console.log(
+                "Tags updated successfully"
+            );
+
+            // ----------------------------------------
+            // Continue to next node
+            // ----------------------------------------
+
+            const edge = bot.edges.find(
+                (e: any) =>
+                    e.source === currentNode.id
+            );
+
+            if (!edge) {
+                await endSession(session.id);
+
+                return null;
+            }
+
+            const nextNode = bot.nodes.find(
+                (n: any) =>
+                    n.id === edge.target
+            );
+
+            if (!nextNode) {
+                await endSession(session.id);
+
+                return null;
+            }
+
+            await chatSessionModel.update(
+                session.id,
+                {
+                    current_node_id: nextNode.id,
+                }
+            );
+
+            return await executeNode({
+                bot,
+                session: {
+                    ...session,
+                    current_node_id: nextNode.id,
+                },
+                currentNode: nextNode,
+            });
+
+        } catch (error: any) {
+            console.error(
+                "UPDATE TAG NODE ERROR:",
+                error
+            );
+
+            return null;
+        }
+    }
+
+    // ---------------------------------------
+    // Update Contact
+    // --------------------------------------
+    if (key === "@whatsapp/update-column") {
+        try {
+            const updates = data?.attributes?.columnUpdates || [];
+
+            console.log("Update column", updates);
+
+            if (!updates.length) {
+                console.log("No column updates provided");
+                return null;
+            }
+
+            const phone = session?.variables?.phone_number;
+
+            if (!phone) {
+                console.log("Phone number not found");
+                return null;
+            }
+
+            const contact = await contactModel.findByUserPhoneNumber(phone);
+
+            if (!contact) {
+                console.log("Contact not found");
+                return null;
+            }
+
+            const customFields = {
+                ...(contact.custom_fields || {}),
+            };
+
+            for (const update of updates) {
+                const column = update?.column;
+                const value = update?.value;
+
+                if (!column) {
+                    console.log("Column missing");
+                    continue;
+                }
+
+                customFields[column] = value;
+            }
+
+            await contactModel.update(contact.id, {
+                custom_fields: customFields,
+            });
+
+            console.log("Contact custom fields updated", {
+                contactId: contact.id,
+                customFields,
+            });
+
+            const edge = bot.edges.find(
+                (e: any) => e.source === currentNode.id
+            );
+
+            if (!edge) {
+                await endSession(session.id);
+                return null;
+            }
+
+            const nextNode = bot.nodes.find(
+                (n: any) => n.id === edge.target
+            );
+
+            if (!nextNode) {
+                await endSession(session.id);
+                return null;
+            }
+
+            await chatSessionModel.update(session.id, {
+                current_node_id: nextNode.id,
+            });
+
+            return await executeNode({
+                bot,
+                session: {
+                    ...session,
+                    current_node_id: nextNode.id,
+                },
+                currentNode: nextNode,
+            });
+
+        } catch (error) {
+            console.error("UPDATE COLUMN ERROR:", error);
+            return null;
+        }
+    }
 
     // Text nodes, such as the welcome message, do not wait for user input.
     // Follow their outgoing edge immediately and persist the next node.

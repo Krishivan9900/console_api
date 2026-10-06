@@ -209,6 +209,7 @@ async function processContactImport(job: Job<ContactImportJobData>) {
           ) {
 
             await ContactTagRelationModel.bulkAddTags(
+              userId,
               contact.id,
               options.tagIds
             );

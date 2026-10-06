@@ -1,0 +1,273 @@
+{
+  "menus": [
+    {
+      "id": "0194bdc1-e326-4ff7-a135-9a15cbb051c7",
+      "data": {
+        "key": "@whatsapp/send-list-message",
+        "type": "action",
+        "title": "Send List Message",
+        "dataOut": {
+          "raw": {
+            "status": 200,
+            "success": true,
+            "replyTitle": null
+          }
+        },
+        "attributes": {
+          "message": {
+            "type": "interactive",
+            "interactive": {
+              "body": {
+                "text": "."
+              },
+              "type": "list",
+              "action": {
+                "button": "Select your role",
+                "sections": [
+                  {
+                    "rows": [
+                      {
+                        "id": "row_1781057781559_z6zdty",
+                        "title": "Farmer",
+                        "description": ""
+                      },
+                      {
+                        "id": "row_1781057808417_syppf5",
+                        "title": "Trader",
+                        "description": ""
+                      },
+                      {
+                        "id": "row_1781057816289_5s4l7r",
+                        "title": "Agri-Transport",
+                        "description": ""
+                      },
+                      {
+                        "id": "row_1781057822889_tu8i3m",
+                        "title": "Micro-Entrepreneur",
+                        "description": ""
+                      },
+                      {
+                        "id": "row_1781057830689_zsz226",
+                        "title": "FPO",
+                        "description": ""
+                      },
+                      {
+                        "id": "row_1781057843393_r8kw0e",
+                        "title": "Agri-Machine",
+                        "description": ""
+                      },
+                      {
+                        "id": "row_1781057850057_gw9r4b",
+                        "title": "Agri Input Supplier",
+                        "description": ""
+                      },
+                      {
+                        "id": "row_1781057859601_o83ht8",
+                        "title": "Livestock",
+                        "description": ""
+                      }
+                    ],
+                    "title": "Select your role"
+                  }
+                ]
+              },
+              "footer": {
+                "text": ""
+              },
+              "header": {
+                "text": "Please Select your Role",
+                "type": "text"
+              }
+            }
+          }
+        },
+        "nextHandle": true
+      }
+    },
+    {
+      "id": "b6af02c0-5425-4dfc-ab3d-b631dca1740e",
+      "data": {
+        "key": "@whatsapp/send-list-message",
+        "type": "action",
+        "title": "Send List Message",
+        "dataOut": {
+          "raw": {
+            "status": 200,
+            "success": true,
+            "replyTitle": null
+          }
+        },
+        "attributes": {
+          "message": {
+            "type": "interactive",
+            "interactive": {
+              "body": {
+                "text": "."
+              },
+              "type": "list",
+              "action": {
+                "button": "अपनी भूमिका चुनें",
+                "sections": [
+                  {
+                    "rows": [
+                      {
+                        "id": "row_1781058103209_d37nan",
+                        "title": "किसान",
+                        "description": ""
+                      },
+                      {
+                        "id": "row_1781058103209_vx94h9",
+                        "title": "व्यापारी",
+                        "description": ""
+                      },
+                      {
+                        "id": "row_1781058103209_n8q0hi",
+                        "title": "कृषि परिवहन सेवा",
+                        "description": ""
+                      },
+                      {
+                        "id": "row_1781058103209_5g8vmy",
+                        "title": "सूक्ष्म उद्यमी",
+                        "description": ""
+                      },
+                      {
+                        "id": "row_1781058103209_rqr59d",
+                        "title": "किसान उत्पादक(FPO)",
+                        "description": ""
+                      },
+                      {
+                        "id": "row_1781058103209_1lr71m",
+                        "title": "कृषि मशीन सेवा प्रदाता",
+                        "description": ""
+                      },
+                      {
+                        "id": "row_1781058103209_35d7ck",
+                        "title": "कृषि इनपुट आपूर्तिकर्ता",
+                        "description": ""
+                      },
+                      {
+                        "id": "row_1781058103209_nb3jli",
+                        "title": "पशुपालक",
+                        "description": ""
+                      }
+                    ],
+                    "title": "अपनी भूमिका चुनें"
+                  }
+                ]
+              },
+              "footer": {
+                "text": ""
+              },
+              "header": {
+                "text": "कृपया अपनी भूमिका चुनें।",
+                "type": "text"
+              }
+            }
+          }
+        },
+        "nextHandle": true
+      }
+    },
+    {
+      "id": "74733528-2cdc-4dda-bf9f-0766d6e692af",
+      "data": {
+        "key": "@whatsapp/send-list-message",
+        "type": "action",
+        "title": "Send List Message",
+        "dataOut": {
+          "raw": {
+            "status": 200,
+            "success": true,
+            "replyTitle": null
+          }
+        },
+        "attributes": {
+          "message": {
+            "type": "interactive",
+            "interactive": {
+              "body": {
+                "text": "."
+              },
+              "type": "list",
+              "action": {
+                "button": "మీ పాత్రను ఎంచుకోండి",
+                "sections": [
+                  {
+                    "rows": [
+                      {
+                        "id": "row_1781085839615_claktt",
+                        "title": "రైతు",
+                        "description": ""
+                      },
+                      {
+                        "id": "row_1781085839615_pq33of",
+                        "title": "వ్యాపారి",
+                        "description": ""
+                      },
+                      {
+                        "id": "row_1781085839615_v0bd8z",
+                        "title": "వ్యవసాయ రవాణా సేవలు",
+                        "description": ""
+                      },
+                      {
+                        "id": "row_1781085839615_dlns3t",
+                        "title": "సూక్ష్మ వ్యాపారవేత్త",
+                        "description": ""
+                      },
+                      {
+                        "id": "row_1781085839615_70fclc",
+                        "title": "రైతు ఉత్పత్తిదారుల సంస్థ",
+                        "description": ""
+                      },
+                      {
+                        "id": "row_1781085839615_r01efw",
+                        "title": "వ్యవసాయ యంత్రాలు",
+                        "description": ""
+                      },
+                      {
+                        "id": "row_1781085839615_hl37m8",
+                        "title": "వ్యవసాయ ఇన్‌పుట్లు",
+                        "description": ""
+                      },
+                      {
+                        "id": "row_1781085839615_ez89gq",
+                        "title": "పశుపాలకుడు",
+                        "description": ""
+                      }
+                    ],
+                    "title": "మీ పాత్రను ఎంచుకోండి"
+                  }
+                ]
+              },
+              "footer": {
+                "text": ""
+              },
+              "header": {
+                "text": "దయచేసి మీ పాత్రను ఎంచుకోండి.",
+                "type": "text"
+              }
+            }
+          }
+        },
+        "nextHandle": true
+      }
+    }
+  ],
+  "session": {
+    "id": "601e6e42-658e-4b8b-8abc-abe4b6f1e111",
+    "detailsRole": "fpo"
+  },
+  "stored": {
+    "id": "2cab0460-915e-41a9-b1eb-dbb84a0b5673",
+    "role": "fpo"
+  },
+  "user": {
+    "id": "e7f06885-d670-44a4-abd3-5d46f721168e",
+    "role": "user",
+    "role_type": "fpo"
+  },
+  "contact": {
+    "id": "500e7723-19d8-466c-aaf4-3e1c2234d233",
+    "role_type": "fpo"
+  }
+}

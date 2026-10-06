@@ -40,7 +40,8 @@ export const menuFlow = async ({
     // Find ANY edges globally
     let updatedVariables = session.variables;
     let variable;
-    let variableValue = incomingText;
+    let variableValue = message?.interactive?.list_reply?.title ||
+      message?.interactive?.button_reply?.title || incomingText;
 
     console.log("Global")
     const globalEdge = bot.edges.find(
@@ -56,12 +57,14 @@ export const menuFlow = async ({
         (n:any)=> n.id === globalEdge.target
       )
 
+      const sourceNode = bot.nodes.find((node: any) => node.id === globalEdge.source);
+
       if ([
         "@whatsapp/send-list-message",
         "@whatsapp/send-button-message"
-      ].includes(nodeKey)) {
+      ].includes(sourceNode?.data?.key)) {
         console.log("Current Node",currentNode)
-        variable = currentNode.data?.attributes?.variable;
+        variable = sourceNode.data?.attributes?.variable;
 
         console.log("Variable Identify", variable)
 
@@ -78,7 +81,8 @@ export const menuFlow = async ({
         if(variable){
           updatedVariables = {
           ...existingVariables,
-          [variable]: variableValue
+          [variable]: variableValue,
+          ...(variable === 'role' ? { details: { ...existingVariables.details, role: variableValue } } : {}),
         };
 
         }
@@ -182,8 +186,9 @@ export const menuFlow = async ({
     }
 
     //interactive support
-    if(message?.type === 'interactve'){
-      answer = message?.interactive?.list_reply?.title 
+    if(message?.type === 'interactive'){
+      answer = message?.interactive?.list_reply?.title ||
+        message?.interactive?.button_reply?.title || incomingText;
     }
 
     // media support
@@ -199,6 +204,7 @@ export const menuFlow = async ({
     const updatedVariables = {
       ...existingVariables,
       [variable]: answer,
+      ...(variable === 'role' ? { details: { ...existingVariables.details, role: answer } } : {}),
     };
 
     console.log("🧠 Variables:", updatedVariables);

@@ -1,12 +1,14 @@
 import chatSessionModel from '@surefy/console/app/models/chatSession.model';
-import chatBotModel from '@surefy/console/models/chatbot.model';
+import { getRuntimeBot } from './runtimeBot';
 import chatBotNodeModel from '@surefy/console/models/chatBotNode.model';
 import chatBotEdgeModel from '@surefy/console/models/chatBotEdge.model';
 import messageService from "@surefy/console/services/message.service"
 import nodemailer from "nodemailer";
-import { flowRouter } from './flow.router';
+import { flowRouter } from './flow.router'
 import contactModel from '@surefy/console/models/contact.model';
 import userModel from '../../models/user.model';
+import phoneNumberModel from '../../models/phoneNumber.model';
+import { normalizeTriggerText } from './trigger.logic';
 
 export const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST,
@@ -29,21 +31,36 @@ export async function handleIncomingMessageChatBot(phoneNumberId: any, message: 
     const incomingId =
       message?.interactive?.button_reply?.id ||
       message?.interactive?.list_reply?.id ||
+      message?.button?.payload ||
       null;
 
-    const incomingText = (
+    const incomingText = normalizeTriggerText(
       message?.text?.body ||
       message?.interactive?.button_reply?.title ||
       message?.interactive?.list_reply?.title ||
+      message?.button?.text ||
       ""
-    ).toLowerCase().trim();
+    );
 
     console.log("📩 Parsed:", { phone, incomingText });
     console.log("Incoming Id",incomingId)
 
     // 1️⃣ Get bot
     console.log("🔍 Finding bot for phone number:", phoneNumberId);
-    const bot: any = await chatBotModel.getPublishedBotByPhoneNumber(phoneNumberId);
+    let bot: any = incomingText
+      ? await getRuntimeBot(phoneNumberId, undefined, incomingText)
+      : null;
+
+    let triggerMatched = Boolean(bot);
+
+    if (bot) {
+      await chatSessionModel.deactivateOtherBots(phone, phoneNumberId, bot.id);
+    } else {
+      console.info('[Chatbot Routing] No keyword flow selected; checking active session', { phoneNumberId });
+      const activeSession = await chatSessionModel.findActiveByPhoneNumberId(phone, phoneNumberId);
+      bot = activeSession ? await getRuntimeBot(phoneNumberId, activeSession.chatbot_id) : null;
+      if (!bot) return null;
+    }
 
     const numberMatch = incomingText.match(/\d{10,13}/);
     let fpo_info
@@ -53,9 +70,11 @@ export async function handleIncomingMessageChatBot(phoneNumberId: any, message: 
       const cleanNumber = fpoNumber.replace(/\D/g, "");
 
       // Add 91 if not already present
-      const phoneNumber = cleanNumber.startsWith("91")
-            ? cleanNumber
-            : `91${cleanNumber}`;
+      // const phoneNumber = cleanNumber.startsWith("91")
+      //       ? cleanNumber
+      //       : `${cleanNumber}`;
+
+      const phoneNumber = cleanNumber
 
       console.log("Phone Number",phoneNumber)
       
@@ -64,24 +83,20 @@ export async function handleIncomingMessageChatBot(phoneNumberId: any, message: 
 
     console.log("Fpo Info",fpo_info)
 
-    console.log("🤖 Found bot:", bot ? bot.name : "No bot");
+    console.log("🤖 Found bot:", bot ? bot.id : "No bot");
     if (!bot) return null;
 
     const mappedUserId = fpo_info?.id ? fpo_info?.id: bot.user_id;
 
-    //check exist contact
-    const existContact = await contactModel.findByUserPhoneNumber(message.from)
-    console.log("Existing Contant",existContact)
-    if(!existContact){
-      const newContact = await contactModel.create({
-        // user_id: mappedUserId,
-        user_id: bot.user_id,
-        company_id:bot.company_id,
-        phone_number:message.from,
-        name:profile_name
-      })
-      console.log("New Contact", newContact)
-    }
+    const receivingPhoneNumber = await phoneNumberModel.findByPhoneNumberId(phoneNumberId);
+    if (!receivingPhoneNumber) return null;
+    const existingContact = await contactModel.findByPhone(receivingPhoneNumber.user_id, message.from);
+    if (!existingContact) await contactModel.create({
+      user_id: receivingPhoneNumber.user_id,
+      company_id: receivingPhoneNumber.company_id,
+      phone_number: message.from,
+      name: profile_name,
+    });
   //   else{
   //       // Update contact mapping if FPO user found
   // if (existContact.user_id !== mappedUserId) {
@@ -92,32 +107,13 @@ export async function handleIncomingMessageChatBot(phoneNumberId: any, message: 
   //   }
 
 
-    // 2️⃣ Load nodes + edges
-    const rawNodes = await chatBotNodeModel.findByChatBotId(bot?.id) || [];
-    const rawEdges = await chatBotEdgeModel.findByChatBotId(bot?.id) || [];
-
-    bot.nodes = rawNodes.map((n: any) => ({
-      ...n,
-      data: safeJSON(n.data),
-    }));
-
-    bot.edges = rawEdges.map((e: any) => ({
-      ...e,
-      data: safeJSON(e.data),
-    }));
-
-    console.log("📦 Nodes:", bot.nodes.length);
-    console.log("🔗 Edges:", bot.edges.length);
-
-    // console.log("Nodes", JSON.stringify(bot.nodes))
-    // console.log("Edges", JSON.stringify(bot.edges))
-
     const response = await flowRouter({
       bot,
       phone,
       incomingText,
       incomingId,
       message,
+      triggerMatched,
       phoneNumberId
     })
 
@@ -126,10 +122,12 @@ export async function handleIncomingMessageChatBot(phoneNumberId: any, message: 
     // console.log("Response", JSON.stringify(response))
 
     // 4️⃣ Send message
+    if (response?.ignoreMessage) return null;
+
     if (response) {
       await messageService.sendChatBotMessage(phoneNumberId, phone, response);
     } else {
-      const chatSession = await chatSessionModel.findByPhoneNumber(phone)
+      const chatSession = await chatSessionModel.findActiveSession({ phoneNumber: phone, chatbotId: bot.id, phoneNumberId })
       if (!chatSession) {
         return null
       }
@@ -154,80 +152,6 @@ export async function handleIncomingMessageChatBot(phoneNumberId: any, message: 
     return;
   }
 }
-
-
-// function resolveFlow(bot: any, incomingText: string, incomingId?: string) {
-//   incomingText = incomingText.toLowerCase().trim();
-//   console.log("Incoming Id", incomingId, bot)
-
-//   // 1️⃣ Trigger
-//   const triggerNode = bot.nodes.find((n: any) => n.type === "trigger");
-
-//   if (triggerNode) {
-//     const triggerData = safeJSON(triggerNode.data);
-//     const isMatch = matchTrigger(triggerData, incomingText);
-
-//     if (isMatch) {
-//       const edge = bot.edges.find((e: any) => e.source === triggerNode.id);
-//       if (!edge) return null;
-
-//       const nextNode = bot.nodes.find((n: any) => n.id === edge.target);
-//       return buildResponse(nextNode);
-//     }
-//   }
-
-//   // 🔥 2️⃣ MATCH USING LABEL ↔ incomingText
-//   if (incomingText) {
-//     const edge = bot.edges.find((e: any) => {
-//       const label = (e.label || "").toLowerCase().trim();
-//       const text = incomingText.toLowerCase().trim();
-
-//       console.log("🔍 Matching:", { label, text });
-
-//       return label === text;
-//     });
-
-//     if (edge) {
-//       console.log("✅ Matched Edge:", edge);
-
-//       const nextNode = bot.nodes.find((n: any) => n.id === edge.target);
-//       return buildResponse(nextNode);
-//     }
-//   }
-
-//   // 🔥 2️⃣ PRIMARY: MATCH USING incomingId
-//   if (incomingId) {
-//     const edge = bot.edges.find((e: any) => {
-//       const handle = e?.data?.sourceHandle;   // 👈 BEST PRACTICE
-//       const label = (e.label || "").toLowerCase();
-
-//       console.log("BOT", handle, label)
-
-//       return (
-//         handle === incomingId ||             // preferred
-//         label === incomingId.toLowerCase()   // fallback
-//       );
-//     });
-
-//     if (edge) {
-//       const nextNode = bot.nodes.find((n: any) => n.id === edge.target);
-//       return buildResponse(nextNode);
-//     }
-//   }
-
-//   // 3️⃣ LAST fallback → text (not recommended but okay)
-//   for (const edge of bot.edges) {
-//     const label = (edge.label || "").toLowerCase().trim();
-
-//     if (label === incomingText) {
-//       const nextNode = bot.nodes.find((n: any) => n.id === edge.target);
-//       return buildResponse(nextNode);
-//     }
-//   }
-
-//   return null;
-// }
-
 
 function safeJSON(data: any) {
   try {

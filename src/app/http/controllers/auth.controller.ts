@@ -270,16 +270,25 @@ class AuthController {
     return res.status(200).json(result)
   }
 
-  async checkExistUser(req:Request,res:Response){
-    const{session_data} = req.body
-    console.log("Session data",session_data)
-    const data = await AuthService.checkExistUser(session_data.phone_number)
+  checkExistUser = tryCatchAsync(async (req: Request, res: Response) => {
+    const sessionData = req.body?.session_data;
+    const phoneNumber = typeof sessionData === 'string'
+      ? sessionData
+      : sessionData?.phone_number;
+
+    if (typeof phoneNumber !== 'string' || !phoneNumber.trim()) {
+      throw new HTTP400Error({
+        message: 'session_data must be a phone number string or an object with a non-empty phone_number string',
+      });
+    }
+
+    const data = await AuthService.checkExistUser(phoneNumber.trim());
     if(!data){
       return res.status(200).json({success:false,message:"User not found", data})
     }
 
     return res.status(200).json({success:true,message:"User retrived successfully", data})
-  }
+  });
 
   async uploadMedia(req:Request,res:Response){
     const file = req.file

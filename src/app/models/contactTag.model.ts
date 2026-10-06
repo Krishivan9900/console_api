@@ -51,6 +51,23 @@ class ContactTagModel extends BaseModel {
       .whereNull('deleted_at')
       .orderBy('name', 'asc');
   }
+
+  async bulkAddTags(
+  userId: string,
+  contactId: string,
+  tagIds: string[]
+) {
+  const relations = tagIds.map((tagId) => ({
+    user_id: userId,
+    contact_id: contactId,
+    tag_id: tagId,
+  }));
+
+  return this.query()
+    .insert(relations)
+    .onConflict(["contact_id", "tag_id"])
+    .ignore();
+}
 }
 
 export default new ContactTagModel();

@@ -1,4 +1,5 @@
 import { BaseModel } from '@surefy/models/base.model';
+import { getPhoneNumberVariants } from '../../phone';
 
 class UserModel extends BaseModel {
   constructor() {
@@ -88,13 +89,13 @@ class UserModel extends BaseModel {
 
   async findByPhone(phone_number: any) {
     console.log("Phone", phone_number)
-    return await this.query().where({ phone: phone_number }).first();
+    return await this.query().whereIn('phone', getPhoneNumberVariants(phone_number)).first();
   }
 
   async findByEmailOrPhone(identifier: string) {
     return this.query()
       .where((builder) => {
-        builder.where({ email: identifier }).orWhere({ phone: identifier });
+        builder.where({ email: identifier }).orWhereIn('phone', getPhoneNumberVariants(identifier));
       })
       .whereNull('deleted_at')
       .first();
@@ -205,7 +206,8 @@ class UserModel extends BaseModel {
   }
 
   async findByUserId(userId:string){
-    return await this.query().where('user_id',userId).first()
+    console.log("User Id",userId)
+    return await this.query().where('id',userId).first()
   }
 }
 

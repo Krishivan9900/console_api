@@ -51,6 +51,8 @@ class ContactController {
       limit: req.query.limit,
     };
 
+    console.log('filters',filters)
+
     const contacts = await ContactService.getContacts(req.userId!, filters);
     return successResponse(req, res, 'Contacts retrieved successfully', contacts);
   });
@@ -69,11 +71,11 @@ class ContactController {
    * PUT /v1/contacts/:id
    * Update contact
    */
-  updateContact = tryCatchAsync(async (req: Request, res: Response) => {
+  updateContact = tryCatchAsync(async (req: AuthRequest, res: Response) => {
     const { id } = req.params;
     const { name, email, attributes, notes, tag_ids,assigned_to } = req.body;
 
-    const contact = await ContactService.updateContact(id, {
+    const contact = await ContactService.updateContact(id,req.userId!, {
       name,
       email,
       attributes,
@@ -208,7 +210,7 @@ class ContactController {
    * POST /v1/contacts/:id/tags
    * Add tags to contact
    */
-  addTags = tryCatchAsync(async (req: Request, res: Response) => {
+  addTags = tryCatchAsync(async (req: AuthRequest, res: Response) => {
     const { id } = req.params;
     const { tag_ids } = req.body;
 
@@ -216,7 +218,7 @@ class ContactController {
       throw new HTTP400Error({ message: 'tag_ids array is required' });
     }
 
-    await ContactService.addTagsToContact(id, tag_ids);
+    await ContactService.addTagsToContact(req.userId!,id, tag_ids);
     return successResponse(req, res, 'Tags added successfully');
   });
 

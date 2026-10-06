@@ -31,8 +31,9 @@ class ContactTagRelationModel extends BaseModel {
       .delete();
   }
 
-  async bulkAddTags(contactId: string, tagIds: string[]) {
+  async bulkAddTags(userId:string,contactId: string, tagIds: string[]) {
     const relations = tagIds.map((tagId) => ({
+      user_id:userId,
       contact_id: contactId,
       tag_id: tagId,
     }));

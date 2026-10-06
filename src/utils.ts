@@ -218,36 +218,47 @@ export function normalizeRole(role: string): string {
 
     // FPO
     "fpo": "fpo",
+    "రైతు ఉత్పత్తిదారుల సంస్థ": "fpo",
     "किसान उत्पादक(fpo)": "fpo",
     "రైతు ఉత్పత్తిదారు(fpo)": "fpo",
 
     // Transport
     "agricultural transport service": "agricultural_transport_service",
+    "agri-transport": "agricultural_transport_service",
+    "వ్యవసాయ రవాణా సేవలు": "agricultural_transport_service",
     "कृषि परिवहन सेवा": "agricultural_transport_service",
     "వ్యవసాయ రవాణా సేవ": "agricultural_transport_service",
 
     // Micro Entrepreneur
     "micro entrepreneur": "micro_entrepreneur",
+    "micro-entrepreneur": "micro_entrepreneur",
     "सूक्ष्म उद्यमी": "micro_entrepreneur",
     "సూక్ష్మ వ్యాపారవేత్త": "micro_entrepreneur",
 
     // Machinery
     "agricultural machinery service provider": "agricultural_machinery_service_provider",
+    "agri-machine": "agricultural_machinery_service_provider",
+    "వ్యవసాయ యంత్రాలు": "agricultural_machinery_service_provider",
     "कृषि मशीन सेवा प्रदाता": "agricultural_machinery_service_provider",
     "వ్యవసాయ యంత్ర సేవా ప్రదాత": "agricultural_machinery_service_provider",
 
     // Input Supplier
     "agricultural input supplier": "agricultural_input_supplier",
+    "agri input supplier": "agricultural_input_supplier",
+    "వ్యవసాయ ఇన్‌పుట్లు": "agricultural_input_supplier",
     "कृषि इनपुट आपूर्तिकर्ता": "agricultural_input_supplier",
     "వ్యవసాయ ఇన్‌పుట్ సరఫరాదారు": "agricultural_input_supplier",
 
     // Livestock
     "livestock farmer": "livestock_farmer",
+    "livestock": "livestock_farmer",
+    "పశుపాలకుడు": "livestock_farmer",
     "पशुपालक": "livestock_farmer",
     "పశుపోషకుడు": "livestock_farmer",
   };
 
-  return roleMap[normalized] || role.toUpperCase();
+  return roleMap[normalized] ||
+    (Object.values(roleMap).includes(normalized) ? normalized : role.toUpperCase());
 }
 
 
@@ -303,7 +314,7 @@ export function replaceVariables(
         details: variables?.details?.company_details ?? null,
         native_language: normalizedLanguage,
         gstin: variables?.gstin,
-        role: variables.role,
+        role: variables.role || variables.details?.role,
         email: variables.email,
         photo: variables.photo,
         chat: variables.chat,
@@ -322,6 +333,7 @@ export function replaceVariables(
             null,
         },
         phone_number: variables.phone_number,
+        fpo_id: variables.fpo_id,
         parent_user_id: variables.parent_user_id ? variables.parent_user_id : variables?.api_response?.data?.parent_user_id
       }
     }
@@ -538,7 +550,7 @@ export async function matchTrigger(
     (keyword: string) =>
       keyword &&
       keyword.toString().trim().toLowerCase() ===
-        normalizedText
+      normalizedText
   );
 }
 
@@ -593,6 +605,8 @@ function parseJSON(data: any) {
     return {};
   }
 }
+
+export { normalizeRegistrationPhoneNumber } from './phone';
 
 export const normalizePhoneNumber = (
   phone: string,
@@ -688,47 +702,67 @@ function getNestedValue(obj: any, path: string) {
 //   });
 // }
 
-function buildWelcomeMessage(variables: any): string {
-  console.log('Building welcome message',variables)
-  const details = variables?.details || {};
-  const data =  variables?.data.company_details || {};
-  console.log("Data",data)
-  const companyDetails = details.company_details || variables?.company_details || {};
+function replaceBodyVariables(text: string, variables: any): string {
+  return text.replace(/\{\{([^}]+)\}\}/g, (_, path) => {
+    const value = getNestedValue(variables, path.trim());
+    return value === undefined || value === null ? "" : String(value);
+  });
+}
 
-  const name = details.name || variables?.name || "there";
-  const email = details.email || variables?.email;
-  const phone = details.phone_number || variables?.phone_number;
-  const gstin = details.gstin || variables?.gstin;
-  const role = details.role || variables?.role;
-  const companyName = variables.http_response.data.data.details.legal_name;
-  const pan = variables.http_response.data.data.details.pan
-  const password = 123456
+function buildWelcomeMessage(variables: any): string {
+  const details = variables?.details || {};
+  const responseData = variables?.http_response?.data || variables?.api_response?.data || {};
+  const user = responseData.data || responseData;
+  const companyDetails = {
+    ...(user.details || {}),
+    ...(user.company_details || {}),
+    ...(variables?.company_details || {}),
+    ...(variables?.data?.company_details || {}),
+    ...(details.company_details || {}),
+  };
+
+  const name = details.name || variables?.name || user.name || user.first_name || "there";
+  const email = details.email || variables?.email || user.email;
+  const phone = details.phone_number || variables?.phone_number || user.phone_number || user.phone;
+  const gstin = details.gstin || variables?.gstin || user.gstin;
+  const role = details.role || variables?.role || user.role_type || user.role;
+  const companyName = companyDetails.legal_name || companyDetails.trade_name;
+  const pan = companyDetails.pan;
 
   const detailLines = [
-    email && `📧 Email: ${email}`,
-    phone && `📱 Phone: ${phone}`,
-    companyName && `🏢 Company: ${companyName}`,
-    pan && `Pan: ${pan}`,
-    gstin && `🧾 GSTIN: ${gstin}`,
-    role && `👤 Role: ${String(role).toUpperCase()}`,
-    password && `password: ${password}`
+    companyName && `*Company:* ${companyName}`,
+    email && `*Email:* ${email}`,
+    phone && `*Phone:* ${phone}`,
+    gstin && `*GSTIN:* ${gstin}`,
+    pan && `*PAN:* ${pan}`,
+    role && `*Role:* ${String(role).replace(/_/g, " ").toUpperCase()}`,
   ].filter(Boolean);
 
   return [
-    "Welcome to Krishivan Organization! 🎉",
+    "🌱 *Welcome to Krishivan!*",
     "",
     `Hello ${name},`,
+    "Your account has been created successfully. 🎉",
     "",
-    "Your account has been created successfully.",
-    "",
+    "*Your account details*",
     ...detailLines,
     "",
-    "You can log in using the link below:",
-    "🔗 https://fpo-krishivan.web.app/login",
+    "*Login to your account*",
+    "https://fpo-krishivan.web.app/login",
+    "*Temporary password:* 123456",
     "",
-    "Please keep your login credentials safe.",
-    "Welcome aboard! 🚀",
+    "Please change your password after your first login and keep your credentials private.",
+    "",
+    "Welcome aboard! 🤝",
   ].join("\n");
+}
+
+export async function endSession(sessionId: string) {
+  return await chatSessionModel.update(sessionId, {
+    active: false,
+    current_node_id: null,
+    updated_at: new Date(),
+  });
 }
 
 
@@ -742,7 +776,7 @@ export async function buildResponse(node: any, session?: any, bot?: any) {
   console.log('NextNode', JSON.stringify(node))
   console.log()
   const data = safeJSON(node.data);
-  
+
 
   // if (node.type === "message") {
   //   return {
@@ -757,7 +791,119 @@ export async function buildResponse(node: any, session?: any, bot?: any) {
   if (key === "@whatsapp/ask-question") {
     return {
       type: "text",
-      text: data?.attributes?.message?.text?.body || "Please enter value"
+      text: replaceBodyVariables(
+        data?.attributes?.message?.text?.body || "Please enter value",
+        session?.variables || {}
+      )
+    };
+  }
+
+if (data.key === "@whatsapp/send-cta-message") {
+  const attrs = data.attributes || {};
+
+  const interactiveData = attrs.message?.interactive || {};
+
+  const header = interactiveData.header || {};
+  const body = interactiveData.body || {};
+  const footer = interactiveData.footer || {};
+  const parameters = interactiveData.action?.parameters || {};
+
+  const interactive: any = {
+    type: "cta_url",
+
+    body: {
+      text: body.text || "",
+    },
+
+    action: {
+      name: "cta_url",
+      parameters: {
+        display_text: parameters.display_text || "Open",
+        url: parameters.url || "",
+      },
+    },
+  };
+
+  // -----------------------------------------
+  // Add header ONLY if type is valid
+  // Meta does NOT support "none"
+  // -----------------------------------------
+  const validHeaderTypes = [
+    "text",
+    "image",
+    "video",
+    "document",
+  ];
+
+  if (
+    header.type &&
+    validHeaderTypes.includes(header.type)
+  ) {
+    if (header.type === "text") {
+      interactive.header = {
+        type: "text",
+        text: header.text || "",
+      };
+    }
+
+    if (
+      header.type === "image" &&
+      header.image
+    ) {
+      interactive.header = {
+        type: "image",
+        image: header.image,
+      };
+    }
+
+    if (
+      header.type === "video" &&
+      header.video
+    ) {
+      interactive.header = {
+        type: "video",
+        video: header.video,
+      };
+    }
+
+    if (
+      header.type === "document" &&
+      header.document
+    ) {
+      interactive.header = {
+        type: "document",
+        document: header.document,
+      };
+    }
+  }
+
+  // -----------------------------------------
+  // Footer is optional
+  // Don't send footer.text = ""
+  // -----------------------------------------
+  if (footer.text?.trim()) {
+    interactive.footer = {
+      text: footer.text,
+    };
+  }
+
+  return {
+    type: "interactive",
+    interactive,
+  };
+}
+
+  if (key === "@whatsapp/stop-chatbot") {
+    if (session?.id) {
+      await endSession(session.id);
+    }
+
+    return {
+      type: "text",
+      text:
+        data?.attributes?.message ||
+        "Thank you. This conversation has been closed.",
+      stopChatbot: true,
     };
   }
 
@@ -779,37 +925,37 @@ export async function buildResponse(node: any, session?: any, bot?: any) {
     };
   }
 
-//   if (key === "@whatsapp/send-text-message") {
-//     const text = `Welcome to Krishivan Organization! 🎉
+  //   if (key === "@whatsapp/send-text-message") {
+  //     const text = `Welcome to Krishivan Organization! 🎉
 
-// Hello Ritesh,
+  // Hello Ritesh,
 
-// Your account has been created successfully .
+  // Your account has been created successfully .
 
-// 📧 Email: ritesh45@gmail.com
-//    Company Name: JAIVIK KISAN UPAJ PRODUCER COMPANY LIMITED
-//    PAN Number: AAECJ8814A
-//    Address: 881, SETELIGHT JUCTION, A.B. ROAD, INDORE, Indore, Madhya Pradesh, 452010
-// 🔐 Password: 123456
-// 👤 Role: FPO
+  // 📧 Email: ritesh45@gmail.com
+  //    Company Name: JAIVIK KISAN UPAJ PRODUCER COMPANY LIMITED
+  //    PAN Number: AAECJ8814A
+  //    Address: 881, SETELIGHT JUCTION, A.B. ROAD, INDORE, Indore, Madhya Pradesh, 452010
+  // 🔐 Password: 123456
+  // 👤 Role: FPO
 
-// Your Information has been verified through your gst number
+  // Your Information has been verified through your gst number
 
-// You can login using the link below:
+  // You can login using the link below:
 
-// 🔗 https://fpo-krishivan.web.app/login
+  // 🔗 https://fpo-krishivan.web.app/login
 
-// Please keep your login credentials safe.
+  // Please keep your login credentials safe.
 
-// Welcome aboard! 🚀`;
+  // Welcome aboard! 🚀`;
 
-//     console.log("TEXT", text);
+  //     console.log("TEXT", text);
 
-//     return {
-//       type: "text",
-//       text,
-//     };
-//   }
+  //     return {
+  //       type: "text",
+  //       text,
+  //     };
+  //   }
 
   // if (key === "@whatsapp/send-product-message") {
   //   //Get catalog_id from message.action.catalog_id
@@ -907,50 +1053,61 @@ export async function buildResponse(node: any, session?: any, bot?: any) {
 
   // Button Interactive  
   if (key === "@whatsapp/send-button-message") {
+    const interactiveData =
+      data?.attributes?.message?.interactive || {};
+
+    const interactive: any = {
+      type: "button",
+
+      body: {
+        text:
+          interactiveData?.body?.text ||
+          data?.text ||
+          "",
+      },
+
+      footer: {
+        text:
+          interactiveData?.footer?.text || "",
+      },
+
+      action: {
+        buttons: (
+          interactiveData?.action?.buttons ||
+          data?.buttons ||
+          []
+        ).map((btn: any, i: number) => ({
+          type: "reply",
+
+          reply: {
+            id:
+              btn?.reply?.id ||
+              btn?.id ||
+              `btn_${i}`,
+
+            title:
+              btn?.reply?.title ||
+              btn?.title ||
+              String(btn),
+          },
+        })),
+      },
+    };
+
+    // Add header only if text exists
+    const headerText =
+      interactiveData?.header?.text;
+
+    if (headerText?.trim()) {
+      interactive.header = {
+        type: "text",
+        text: headerText,
+      };
+    }
+
     return {
       type: "interactive",
-
-      interactive: {
-        type: "button",
-
-        header: {
-          type: "text",
-          text: data?.attributes
-            ? data?.attributes?.message?.interactive?.header?.text || ""
-            : ""
-        },
-
-        body: {
-          text: data?.attributes
-            ? data?.attributes?.message?.interactive?.body?.text
-            : data.text,
-        },
-
-        footer: {
-          text: data?.attributes
-            ? data?.attributes?.message?.interactive?.footer?.text || ""
-            : "",
-        },
-
-        action: {
-          buttons: (
-            data?.attributes
-              ? data?.attributes?.message?.interactive?.action?.buttons || []
-              : data.buttons || []
-          ).map((btn: any, i: number) => ({
-            type: "reply",
-
-            reply: {
-              id: btn?.reply?.id || btn.id || `btn_${i}`,
-
-              title:
-                btn?.reply?.title ||
-                btn.title ||
-                btn,
-            },
-          })),
-        },
-      },
+      interactive,
     };
   }
 
@@ -983,13 +1140,11 @@ export async function buildResponse(node: any, session?: any, bot?: any) {
     const sections =
       interactiveData.action?.sections || [];
 
-    const interactive = {
+    const interactive: any = {
       type: "list",
 
-      header: interactiveData.header,
-
       body: interactiveData.body || {
-        text: "Choose an option"
+        text: "Choose an option",
       },
 
       footer: interactiveData.footer,
@@ -1005,15 +1160,25 @@ export async function buildResponse(node: any, session?: any, bot?: any) {
           rows: (section.rows || []).map((row: any) => ({
             id: row.id,
             title: row.title,
-            description: row.description || ""
-          }))
-        }))
-      }
+            description: row.description || "",
+          })),
+        })),
+      },
     };
+
+    if (
+      interactiveData.header &&
+      interactiveData.header.type &&
+      ["text", "image", "video", "document"].includes(
+        interactiveData.header.type
+      )
+    ) {
+      interactive.header = interactiveData.header;
+    }
 
     return {
       type: "interactive",
-      interactive
+      interactive,
     };
   }
 

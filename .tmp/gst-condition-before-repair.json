@@ -1,0 +1,31 @@
+{
+  "node": {
+    "id": "1795a684-4310-4a85-9161-4447ccf87d17",
+    "data": {
+      "key": "@condition/condition-action",
+      "type": "action",
+      "title": "Condition",
+      "dataOut": {
+        "raw": {
+          "evaluation": true
+        }
+      },
+      "attributes": {
+        "operator": "and",
+        "conditions": [
+          {
+            "field": "{{http_response.success}}",
+            "value": "",
+            "threshold": 0.8,
+            "comparator": "equals"
+          }
+        ]
+      },
+      "nextHandle": false
+    }
+  },
+  "edge": {
+    "id": "a422961a-e9c3-4d31-9773-912b429e59cb",
+    "target": "8f0637a0-1ab7-4381-aef2-4f52239309e1"
+  }
+}
