@@ -17,6 +17,7 @@ import { bulkMessageSendQueue } from '../../queues/bulkMessageSend.queue';
 import { v4 as uuidv4, validate as uuidValidate } from "uuid";
 import messageModel from '@surefy/console/models/message.model';
 import userModel from '../models/user.model';
+import AuthService from './auth.service';
 
 
 class MessageService {
@@ -558,6 +559,26 @@ class MessageService {
             content: metaPayload,
             sent_at: new Date(),
           });
+        }
+
+        const body = response.type === 'text' ? metaPayload.text.body : '';
+        const isFpoImportPrompt = body.trim().replace(/\s+/g, ' ').toLowerCase().replace(/[.!]+$/, '') ===
+          'please import excel file for onboarding fpo leads';
+        if (isFpoImportPrompt && metaResponse?.messages?.[0]?.id) {
+          const mimetype = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+          const filename = 'fpo_leads_import_sample.xlsx';
+          const media = await MetaService.uploadMedia(phoneNumberId, {
+            buffer: AuthService.generateFpoLeadsTemplate(),
+            originalname: filename,
+            mimetype,
+          }, mimetype);
+          if (!media?.id) throw new Error('FPO sample upload did not return a media ID');
+
+          const sampleResponse = await this.sendChatBotMessage(phoneNumberId, to, {
+            type: 'document',
+            document: { id: media.id, filename },
+          });
+          if (sampleResponse === null) return null;
         }
 
         return metaResponse;

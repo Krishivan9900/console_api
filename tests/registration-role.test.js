@@ -15,20 +15,29 @@ function runtime(existingUser, options = {}) {
   const replacer = utils.statements.find(node => ts.isFunctionDeclaration(node) && node.name?.text === 'replaceVariables');
   const functions = [normalizer, languageNormalizer, replacer].map(node => node.getText(utils).replace(/^export /, '')).join('\n');
   const sourceText = `${functions}\nclass AuthService { ${methods.map(method => method.getText(source)).join('\n')} }\n({ service: new AuthService(), replaceVariables });`;
-  const calls = { external: [], created: [], updated: [], parentLookups: [], stored: [] };
+  const calls = { external: [], lookups: [], created: [], updated: [], parentLookups: [], stored: [], contactUpdates: [] };
   class BadRequest extends Error { constructor({ message }) { super(message); } }
   const { service, replaceVariables } = vm.runInNewContext(ts.transpileModule(sourceText, { compilerOptions: { target: ts.ScriptTarget.ES2020 } }).outputText, {
     console: { log() {}, error() {} },
     axios: { post: async (url, data) => {
+      if (url.endsWith('/check-user')) {
+        calls.lookups.push(data);
+        if (options.lookupError) throw options.lookupError;
+        return { data: options.lookupResponse ?? { success: true, data: { user_id: 'existing-external-user' } } };
+      }
       calls.external.push(data);
       if (options.apiError) throw options.apiError;
-      return { data: { user_id: 'external-user' } };
+      return { data: options.apiResponse ?? { user_id: 'external-user' } };
     } },
     HTTP400Error: BadRequest,
     normalizeRegistrationPhoneNumber: require('../src/phone').normalizeRegistrationPhoneNumber,
     XLSX: require('xlsx'), Buffer,
     phoneNumberModel: { findByPhoneNumberId: async () => ({ company_id: 'company', user_id: 'bot-owner' }) },
     storesSessionModel: { create: async data => { calls.stored.push(data); return { id: 'stored-session' }; } },
+    contactModel: {
+      findByUserPhoneNumber: async () => options.contact,
+      update: async (id, data) => calls.contactUpdates.push({ id, data }),
+    },
     userModel: {
       findByPhone: async phone => phone === options.mappedFpo?.phone ? options.mappedFpo : existingUser,
       findById: async id => { calls.parentLookups.push(id); return options.mappedFpo; },
@@ -240,8 +249,39 @@ test('register-user HTTP boundary still handles duplicate registration responses
   const { service } = runtime(undefined, { apiError: duplicate });
   const result = await service.registerkrishivanUser({ mobile_number: '919372597458' });
   assert.equal(result.alreadyRegistered, true);
+  assert.equal(result.data.user_id, 'existing-external-user');
   assert.equal(result.message, duplicate.response.data.message);
   const failure = new Error('Service unavailable');
   const failing = runtime(undefined, { apiError: failure });
   await assert.rejects(failing.service.registerkrishivanUser({ mobile_number: '919372597458' }), error => error === failure);
+});
+
+test('duplicate registrations link new and existing console users to the existing Krishivan ID', async () => {
+  for (const existingUser of [undefined, { id: 'ramesh', user_id: 'previous-link' }]) {
+    const { service, calls } = runtime(existingUser, {
+      apiError: { response: { status: 409, data: { message: 'Mobile number already registered' } } },
+      lookupResponse: { success: true, data: { user_id: 'ramesh-external-id', mobile_number: '9876543210' } },
+      contact: { id: 'ramesh-contact' },
+    });
+    const user = await service.registerUser({ company_id: 'company' }, { role: 'farmer', name: 'Ramesh Patil', phone_number: '919876543210' });
+    assert.equal(user.user_id, 'ramesh-external-id');
+    assert.equal(calls.lookups[0].mobile_number, '9876543210');
+    assert.equal(calls.created.length, existingUser ? 0 : 1);
+    assert.equal(calls.updated.length, existingUser ? 1 : 0);
+    if (existingUser) assert.equal(calls.contactUpdates[0].data.reference_id, 'ramesh-external-id');
+  }
+});
+
+test('failed external ID recovery never writes or clears a console user link', async () => {
+  const duplicate = { response: { status: 409, data: { message: 'Mobile number already registered' } } };
+  for (const options of [
+    { apiResponse: { success: true, data: {} } },
+    { apiError: duplicate, lookupResponse: { success: false, data: null } },
+    { apiError: duplicate, lookupError: new Error('Lookup unavailable') },
+  ]) {
+    const { service, calls } = runtime({ id: 'existing', user_id: 'keep-this-link' }, options);
+    await assert.rejects(service.registerUser({ company_id: 'company' }, { role: 'farmer', phone_number: '9876543210' }));
+    assert.equal(calls.created.length, 0);
+    assert.equal(calls.updated.length, 0);
+  }
 });

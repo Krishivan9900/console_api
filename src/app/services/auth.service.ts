@@ -175,29 +175,39 @@ class AuthService {
       role: payload.role,
       createdById: payload.createdById,
     });
+    const requestConfig = {
+      headers: {
+        'X-Internal-Api-Key': 'krishiwhatsappskjf4543k',
+        'Content-Type': 'application/json'
+      }
+    };
     try {
       const response = await axios.post(
         'https://l07yapr0ub.execute-api.ap-south-1.amazonaws.com/prod/farmer-function/register-user',
         payload,
-        {
-          headers: {
-            'X-Internal-Api-Key': 'krishiwhatsappskjf4543k',
-            'Content-Type': 'application/json'
-          }
-        }
+        requestConfig
       );
 
-      console.log('Response krishivan', response)
+      console.log('Response krishivan', response.data)
 
       return response.data;
     } catch (error: any) {
       if (error.response?.status === 409) {
-        console.log("⚠️ Mobile number already registered");
+        const existingResponse = await axios.post(
+          'https://l07yapr0ub.execute-api.ap-south-1.amazonaws.com/prod/farmer-function/check-user',
+          { mobile_number: payload.mobile_number },
+          requestConfig
+        );
+        const existingUser = existingResponse.data?.data;
+        if (!existingUser?.user_id) {
+          throw new HTTP400Error({ message: 'Mobile number is already registered, but Krishivan did not return its user_id' });
+        }
 
         return {
-          success: false,
+          success: true,
           alreadyRegistered: true,
-          message: error.response.data.message
+          message: error.response.data.message,
+          data: existingUser,
         };
       }
 
@@ -468,6 +478,10 @@ class AuthService {
       krishivanResponse?.data?.user_id ||
       null;
 
+    if (!krishivanUserId) {
+      throw new HTTP400Error({ message: 'Krishivan registration did not return a user_id' });
+    }
+
     let user = await userModel.findByPhone(
       data.phone_number
     );
@@ -512,11 +526,19 @@ class AuthService {
     };
 
     if (user) {
-      return await userModel.update(
+      const updatedUser = await userModel.update(
         user.id,
         userPayload
       );
-
+      const existingContact = await contactModel.findByUserPhoneNumber(userPayload.phone);
+      if (existingContact) {
+        await contactModel.update(existingContact.id, {
+          role_type: normalizedRole,
+          reference_id: krishivanUserId,
+          role_id: roleCode,
+        });
+      }
+      return updatedUser;
     }
 
     // return await userModel.create(

@@ -1,0 +1,3842 @@
+{
+  "name": "customer registertion",
+  "phoneNumberIds": [
+    "758960730637985"
+  ],
+  "nodes": [
+    {
+      "id": "07fbf2c9-daaf-496a-b79c-86db7be6ad08",
+      "type": "action",
+      "position": {
+        "x": 1707.3283268946695,
+        "y": 1811.448264282354
+      },
+      "deletable": false,
+      "data": {
+        "key": "@whatsapp/ask-question",
+        "title": "Ask Question",
+        "nextHandle": true,
+        "type": "action",
+        "dataOut": {
+          "raw": {
+            "answer": "string",
+            "status": 200,
+            "success": true,
+            "question": "string"
+          }
+        },
+        "attributes": {
+          "message": {
+            "text": {
+              "body": "Please enter your name",
+              "preview_url": false
+            },
+            "type": "text"
+          },
+          "format": {
+            "type": "text",
+            "validationRules": {
+              "message": "Please enter correct text",
+              "retryCount": 1
+            }
+          },
+          "timeout": {
+            "unit": "seconds",
+            "value": 60,
+            "continueOnTimeout": false
+          },
+          "variable": "name"
+        }
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "0aecac62-f31e-4627-a008-11b8246d7802",
+      "type": "action",
+      "position": {
+        "x": 2553.4309760502283,
+        "y": 1658.4193968263978
+      },
+      "deletable": false,
+      "data": {
+        "key": "@whatsapp/ask-question",
+        "title": "Ask Question",
+        "nextHandle": true,
+        "type": "action",
+        "dataOut": {
+          "raw": {
+            "answer": "string",
+            "status": 200,
+            "success": true,
+            "question": "string"
+          }
+        },
+        "attributes": {
+          "message": {
+            "text": {
+              "body": "please enter your email",
+              "preview_url": false
+            },
+            "type": "text"
+          },
+          "format": {
+            "type": "email",
+            "validationRules": {
+              "message": "Please enter correct email",
+              "retryCount": 1
+            }
+          },
+          "timeout": {
+            "unit": "seconds",
+            "value": 60,
+            "continueOnTimeout": false
+          },
+          "variable": "email"
+        }
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "ae716254-c230-4de9-8edf-988e813398c8",
+      "type": "trigger",
+      "position": {
+        "x": -4593.482202253184,
+        "y": -533
+      },
+      "deletable": false,
+      "data": {
+        "key": "@whatsapp/on-message",
+        "title": "On Message",
+        "nextHandle": true,
+        "type": "trigger",
+        "dataOut": {
+          "raw": {
+            "message": "Hi, i am John Doe",
+            "senderId": "919876543210",
+            "receiverId": "876543210321",
+            "senderName": "John Doe"
+          }
+        },
+        "attributes": {
+          "receiverIds": [
+            "661886587013056"
+          ],
+          "keywords": [
+            "hii",
+            "hi",
+            "hello",
+            "hii I want to register under {{phone_number}}"
+          ],
+          "type": "text",
+          "fuzzyMatching": {
+            "enabled": false,
+            "threshold": 0.8
+          }
+        }
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "3f7e0e2e-1ff7-4f43-8508-54747fbecb5d",
+      "type": "action",
+      "position": {
+        "x": -3750.0105449788102,
+        "y": -505.3305606515284
+      },
+      "deletable": false,
+      "data": {
+        "key": "@whatsapp/send-button-message",
+        "title": "Send Button Message",
+        "nextHandle": true,
+        "type": "action",
+        "dataOut": {
+          "raw": {
+            "status": 200,
+            "success": true,
+            "replyTitle": null
+          }
+        },
+        "attributes": {
+          "message": {
+            "type": "interactive",
+            "interactive": {
+              "type": "button",
+              "header": {
+                "type": "none"
+              },
+              "body": {
+                "text": "Welcome to Krishivan Tech\n\nPlease select your prefered language"
+              },
+              "footer": {
+                "text": ""
+              },
+              "action": {
+                "buttons": [
+                  {
+                    "type": "reply",
+                    "reply": {
+                      "id": "btn_1778387708834_jht34d",
+                      "title": "हिंदी"
+                    }
+                  },
+                  {
+                    "type": "reply",
+                    "reply": {
+                      "id": "btn_1778387752823_edeeki",
+                      "title": "English"
+                    }
+                  },
+                  {
+                    "type": "reply",
+                    "reply": {
+                      "id": "btn_1781085462863_e3jwj1",
+                      "title": "తెలుగులో"
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        }
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "d6e80a73-e3a1-46bc-99ab-18c0b49cc44f",
+      "type": "action",
+      "position": {
+        "x": 2943.2536736371267,
+        "y": 1831.7270893782033
+      },
+      "deletable": false,
+      "data": {
+        "key": "@whatsapp/ask-location",
+        "title": "Ask Location",
+        "nextHandle": true,
+        "type": "action",
+        "dataOut": {
+          "raw": {
+            "status": 200,
+            "success": true
+          }
+        },
+        "attributes": {
+          "message": {
+            "type": "location_request_message",
+            "text": {
+              "body": "Please enter your location"
+            }
+          },
+          "variable": "location"
+        }
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "78f6c0bb-9352-4a92-9d8e-10b5a72760e5",
+      "type": "action",
+      "position": {
+        "x": 3354.7411514521227,
+        "y": 1691.629398100214
+      },
+      "deletable": false,
+      "data": {
+        "key": "@whatsapp/ask-question",
+        "title": "Ask Question",
+        "nextHandle": true,
+        "type": "action",
+        "dataOut": {
+          "raw": {
+            "answer": "string",
+            "status": 200,
+            "success": true,
+            "question": "string"
+          }
+        },
+        "attributes": {
+          "message": {
+            "text": {
+              "body": "Pleas enter your profile photo",
+              "preview_url": false
+            },
+            "type": "text"
+          },
+          "format": {
+            "type": "media",
+            "validationRules": {
+              "message": "Please upload media content",
+              "retryCount": 1
+            }
+          },
+          "timeout": {
+            "unit": "seconds",
+            "value": 60,
+            "continueOnTimeout": false
+          },
+          "variable": "photo"
+        }
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "fee66286-c634-40af-8625-b88d3a7dc5b3",
+      "type": "action",
+      "position": {
+        "x": 5000.448417630625,
+        "y": 1636.827730430079
+      },
+      "deletable": false,
+      "data": {
+        "key": "@whatsapp/send-text-message",
+        "title": "Send Text Message",
+        "nextHandle": true,
+        "type": "action",
+        "dataOut": {
+          "raw": {
+            "status": 200,
+            "success": true
+          }
+        },
+        "attributes": {
+          "message": {
+            "type": "text",
+            "text": {
+              "body": "Welcome to our organization\n\nYou are register as \n{{variable}}",
+              "preview_url": false
+            }
+          }
+        }
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "669256f0-53ba-4358-adb9-d6ad0a0d6180",
+      "type": "action",
+      "position": {
+        "x": -3318.422560357784,
+        "y": 331.8924107458713
+      },
+      "deletable": false,
+      "data": {
+        "key": "@http/http-request",
+        "title": "HTTP",
+        "nextHandle": true,
+        "type": "action",
+        "dataOut": {
+          "raw": {
+            "data": "object",
+            "status": 200,
+            "headers": "object",
+            "success": true
+          }
+        },
+        "attributes": {
+          "url": "https://l07yapr0ub.execute-api.ap-south-1.amazonaws.com/prod/farmer-function/check-user",
+          "method": "POST",
+          "headers": [
+            {
+              "key": "X-Internal-Api-Key",
+              "value": "krishiwhatsappskjf4543k"
+            }
+          ],
+          "params": [
+            {
+              "key": "X-Internal-Api-Key",
+              "value": "krishiwhatsappskjf4543k"
+            }
+          ],
+          "body": "{\n  \"mobile_number\": \"{{phone_number}}\"\n}"
+        }
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "b433a6a7-caff-42bb-8a00-77ea0608fce8",
+      "type": "action",
+      "position": {
+        "x": 1502.6519068314456,
+        "y": -321.9701073325277
+      },
+      "deletable": false,
+      "data": {
+        "key": "@whatsapp/ask-question",
+        "title": "Ask Question",
+        "nextHandle": true,
+        "type": "action",
+        "dataOut": {
+          "raw": {
+            "answer": "string",
+            "status": 200,
+            "success": true,
+            "question": "string"
+          }
+        },
+        "attributes": {
+          "message": {
+            "text": {
+              "body": "कृपया अपना नाम दर्ज करें।",
+              "preview_url": false
+            },
+            "type": "text"
+          },
+          "format": {
+            "type": "text",
+            "validationRules": {
+              "message": "Please enter correct text",
+              "retryCount": 1
+            }
+          },
+          "timeout": {
+            "unit": "seconds",
+            "value": 60,
+            "continueOnTimeout": false
+          },
+          "variable": "name"
+        }
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "8664d337-aaa7-4eba-a6df-236bf9f13392",
+      "type": "action",
+      "position": {
+        "x": 1983.3935080508675,
+        "y": -359.4122475163595
+      },
+      "deletable": false,
+      "data": {
+        "key": "@whatsapp/ask-question",
+        "title": "Ask Question",
+        "nextHandle": true,
+        "type": "action",
+        "dataOut": {
+          "raw": {
+            "answer": "string",
+            "status": 200,
+            "success": true,
+            "question": "string"
+          }
+        },
+        "attributes": {
+          "message": {
+            "text": {
+              "body": "कृपया अपना ईमेल दर्ज करें।",
+              "preview_url": false
+            },
+            "type": "text"
+          },
+          "format": {
+            "type": "email",
+            "validationRules": {
+              "retryCount": 1
+            }
+          },
+          "timeout": {
+            "unit": "seconds",
+            "value": 60,
+            "continueOnTimeout": false
+          },
+          "variable": ""
+        }
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "f0c25770-08e9-47d4-bea2-fbfb1b7acb7d",
+      "type": "action",
+      "position": {
+        "x": 2466.1821262346966,
+        "y": -398.99149191351194
+      },
+      "deletable": false,
+      "data": {
+        "key": "@whatsapp/ask-location",
+        "title": "Ask Location",
+        "nextHandle": true,
+        "type": "action",
+        "dataOut": {
+          "raw": {
+            "status": 200,
+            "success": true
+          }
+        },
+        "attributes": {
+          "message": {
+            "type": "location_request_message",
+            "text": {
+              "body": "कृपया अपना स्थान दर्ज करें।"
+            }
+          },
+          "variable": "location"
+        }
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "a8853605-6f50-4a92-a023-3e85c1093a54",
+      "type": "action",
+      "position": {
+        "x": 2516.9596638315925,
+        "y": -1321.7449059357525
+      },
+      "deletable": false,
+      "data": {
+        "key": "@http/http-request",
+        "title": "HTTP",
+        "nextHandle": true,
+        "type": "action",
+        "dataOut": {
+          "raw": {
+            "data": "object",
+            "status": 200,
+            "headers": "object",
+            "success": true
+          }
+        },
+        "attributes": {
+          "url": "https://l07yapr0ub.execute-api.ap-south-1.amazonaws.com/prod/farmer-function/verify-gstin",
+          "method": "POST",
+          "headers": [
+            {
+              "key": "X-Internal-Api-Key",
+              "value": "krishiwhatsappskjf4543k"
+            }
+          ],
+          "params": [],
+          "body": "{\n  \"gstin\": \"{{gstin}}\"\n}"
+        }
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "578428f7-2115-4bd5-a7c2-9b870e0b81bc",
+      "type": "action",
+      "position": {
+        "x": 2885.179002218446,
+        "y": -490.33182860040745
+      },
+      "deletable": false,
+      "data": {
+        "key": "@whatsapp/ask-question",
+        "title": "Ask Question",
+        "nextHandle": true,
+        "type": "action",
+        "dataOut": {
+          "raw": {
+            "answer": "string",
+            "status": 200,
+            "success": true,
+            "question": "string"
+          }
+        },
+        "attributes": {
+          "message": {
+            "text": {
+              "body": "कृपया अपनी फोटो अपलोड करें।",
+              "preview_url": false
+            },
+            "type": "text"
+          },
+          "format": {
+            "type": "media",
+            "validationRules": {
+              "message": "upload image",
+              "retryCount": 1
+            }
+          },
+          "timeout": {
+            "unit": "seconds",
+            "value": 60,
+            "continueOnTimeout": false
+          },
+          "variable": "photo"
+        }
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "c49d7141-f97c-4926-bdb6-5c6c0ecc294f",
+      "type": "action",
+      "position": {
+        "x": 4913.6663529749485,
+        "y": -166.28132483201549
+      },
+      "deletable": false,
+      "data": {
+        "key": "@whatsapp/send-text-message",
+        "title": "Send Text Message",
+        "nextHandle": true,
+        "type": "action",
+        "dataOut": {
+          "raw": {
+            "status": 200,
+            "success": true
+          }
+        },
+        "attributes": {
+          "message": {
+            "type": "text",
+            "text": {
+              "body": "आपका पंजीकरण पहले ही सफलतापूर्वक हो चुका है।\n{{variable}}",
+              "preview_url": false
+            }
+          }
+        }
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "1617c2fb-b009-47f0-9bc8-d29854fd7bc1",
+      "type": "action",
+      "position": {
+        "x": -2441.798208950197,
+        "y": 93.27338960577606
+      },
+      "deletable": false,
+      "data": {
+        "key": "@condition/condition-action",
+        "title": "Condition",
+        "nextHandle": false,
+        "type": "action",
+        "dataOut": {
+          "raw": {
+            "evaluation": true
+          }
+        },
+        "attributes": {
+          "operator": "and",
+          "conditions": [
+            {
+              "field": "{{http_response.success}}",
+              "comparator": "equals",
+              "value": "true",
+              "threshold": 0.8
+            }
+          ]
+        }
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "5a0f6f4c-3d00-4f3b-977e-e2557926fa52",
+      "type": "action",
+      "position": {
+        "x": 1120.52179160542,
+        "y": 505.7097475364883
+      },
+      "deletable": false,
+      "data": {
+        "key": "@whatsapp/send-text-message",
+        "title": "Send Text Message",
+        "nextHandle": true,
+        "type": "action",
+        "dataOut": {
+          "raw": {
+            "status": 200,
+            "success": true
+          }
+        },
+        "attributes": {
+          "message": {
+            "type": "text",
+            "text": {
+              "body": "User Already Exists",
+              "preview_url": false
+            }
+          }
+        }
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "708c9957-d4df-42f2-ae7d-9ef2969c7545",
+      "type": "action",
+      "position": {
+        "x": 952.1548432031664,
+        "y": -1975.9331969632594
+      },
+      "deletable": false,
+      "data": {
+        "key": "@whatsapp/send-text-message",
+        "title": "Send Text Message",
+        "nextHandle": true,
+        "type": "action",
+        "dataOut": {
+          "raw": {
+            "status": 200,
+            "success": true
+          }
+        },
+        "attributes": {
+          "message": {
+            "type": "text",
+            "text": {
+              "body": "उपयोगकर्ता पहले से मौजूद है।",
+              "preview_url": false
+            }
+          }
+        }
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "5817dfdc-a3a4-4c47-a54c-75992a15bab6",
+      "type": "action",
+      "position": {
+        "x": 1128.7725810970792,
+        "y": 1331.8574073480502
+      },
+      "deletable": false,
+      "data": {
+        "key": "@whatsapp/send-list-message",
+        "title": "Send List Message",
+        "nextHandle": true,
+        "type": "action",
+        "dataOut": {
+          "raw": {
+            "status": 200,
+            "success": true,
+            "replyTitle": null
+          }
+        },
+        "attributes": {
+          "message": {
+            "type": "interactive",
+            "interactive": {
+              "type": "list",
+              "header": {
+                "type": "text",
+                "text": "Please Select your Role"
+              },
+              "body": {
+                "text": "."
+              },
+              "footer": {
+                "text": ""
+              },
+              "action": {
+                "button": "Select your role",
+                "sections": [
+                  {
+                    "title": "Select your role",
+                    "rows": [
+                      {
+                        "id": "row_1781057781559_z6zdty",
+                        "title": "Farmer",
+                        "description": ""
+                      },
+                      {
+                        "id": "row_1781057808417_syppf5",
+                        "title": "Trader",
+                        "description": ""
+                      },
+                      {
+                        "id": "row_1781057816289_5s4l7r",
+                        "title": "Agri-Transport",
+                        "description": ""
+                      },
+                      {
+                        "id": "row_1781057822889_tu8i3m",
+                        "title": "Micro-Entrepreneur",
+                        "description": ""
+                      },
+                      {
+                        "id": "row_1781057830689_zsz226",
+                        "title": "FPO",
+                        "description": ""
+                      },
+                      {
+                        "id": "row_1781057843393_r8kw0e",
+                        "title": "Agri-Machine",
+                        "description": ""
+                      },
+                      {
+                        "id": "row_1781057850057_gw9r4b",
+                        "title": "Agri Input Supplier",
+                        "description": ""
+                      },
+                      {
+                        "id": "row_1781057859601_o83ht8",
+                        "title": "Livestock",
+                        "description": ""
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          "variable": "role"
+        }
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "37b68b55-d8dd-408a-8fec-37e6a87312d2",
+      "type": "action",
+      "position": {
+        "x": 2931.496884078182,
+        "y": -1351.9738291345486
+      },
+      "deletable": false,
+      "data": {
+        "key": "@condition/condition-action",
+        "title": "Condition",
+        "nextHandle": false,
+        "type": "action",
+        "dataOut": {
+          "raw": {
+            "evaluation": true
+          }
+        },
+        "attributes": {
+          "operator": "and",
+          "conditions": [
+            {
+              "field": "{{http_response.success}}",
+              "comparator": "equals",
+              "value": "true",
+              "threshold": 0.8
+            }
+          ]
+        }
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "7f9f7ba0-faad-4533-965b-0c74e89be60c",
+      "type": "action",
+      "position": {
+        "x": 1029.2612918486248,
+        "y": -2036.4515020921936
+      },
+      "deletable": false,
+      "data": {
+        "key": "@whatsapp/send-list-message",
+        "title": "Send List Message",
+        "nextHandle": true,
+        "type": "action",
+        "dataOut": {
+          "raw": {
+            "status": 200,
+            "success": true,
+            "replyTitle": null
+          }
+        },
+        "attributes": {
+          "message": {
+            "type": "interactive",
+            "interactive": {
+              "type": "list",
+              "header": {
+                "type": "text",
+                "text": "कृपया अपनी भूमिका चुनें।"
+              },
+              "body": {
+                "text": "."
+              },
+              "footer": {
+                "text": ""
+              },
+              "action": {
+                "button": "अपनी भूमिका चुनें",
+                "sections": [
+                  {
+                    "title": "अपनी भूमिका चुनें",
+                    "rows": [
+                      {
+                        "id": "row_1781058103209_d37nan",
+                        "title": "किसान",
+                        "description": ""
+                      },
+                      {
+                        "id": "row_1781058103209_vx94h9",
+                        "title": "व्यापारी",
+                        "description": ""
+                      },
+                      {
+                        "id": "row_1781058103209_n8q0hi",
+                        "title": "कृषि परिवहन सेवा",
+                        "description": ""
+                      },
+                      {
+                        "id": "row_1781058103209_5g8vmy",
+                        "title": "सूक्ष्म उद्यमी",
+                        "description": ""
+                      },
+                      {
+                        "id": "row_1781058103209_rqr59d",
+                        "title": "किसान उत्पादक(FPO)",
+                        "description": ""
+                      },
+                      {
+                        "id": "row_1781058103209_1lr71m",
+                        "title": "कृषि मशीन सेवा प्रदाता",
+                        "description": ""
+                      },
+                      {
+                        "id": "row_1781058103209_35d7ck",
+                        "title": "कृषि इनपुट आपूर्तिकर्ता",
+                        "description": ""
+                      },
+                      {
+                        "id": "row_1781058103209_nb3jli",
+                        "title": "पशुपालक",
+                        "description": ""
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          "variable": "role"
+        }
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "b1219880-2028-494f-9081-338e72050013",
+      "type": "action",
+      "position": {
+        "x": 3969.877795980872,
+        "y": 1687.9779573367007
+      },
+      "deletable": false,
+      "data": {
+        "key": "@http/http-request",
+        "title": "HTTP",
+        "nextHandle": true,
+        "type": "action",
+        "dataOut": {
+          "raw": {
+            "data": "object",
+            "status": 200,
+            "headers": "object",
+            "success": true
+          }
+        },
+        "attributes": {
+          "url": "https://waving-waving-albatross.ngrok-free.dev/v1/auth/stored-chat-session",
+          "method": "POST",
+          "headers": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "params": [],
+          "body": "{\n  \"session_data\": \"{{data}}\"\n}"
+        }
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "9f56c4b8-c6c0-4d0e-be28-ff556bb84f79",
+      "type": "action",
+      "position": {
+        "x": 4479.502628325586,
+        "y": 1691.719058463294
+      },
+      "deletable": false,
+      "data": {
+        "key": "@condition/condition-action",
+        "title": "Condition",
+        "nextHandle": false,
+        "type": "action",
+        "dataOut": {
+          "raw": {
+            "evaluation": true
+          }
+        },
+        "attributes": {
+          "operator": "and",
+          "conditions": [
+            {
+              "field": "{{http_response.success}}",
+              "comparator": "equals",
+              "value": "true",
+              "threshold": 0.8
+            }
+          ]
+        }
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "90a50b2a-e5f9-4541-bacd-83f47fee0d48",
+      "type": "action",
+      "position": {
+        "x": 5007.3151685564435,
+        "y": 2240.165913339852
+      },
+      "deletable": false,
+      "data": {
+        "key": "@whatsapp/send-text-message",
+        "title": "Send Text Message",
+        "nextHandle": true,
+        "type": "action",
+        "dataOut": {
+          "raw": {
+            "status": 200,
+            "success": true
+          }
+        },
+        "attributes": {
+          "message": {
+            "type": "text",
+            "text": {
+              "body": "Welcome to our organization\n\nYou are already register as\n{{variable}}",
+              "preview_url": false
+            }
+          }
+        }
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "6326b206-f038-476c-b0f3-1fe2022f5c06",
+      "type": "action",
+      "position": {
+        "x": 3368.6882718592983,
+        "y": -278.13259323020793
+      },
+      "deletable": false,
+      "data": {
+        "key": "@http/http-request",
+        "title": "HTTP",
+        "nextHandle": true,
+        "type": "action",
+        "dataOut": {
+          "raw": {
+            "data": "object",
+            "status": 200,
+            "headers": "object",
+            "success": true
+          }
+        },
+        "attributes": {
+          "url": "https://waving-waving-albatross.ngrok-free.dev/v1/auth/stored-chat-session",
+          "method": "POST",
+          "headers": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "params": [],
+          "body": "{\n  \"session_data\": \"{{data}}\"\n}"
+        }
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "1ddd899a-8cf3-491f-8b05-6ed3727d0721",
+      "type": "action",
+      "position": {
+        "x": 3881.8933686627097,
+        "y": -171.99082570089033
+      },
+      "deletable": false,
+      "data": {
+        "key": "@condition/condition-action",
+        "title": "Condition",
+        "nextHandle": false,
+        "type": "action",
+        "dataOut": {
+          "raw": {
+            "evaluation": true
+          }
+        },
+        "attributes": {
+          "operator": "and",
+          "conditions": [
+            {
+              "field": "{{http_response.success}}",
+              "comparator": "equals",
+              "value": "true",
+              "threshold": 0.8
+            }
+          ]
+        }
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "cb00f1d5-693b-4be7-8a23-c9a563f7d8b7",
+      "type": "action",
+      "position": {
+        "x": 4478.144291195154,
+        "y": 180.17157181456173
+      },
+      "deletable": false,
+      "data": {
+        "key": "@whatsapp/send-text-message",
+        "title": "Send Text Message",
+        "nextHandle": true,
+        "type": "action",
+        "dataOut": {
+          "raw": {
+            "status": 200,
+            "success": true
+          }
+        },
+        "attributes": {
+          "message": {
+            "type": "text",
+            "text": {
+              "body": "आपका पंजीकरण already सफलतापूर्वक हो गया है।\n{{variable}}",
+              "preview_url": false
+            }
+          }
+        }
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "72465d7e-e705-4a4d-b6a4-4c197a67656e",
+      "type": "action",
+      "position": {
+        "x": -218.43472892326378,
+        "y": -742.7072507245025
+      },
+      "deletable": false,
+      "data": {
+        "key": "@http/http-request",
+        "title": "HTTP",
+        "nextHandle": true,
+        "type": "action",
+        "dataOut": {
+          "raw": {
+            "data": "object",
+            "status": 200,
+            "headers": "object",
+            "success": true
+          }
+        },
+        "attributes": {
+          "url": "https://l07yapr0ub.execute-api.ap-south-1.amazonaws.com/prod/farmer-function/check-user",
+          "method": "POST",
+          "headers": [
+            {
+              "key": "X-Internal-Api-Key",
+              "value": "krishiwhatsappskjf4543k"
+            }
+          ],
+          "params": [
+            {
+              "key": "X-Internal-Api-Key",
+              "value": "krishiwhatsappskjf4543k"
+            }
+          ],
+          "body": "{\n  \"mobile_number\": \"{{phone_number}}\"\n}"
+        }
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "c1e2d5fc-97c6-4589-a477-03642c3e7c32",
+      "type": "action",
+      "position": {
+        "x": -298.25034721545006,
+        "y": -68.91192481288078
+      },
+      "deletable": false,
+      "data": {
+        "key": "@http/http-request",
+        "title": "HTTP",
+        "nextHandle": true,
+        "type": "action",
+        "dataOut": {
+          "raw": {
+            "data": "object",
+            "status": 200,
+            "headers": "object",
+            "success": true
+          }
+        },
+        "attributes": {
+          "url": "https://l07yapr0ub.execute-api.ap-south-1.amazonaws.com/prod/farmer-function/check-user",
+          "method": "POST",
+          "headers": [
+            {
+              "key": "X-Internal-Api-Key",
+              "value": "krishiwhatsappskjf4543k"
+            }
+          ],
+          "params": [],
+          "body": "{\n  \"mobile_number\": \"{{phone_number}}\"\n}"
+        }
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "256f6b68-07bd-49cb-9b59-32bbbf27b184",
+      "type": "action",
+      "position": {
+        "x": 421.8590126796446,
+        "y": -1155.6566839154093
+      },
+      "deletable": false,
+      "data": {
+        "key": "@condition/condition-action",
+        "title": "Condition",
+        "nextHandle": false,
+        "type": "action",
+        "dataOut": {
+          "raw": {
+            "evaluation": true
+          }
+        },
+        "attributes": {
+          "operator": "and",
+          "conditions": [
+            {
+              "field": "{{http_response.success}}",
+              "comparator": "equals",
+              "value": "true",
+              "threshold": 0.8
+            }
+          ]
+        }
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "407175f3-0765-44e4-b039-9c29367ec369",
+      "type": "action",
+      "position": {
+        "x": 327.951791049803,
+        "y": -284.72661039422394
+      },
+      "deletable": false,
+      "data": {
+        "key": "@condition/condition-action",
+        "title": "Condition",
+        "nextHandle": false,
+        "type": "action",
+        "dataOut": {
+          "raw": {
+            "evaluation": true
+          }
+        },
+        "attributes": {
+          "operator": "and",
+          "conditions": [
+            {
+              "field": "{{http_response.success}}",
+              "comparator": "equals",
+              "value": "true",
+              "threshold": 0.8
+            }
+          ]
+        }
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "d0136e35-35b2-4534-a728-45f80003c2d1",
+      "type": "action",
+      "position": {
+        "x": -912.9149630942222,
+        "y": 615.8968085744018
+      },
+      "deletable": false,
+      "data": {
+        "key": "@whatsapp/send-text-message",
+        "title": "Send Text Message",
+        "nextHandle": true,
+        "type": "action",
+        "dataOut": {
+          "raw": {
+            "status": 200,
+            "success": true
+          }
+        },
+        "attributes": {
+          "message": {
+            "type": "text",
+            "text": {
+              "body": "వినియోగదారు ఇప్పటికే నమోదు అయ్యారు.",
+              "preview_url": false
+            }
+          }
+        }
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "9e37d9ba-3ff5-410b-a281-4e7cf3330096",
+      "type": "action",
+      "position": {
+        "x": -3461.227418902921,
+        "y": 1479.8574073480502
+      },
+      "deletable": false,
+      "data": {
+        "key": "@whatsapp/send-list-message",
+        "title": "Send List Message",
+        "nextHandle": true,
+        "type": "action",
+        "dataOut": {
+          "raw": {
+            "status": 200,
+            "success": true,
+            "replyTitle": null
+          }
+        },
+        "attributes": {
+          "message": {
+            "type": "interactive",
+            "interactive": {
+              "type": "list",
+              "header": {
+                "type": "text",
+                "text": "దయచేసి మీ పాత్రను ఎంచుకోండి."
+              },
+              "body": {
+                "text": "."
+              },
+              "footer": {
+                "text": ""
+              },
+              "action": {
+                "button": "మీ పాత్రను ఎంచుకోండి",
+                "sections": [
+                  {
+                    "title": "మీ పాత్రను ఎంచుకోండి",
+                    "rows": [
+                      {
+                        "id": "row_1781085839615_claktt",
+                        "title": "రైతు",
+                        "description": ""
+                      },
+                      {
+                        "id": "row_1781085839615_pq33of",
+                        "title": "వ్యాపారి",
+                        "description": ""
+                      },
+                      {
+                        "id": "row_1781085839615_v0bd8z",
+                        "title": "వ్యవసాయ రవాణా సేవలు",
+                        "description": ""
+                      },
+                      {
+                        "id": "row_1781085839615_dlns3t",
+                        "title": "సూక్ష్మ వ్యాపారవేత్త",
+                        "description": ""
+                      },
+                      {
+                        "id": "row_1781085839615_70fclc",
+                        "title": "రైతు ఉత్పత్తిదారుల సంస్థ",
+                        "description": ""
+                      },
+                      {
+                        "id": "row_1781085839615_r01efw",
+                        "title": "వ్యవసాయ యంత్రాలు",
+                        "description": ""
+                      },
+                      {
+                        "id": "row_1781085839615_hl37m8",
+                        "title": "వ్యవసాయ ఇన్‌పుట్లు",
+                        "description": ""
+                      },
+                      {
+                        "id": "row_1781085839615_ez89gq",
+                        "title": "పశుపాలకుడు",
+                        "description": ""
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          "variable": "role"
+        }
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "87deafe4-12f4-412c-9f30-3d90060245bb",
+      "type": "action",
+      "position": {
+        "x": -2734.671673171434,
+        "y": 1515.4482641501468
+      },
+      "deletable": false,
+      "data": {
+        "key": "@whatsapp/ask-question",
+        "title": "Ask Question",
+        "nextHandle": true,
+        "type": "action",
+        "dataOut": {
+          "raw": {
+            "answer": "string",
+            "status": 200,
+            "success": true,
+            "question": "string"
+          }
+        },
+        "attributes": {
+          "message": {
+            "text": {
+              "body": "దయచేసి మీ పేరు నమోదు చేయండి.",
+              "preview_url": false
+            },
+            "type": "text"
+          },
+          "format": {
+            "type": "text",
+            "validationRules": {
+              "message": "Please enter correct text",
+              "retryCount": 1
+            }
+          },
+          "timeout": {
+            "unit": "seconds",
+            "value": 60,
+            "continueOnTimeout": false
+          },
+          "variable": "name"
+        }
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "42ad0767-42ec-4748-9f2f-0edfe0c7dd09",
+      "type": "action",
+      "position": {
+        "x": -2196.3480708581565,
+        "y": 1474.9839263790063
+      },
+      "deletable": false,
+      "data": {
+        "key": "@whatsapp/ask-question",
+        "title": "Ask Question",
+        "nextHandle": true,
+        "type": "action",
+        "dataOut": {
+          "raw": {
+            "answer": "string",
+            "status": 200,
+            "success": true,
+            "question": "string"
+          }
+        },
+        "attributes": {
+          "message": {
+            "text": {
+              "body": "దయచేసి మీ ఇమెయిల్ నమోదు చేయండి.",
+              "preview_url": false
+            },
+            "type": "text"
+          },
+          "format": {
+            "type": "email",
+            "validationRules": {
+              "message": "Please enter correct email",
+              "retryCount": 1
+            }
+          },
+          "timeout": {
+            "unit": "seconds",
+            "value": 60,
+            "continueOnTimeout": false
+          },
+          "variable": "email"
+        }
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "4a4ba9d5-9c8b-4bf0-9b22-5e508e0e1703",
+      "type": "action",
+      "position": {
+        "x": -1683.9226727482855,
+        "y": 1488.8944478811973
+      },
+      "deletable": false,
+      "data": {
+        "key": "@whatsapp/ask-location",
+        "title": "Ask Location",
+        "nextHandle": true,
+        "type": "action",
+        "dataOut": {
+          "raw": {
+            "status": 200,
+            "success": true
+          }
+        },
+        "attributes": {
+          "message": {
+            "type": "location_request_message",
+            "text": {
+              "body": "దయచేసి మీ స్థానాన్ని (లొకేషన్) షేర్ చేయండి."
+            }
+          },
+          "variable": "location"
+        }
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "0296b4bc-2eb7-4113-9d25-372a7fb8225a",
+      "type": "action",
+      "position": {
+        "x": -1215.2588485478773,
+        "y": 1495.629398100214
+      },
+      "deletable": false,
+      "data": {
+        "key": "@whatsapp/ask-question",
+        "title": "Ask Question",
+        "nextHandle": true,
+        "type": "action",
+        "dataOut": {
+          "raw": {
+            "answer": "string",
+            "status": 200,
+            "success": true,
+            "question": "string"
+          }
+        },
+        "attributes": {
+          "message": {
+            "text": {
+              "body": "దయచేసి మీ ప్రొఫైల్ ఫోటోను అప్లోడ్ చేయండి.",
+              "preview_url": false
+            },
+            "type": "text"
+          },
+          "format": {
+            "type": "media",
+            "validationRules": {
+              "message": "Please upload media content",
+              "retryCount": 1
+            }
+          },
+          "timeout": {
+            "unit": "seconds",
+            "value": 60,
+            "continueOnTimeout": false
+          },
+          "variable": "photo"
+        }
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "e8b30e00-5c76-4bb5-82cc-a81be57ad0eb",
+      "type": "action",
+      "position": {
+        "x": -776.1222040191278,
+        "y": 1479.9779573367005
+      },
+      "deletable": false,
+      "data": {
+        "key": "@http/http-request",
+        "title": "HTTP",
+        "nextHandle": true,
+        "type": "action",
+        "dataOut": {
+          "raw": {
+            "data": "object",
+            "status": 200,
+            "headers": "object",
+            "success": true
+          }
+        },
+        "attributes": {
+          "url": "https://waving-waving-albatross.ngrok-free.dev/v1/auth/stored-chat-session",
+          "method": "POST",
+          "headers": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "params": [],
+          "body": "{\n  \"session_data\": \"{{data}}\"\n}"
+        }
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "95ebf551-6520-4106-8e4c-1e53ac3978fa",
+      "type": "action",
+      "position": {
+        "x": -174.49737167441435,
+        "y": 1487.719058463294
+      },
+      "deletable": false,
+      "data": {
+        "key": "@condition/condition-action",
+        "title": "Condition",
+        "nextHandle": false,
+        "type": "action",
+        "dataOut": {
+          "raw": {
+            "evaluation": true
+          }
+        },
+        "attributes": {
+          "operator": "and",
+          "conditions": [
+            {
+              "field": "{{http_response.success}}",
+              "comparator": "equals",
+              "value": "true",
+              "threshold": 0.8
+            }
+          ]
+        }
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "8f9e27b2-83d3-42ff-9f05-c84921ec42de",
+      "type": "action",
+      "position": {
+        "x": 366.44841763062504,
+        "y": 1760.827730430079
+      },
+      "deletable": false,
+      "data": {
+        "key": "@whatsapp/send-text-message",
+        "title": "Send Text Message",
+        "nextHandle": true,
+        "type": "action",
+        "dataOut": {
+          "raw": {
+            "status": 200,
+            "success": true
+          }
+        },
+        "attributes": {
+          "message": {
+            "type": "text",
+            "text": {
+              "body": "మా సంస్థకు స్వాగతం.\n\nమీ నమోదు విజయవంతంగా పూర్తైంది.\n\nమీరు ఈ పాత్రలో నమోదు అయ్యారు:\n{{variable}}",
+              "preview_url": false
+            }
+          }
+        }
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "41721533-2956-4716-8e6f-d2cb47130f47",
+      "type": "action",
+      "position": {
+        "x": 373.3151685564435,
+        "y": 2196.165913339852
+      },
+      "deletable": false,
+      "data": {
+        "key": "@whatsapp/send-text-message",
+        "title": "Send Text Message",
+        "nextHandle": true,
+        "type": "action",
+        "dataOut": {
+          "raw": {
+            "status": 200,
+            "success": true
+          }
+        },
+        "attributes": {
+          "message": {
+            "type": "text",
+            "text": {
+              "body": "మా సంస్థకు స్వాగతం.\n\nమీరు ఇప్పటికే ఈ పాత్రలో నమోదు అయ్యారు:\n{{variable}}",
+              "preview_url": false
+            }
+          }
+        }
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "c3b12aaa-4501-40a8-ab1c-ffee06005b55",
+      "type": "action",
+      "position": {
+        "x": 2199.112697030121,
+        "y": 2865.157922933697
+      },
+      "deletable": false,
+      "data": {
+        "key": "@whatsapp/ask-question",
+        "title": "Ask Question",
+        "nextHandle": true,
+        "type": "action",
+        "dataOut": {
+          "raw": {
+            "answer": "string",
+            "status": 200,
+            "success": true,
+            "question": "string"
+          }
+        },
+        "attributes": {
+          "message": {
+            "text": {
+              "body": "Please enter your gst number",
+              "preview_url": false
+            },
+            "type": "text"
+          },
+          "format": {
+            "type": "any"
+          },
+          "timeout": {
+            "unit": "seconds",
+            "value": 60,
+            "continueOnTimeout": false
+          },
+          "variable": "gstin"
+        }
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "c3da7bb1-55fe-4d60-9545-8f698b5562aa",
+      "type": "action",
+      "position": {
+        "x": 2683.25996388241,
+        "y": 2867.1643923349216
+      },
+      "deletable": false,
+      "data": {
+        "key": "@http/http-request",
+        "title": "HTTP",
+        "nextHandle": true,
+        "type": "action",
+        "dataOut": {
+          "raw": {
+            "data": "object",
+            "status": 200,
+            "headers": "object",
+            "success": true
+          }
+        },
+        "attributes": {
+          "url": "https://l07yapr0ub.execute-api.ap-south-1.amazonaws.com/prod/farmer-function/verify-gstin",
+          "method": "POST",
+          "headers": [
+            {
+              "key": "X-Internal-Api-Key",
+              "value": "krishiwhatsappskjf4543k"
+            }
+          ],
+          "params": [],
+          "body": "{\n    \"gstin\": \"{{gstin}}\"\n}"
+        }
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "f796a2a8-c442-4e19-8621-9cdae2601c5b",
+      "type": "action",
+      "position": {
+        "x": 3187.186588953196,
+        "y": 2845.0820381539606
+      },
+      "deletable": false,
+      "data": {
+        "key": "@condition/condition-action",
+        "title": "Condition",
+        "nextHandle": false,
+        "type": "action",
+        "dataOut": {
+          "raw": {
+            "evaluation": true
+          }
+        },
+        "attributes": {
+          "operator": "and",
+          "conditions": [
+            {
+              "field": "{{http_response.success}}",
+              "comparator": "equals",
+              "value": "true",
+              "threshold": 0.8
+            }
+          ]
+        }
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "19b0b848-0763-40b8-94f4-5e1360f40434",
+      "type": "action",
+      "position": {
+        "x": 4791.019761905704,
+        "y": 3006.9049345997187
+      },
+      "deletable": false,
+      "data": {
+        "key": "@whatsapp/send-text-message",
+        "title": "Send Text Message",
+        "nextHandle": true,
+        "type": "action",
+        "dataOut": {
+          "raw": {
+            "status": 200,
+            "success": true
+          }
+        },
+        "attributes": {
+          "message": {
+            "type": "text",
+            "text": {
+              "body": "Welcome to our organization\n\nYou are register as \n{{variable}}",
+              "preview_url": false
+            }
+          }
+        }
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "67fe48d1-e2af-49e3-8e39-7c865416ec10",
+      "type": "action",
+      "position": {
+        "x": 2499.118997962495,
+        "y": 3590.8335174032027
+      },
+      "deletable": false,
+      "data": {
+        "key": "@whatsapp/send-text-message",
+        "title": "Send Text Message",
+        "nextHandle": true,
+        "type": "action",
+        "dataOut": {
+          "raw": {
+            "status": 200,
+            "success": true
+          }
+        },
+        "attributes": {
+          "message": {
+            "type": "text",
+            "text": {
+              "body": "Please Add Valid gst number",
+              "preview_url": false
+            }
+          }
+        }
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "ab387b00-0736-41c3-bebc-7cd562750246",
+      "type": "action",
+      "position": {
+        "x": 3666.9852320814434,
+        "y": 3091.959330472611
+      },
+      "deletable": false,
+      "data": {
+        "key": "@http/http-request",
+        "title": "HTTP",
+        "nextHandle": true,
+        "type": "action",
+        "dataOut": {
+          "raw": {
+            "data": "object",
+            "status": 200,
+            "headers": "object",
+            "success": true
+          }
+        },
+        "attributes": {
+          "url": "https://waving-waving-albatross.ngrok-free.dev/v1/auth/stored-chat-session",
+          "method": "POST",
+          "headers": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "params": [],
+          "body": "{\n  \"session_data\": \"{{data}}\"\n}"
+        }
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "76889aef-7f81-490a-bf09-0655322dc26c",
+      "type": "action",
+      "position": {
+        "x": 2139.81612941781,
+        "y": -1058.4331281658083
+      },
+      "deletable": false,
+      "data": {
+        "key": "@whatsapp/ask-question",
+        "title": "Ask Question",
+        "nextHandle": true,
+        "type": "action",
+        "dataOut": {
+          "raw": {
+            "answer": "string",
+            "status": 200,
+            "success": true,
+            "question": "string"
+          }
+        },
+        "attributes": {
+          "message": {
+            "text": {
+              "body": "कृपया अपना जीएसटी (GST) नंबर दर्ज करें।",
+              "preview_url": false
+            },
+            "type": "text"
+          },
+          "format": {
+            "type": "any"
+          },
+          "timeout": {
+            "unit": "seconds",
+            "value": 60,
+            "continueOnTimeout": false
+          },
+          "variable": "gstin"
+        }
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "712062b8-d9bf-4c34-9786-ca4dc9b53b9d",
+      "type": "action",
+      "position": {
+        "x": 3375.5330703882346,
+        "y": -1847.5739080666553
+      },
+      "deletable": false,
+      "data": {
+        "key": "@condition/condition-action",
+        "title": "Condition",
+        "nextHandle": false,
+        "type": "action",
+        "dataOut": {
+          "raw": {
+            "evaluation": true
+          }
+        },
+        "attributes": {
+          "operator": "and",
+          "conditions": [
+            {
+              "field": "{{http_response.success}}",
+              "comparator": "equals",
+              "value": "true",
+              "threshold": 0.8
+            }
+          ]
+        }
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "05788f82-531b-441f-afa5-2b6cdbc76263",
+      "type": "action",
+      "position": {
+        "x": 3865.5330703882346,
+        "y": -1403.773798203374
+      },
+      "deletable": false,
+      "data": {
+        "key": "@http/http-request",
+        "title": "HTTP",
+        "nextHandle": true,
+        "type": "action",
+        "dataOut": {
+          "raw": {
+            "data": "object",
+            "status": 200,
+            "headers": "object",
+            "success": true
+          }
+        },
+        "attributes": {
+          "url": "https://waving-waving-albatross.ngrok-free.dev/v1/auth/stored-chat-session",
+          "method": "POST",
+          "headers": [
+            {
+              "key": "Content-Type",
+              "value": " application/json"
+            }
+          ],
+          "params": [],
+          "body": "{\n  \"session_data\": \"{{data}}\"\n}"
+        }
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "20804977-a74d-4e8c-bd50-64d3b1064ee2",
+      "type": "action",
+      "position": {
+        "x": 4361.3341203060245,
+        "y": -1282.3061369379643
+      },
+      "deletable": false,
+      "data": {
+        "key": "@whatsapp/send-text-message",
+        "title": "Send Text Message",
+        "nextHandle": true,
+        "type": "action",
+        "dataOut": {
+          "raw": {
+            "status": 200,
+            "success": true
+          }
+        },
+        "attributes": {
+          "message": {
+            "type": "text",
+            "text": {
+              "body": "हमारे संगठन में आपका स्वागत है।\n\nआपका पंजीकरण निम्न श्रेणी में किया गया है:\n{{variable}}",
+              "preview_url": false
+            }
+          }
+        }
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "ec1518b8-8c10-43a6-8167-e6988b263342",
+      "type": "action",
+      "position": {
+        "x": 3409.3756120059566,
+        "y": -790.5251452248871
+      },
+      "deletable": false,
+      "data": {
+        "key": "@whatsapp/ask-question",
+        "title": "Ask Question",
+        "nextHandle": true,
+        "type": "action",
+        "dataOut": {
+          "raw": {
+            "answer": "string",
+            "status": 200,
+            "success": true,
+            "question": "string"
+          }
+        },
+        "attributes": {
+          "message": {
+            "text": {
+              "body": "कृपया एक वैध GST नंबर दर्ज करें।",
+              "preview_url": false
+            },
+            "type": "text"
+          },
+          "format": {
+            "type": "any"
+          },
+          "timeout": {
+            "unit": "seconds",
+            "value": 60,
+            "continueOnTimeout": false
+          },
+          "variable": ""
+        }
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "2c285999-ec49-4d86-bb33-e387a2262c03",
+      "type": "action",
+      "position": {
+        "x": 4192.98751604887,
+        "y": 3004.972903845894
+      },
+      "deletable": false,
+      "data": {
+        "key": "@condition/condition-action",
+        "title": "Condition",
+        "nextHandle": false,
+        "type": "action",
+        "dataOut": {
+          "raw": {
+            "evaluation": true
+          }
+        },
+        "attributes": {
+          "operator": "and",
+          "conditions": [
+            {
+              "field": "{{http_response.success}}",
+              "comparator": "equals",
+              "value": "true",
+              "threshold": 0.8
+            }
+          ]
+        }
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "0e6a80de-c470-4b2b-b036-a23129bb25d6",
+      "type": "action",
+      "position": {
+        "x": 4789.80290744184,
+        "y": 3506.7196309644246
+      },
+      "deletable": false,
+      "data": {
+        "key": "@whatsapp/send-text-message",
+        "title": "Send Text Message",
+        "nextHandle": true,
+        "type": "action",
+        "dataOut": {
+          "raw": {
+            "status": 200,
+            "success": true
+          }
+        },
+        "attributes": {
+          "message": {
+            "type": "text",
+            "text": {
+              "body": "Welcome to our organization\n\nYou are register as \n{{variable}}",
+              "preview_url": false
+            }
+          }
+        }
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "e3f81665-5cb8-401d-9206-b6ac0c909578",
+      "type": "action",
+      "position": {
+        "x": 1760.7770790221487,
+        "y": 2788.4496871474944
+      },
+      "deletable": false,
+      "data": {
+        "key": "@whatsapp/ask-question",
+        "title": "Ask Question",
+        "nextHandle": true,
+        "type": "action",
+        "dataOut": {
+          "raw": {
+            "answer": "string",
+            "status": 200,
+            "success": true,
+            "question": "string"
+          }
+        },
+        "attributes": {
+          "message": {
+            "text": {
+              "body": "Please enter your email",
+              "preview_url": false
+            },
+            "type": "text"
+          },
+          "format": {
+            "type": "any"
+          },
+          "timeout": {
+            "unit": "seconds",
+            "value": 60,
+            "continueOnTimeout": false
+          },
+          "variable": "email"
+        }
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "225f8e61-5302-4549-9c4f-9f487b75f43d",
+      "type": "action",
+      "position": {
+        "x": 1579.7469188203038,
+        "y": -1038.796447043403
+      },
+      "deletable": false,
+      "data": {
+        "key": "@whatsapp/ask-question",
+        "title": "Ask Question",
+        "nextHandle": true,
+        "type": "action",
+        "dataOut": {
+          "raw": {
+            "answer": "string",
+            "status": 200,
+            "success": true,
+            "question": "string"
+          }
+        },
+        "attributes": {
+          "message": {
+            "text": {
+              "body": "कृपया अपना ईमेल पता दर्ज करें।",
+              "preview_url": false
+            },
+            "type": "text"
+          },
+          "format": {
+            "type": "any"
+          },
+          "timeout": {
+            "unit": "seconds",
+            "value": 60,
+            "continueOnTimeout": false
+          },
+          "variable": "email"
+        }
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "6141fd90-ab95-4c08-8d87-00dbd9386058",
+      "type": "action",
+      "position": {
+        "x": -2835.9552140411192,
+        "y": 2970.8914394703525
+      },
+      "deletable": false,
+      "data": {
+        "key": "@whatsapp/ask-question",
+        "title": "Ask Question",
+        "nextHandle": true,
+        "type": "action",
+        "dataOut": {
+          "raw": {
+            "answer": "string",
+            "status": 200,
+            "success": true,
+            "question": "string"
+          }
+        },
+        "attributes": {
+          "message": {
+            "text": {
+              "body": "దయచేసి మీ ఇమెయిల్ నమోదు చేయండి.",
+              "preview_url": false
+            },
+            "type": "text"
+          },
+          "format": {
+            "type": "any"
+          },
+          "timeout": {
+            "unit": "seconds",
+            "value": 60,
+            "continueOnTimeout": false
+          },
+          "variable": ""
+        }
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "cfad3308-3128-440a-914d-bd1869cbfa5f",
+      "type": "action",
+      "position": {
+        "x": -2321.399766703841,
+        "y": 3260.3414123691723
+      },
+      "deletable": false,
+      "data": {
+        "key": "@whatsapp/ask-question",
+        "title": "Ask Question",
+        "nextHandle": true,
+        "type": "action",
+        "dataOut": {
+          "raw": {
+            "answer": "string",
+            "status": 200,
+            "success": true,
+            "question": "string"
+          }
+        },
+        "attributes": {
+          "message": {
+            "text": {
+              "body": "దయచేసి మీ GST నంబర్‌ను నమోదు చేయండి.",
+              "preview_url": false
+            },
+            "type": "text"
+          },
+          "format": {
+            "type": "any"
+          },
+          "timeout": {
+            "unit": "seconds",
+            "value": 60,
+            "continueOnTimeout": false
+          },
+          "variable": "gstin"
+        }
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "bc06a78d-933d-4e7f-9f44-9f975f09baaf",
+      "type": "action",
+      "position": {
+        "x": -1747.7059201861894,
+        "y": 3190.6154392680965
+      },
+      "deletable": false,
+      "data": {
+        "key": "@http/http-request",
+        "title": "HTTP",
+        "nextHandle": true,
+        "type": "action",
+        "dataOut": {
+          "raw": {
+            "data": "object",
+            "status": 200,
+            "headers": "object",
+            "success": true
+          }
+        },
+        "attributes": {
+          "url": "https://l07yapr0ub.execute-api.ap-south-1.amazonaws.com/prod/farmer-function/verify-gstin",
+          "method": "POST",
+          "headers": [
+            {
+              "key": "X-Internal-Api-Key",
+              "value": "krishiwhatsappskjf4543k"
+            }
+          ],
+          "params": [],
+          "body": "{\n  \"gstin\": \"{{gstin}}\"\n}"
+        }
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "121def8f-8db8-4d48-ac84-7f28effe4a46",
+      "type": "action",
+      "position": {
+        "x": -1218.4973716744144,
+        "y": 3239.719058463294
+      },
+      "deletable": false,
+      "data": {
+        "key": "@condition/condition-action",
+        "title": "Condition",
+        "nextHandle": false,
+        "type": "action",
+        "dataOut": {
+          "raw": {
+            "evaluation": true
+          }
+        },
+        "attributes": {
+          "operator": "and",
+          "conditions": [
+            {
+              "field": "{{http_response.success}}",
+              "comparator": "equals",
+              "value": "true",
+              "threshold": 0.8
+            }
+          ]
+        }
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "8b1ee0da-4726-4376-bc3a-7d55a8a4556c",
+      "type": "action",
+      "position": {
+        "x": 2678.677375827175,
+        "y": 2860.708837637962
+      },
+      "deletable": false,
+      "data": {
+        "key": "@http/http-request",
+        "title": "HTTP",
+        "nextHandle": true,
+        "type": "action",
+        "dataOut": {
+          "raw": {
+            "data": "object",
+            "status": 200,
+            "headers": "object",
+            "success": true
+          }
+        },
+        "attributes": {
+          "url": "https://waving-waving-albatross.ngrok-free.dev/v1/auth/stored-chat-session",
+          "method": "POST",
+          "headers": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "params": [],
+          "body": "{\n  \"session_data\": \"{{data}}\"\n}"
+        }
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "0eff79dd-4737-418a-935e-d8ab39dabe90",
+      "type": "action",
+      "position": {
+        "x": -646.1222040191278,
+        "y": 3669.9779573367005
+      },
+      "deletable": false,
+      "data": {
+        "key": "@http/http-request",
+        "title": "HTTP",
+        "nextHandle": true,
+        "type": "action",
+        "dataOut": {
+          "raw": {
+            "data": "object",
+            "status": 200,
+            "headers": "object",
+            "success": true
+          }
+        },
+        "attributes": {
+          "url": "https://waving-waving-albatross.ngrok-free.dev/v1/auth/stored-chat-session",
+          "method": "POST",
+          "headers": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "params": [],
+          "body": "{\n  \"session_data\": \"{{data}}\"\n}"
+        }
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "dd6c1d42-01f1-43fd-a630-4a9e3b89ec36",
+      "type": "action",
+      "position": {
+        "x": 391.4577630893984,
+        "y": 3993.7784687650187
+      },
+      "deletable": false,
+      "data": {
+        "key": "@whatsapp/send-text-message",
+        "title": "Send Text Message",
+        "nextHandle": true,
+        "type": "action",
+        "dataOut": {
+          "raw": {
+            "status": 200,
+            "success": true
+          }
+        },
+        "attributes": {
+          "message": {
+            "type": "text",
+            "text": {
+              "body": "మా సంస్థకు స్వాగతం.\n\nమీ నమోదు విజయవంతంగా పూర్తైంది.\n\nమీరు ఈ పాత్రలో నమోదు అయ్యారు:\n{{variable}}",
+              "preview_url": false
+            }
+          }
+        }
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "53febbf0-67fa-4824-a838-92441e0e52e9",
+      "type": "action",
+      "position": {
+        "x": -163.83409249942346,
+        "y": 3719.6141606808055
+      },
+      "deletable": false,
+      "data": {
+        "key": "@condition/condition-action",
+        "title": "Condition",
+        "nextHandle": false,
+        "type": "action",
+        "dataOut": {
+          "raw": {
+            "evaluation": true
+          }
+        },
+        "attributes": {
+          "operator": "and",
+          "conditions": [
+            {
+              "field": "{{http_response.success}}",
+              "comparator": "equals",
+              "value": "true",
+              "threshold": 0.8
+            }
+          ]
+        }
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "5a2e5eca-6e9c-4c62-8b42-7778354285df",
+      "type": "action",
+      "position": {
+        "x": 403.6647870702764,
+        "y": 4402.811740946676
+      },
+      "deletable": false,
+      "data": {
+        "key": "@whatsapp/send-text-message",
+        "title": "Send Text Message",
+        "nextHandle": true,
+        "type": "action",
+        "dataOut": {
+          "raw": {
+            "status": 200,
+            "success": true
+          }
+        },
+        "attributes": {
+          "message": {
+            "type": "text",
+            "text": {
+              "body": "మా సంస్థకు స్వాగతం.\n\nమీరు ఇప్పటికే ఈ పాత్రలో నమోదు అయ్యారు:\n{{variable}}",
+              "preview_url": false
+            }
+          }
+        }
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "2306c03d-a107-4c05-b0a3-0c51e9f66af6",
+      "type": "action",
+      "position": {
+        "x": -1380.9413447227803,
+        "y": 4137.708228956237
+      },
+      "deletable": false,
+      "data": {
+        "key": "@whatsapp/ask-question",
+        "title": "Ask Question",
+        "nextHandle": true,
+        "type": "action",
+        "dataOut": {
+          "raw": {
+            "answer": "string",
+            "status": 200,
+            "success": true,
+            "question": "string"
+          }
+        },
+        "attributes": {
+          "message": {
+            "text": {
+              "body": "దయచేసి చెల్లుబాటు అయ్యే GST నంబర్‌ను నమోదు చేయండి.",
+              "preview_url": false
+            },
+            "type": "text"
+          },
+          "format": {
+            "type": "any"
+          },
+          "timeout": {
+            "unit": "seconds",
+            "value": 60,
+            "continueOnTimeout": false
+          },
+          "variable": ""
+        }
+      },
+      "selected": false,
+      "dragging": false
+    },
+    {
+      "id": "d9dd4067-8559-4f77-9988-9940228a534a",
+      "type": "action",
+      "position": {
+        "x": 5413.994757525134,
+        "y": 3037.3820292967393
+      },
+      "deletable": false,
+      "data": {
+        "key": "@whatsapp/ask-question",
+        "title": "Ask Question",
+        "nextHandle": true,
+        "type": "action",
+        "dataOut": {},
+        "attributes": {
+          "message": {
+            "type": "text",
+            "text": {
+              "body": "Please Import excel file for onboarding fpo leads",
+              "preview_url": false
+            }
+          },
+          "format": {
+            "type": "any"
+          },
+          "timeout": {
+            "unit": "seconds",
+            "value": 60,
+            "continueOnTimeout": false
+          },
+          "variable": "excel_file"
+        }
+      },
+      "selected": false,
+      "dragging": false
+    }
+  ],
+  "edges": [
+    {
+      "id": "92624b83-22ac-4fc8-91d4-45e8a00d48b7",
+      "source": "f0c25770-08e9-47d4-bea2-fbfb1b7acb7d",
+      "sourceHandle": "default",
+      "target": "578428f7-2115-4bd5-a7c2-9b870e0b81bc",
+      "animated": true,
+      "label": null,
+      "data": {
+        "sourceHandle": "default",
+        "targetHandle": "in"
+      }
+    },
+    {
+      "id": "f02efb28-df56-4725-aae2-f032438f0ecb",
+      "source": "669256f0-53ba-4358-adb9-d6ad0a0d6180",
+      "sourceHandle": "default",
+      "target": "1617c2fb-b009-47f0-9bc8-d29854fd7bc1",
+      "animated": true,
+      "label": null,
+      "data": {
+        "sourceHandle": "default",
+        "targetHandle": "in"
+      }
+    },
+    {
+      "id": "cb6c3aa8-ac07-4003-920c-776e159dfcfb",
+      "source": "5817dfdc-a3a4-4c47-a54c-75992a15bab6",
+      "sourceHandle": "row_1781057781559_z6zdty",
+      "target": "07fbf2c9-daaf-496a-b79c-86db7be6ad08",
+      "animated": true,
+      "label": null,
+      "data": {
+        "button_id": "row_1781057781559_z6zdty",
+        "sourceHandle": "row_1781057781559_z6zdty",
+        "targetHandle": "in",
+        "row_id": "row_1781057781559_z6zdty"
+      }
+    },
+    {
+      "id": "3a3b6dfa-aedd-4e69-9205-1bbece46adbe",
+      "source": "5817dfdc-a3a4-4c47-a54c-75992a15bab6",
+      "sourceHandle": "row_1781057808417_syppf5",
+      "target": "07fbf2c9-daaf-496a-b79c-86db7be6ad08",
+      "animated": true,
+      "label": null,
+      "data": {
+        "button_id": "row_1781057808417_syppf5",
+        "sourceHandle": "row_1781057808417_syppf5",
+        "targetHandle": "in",
+        "row_id": "row_1781057808417_syppf5"
+      }
+    },
+    {
+      "id": "03b20441-4f59-4fcf-a611-ddcb0e605bc9",
+      "source": "5817dfdc-a3a4-4c47-a54c-75992a15bab6",
+      "sourceHandle": "row_1781057816289_5s4l7r",
+      "target": "07fbf2c9-daaf-496a-b79c-86db7be6ad08",
+      "animated": true,
+      "label": null,
+      "data": {
+        "button_id": "row_1781057816289_5s4l7r",
+        "sourceHandle": "row_1781057816289_5s4l7r",
+        "targetHandle": "in",
+        "row_id": "row_1781057816289_5s4l7r"
+      }
+    },
+    {
+      "id": "58008368-e5b6-4413-85eb-8fc138758368",
+      "source": "5817dfdc-a3a4-4c47-a54c-75992a15bab6",
+      "sourceHandle": "row_1781057822889_tu8i3m",
+      "target": "07fbf2c9-daaf-496a-b79c-86db7be6ad08",
+      "animated": true,
+      "label": null,
+      "data": {
+        "button_id": "row_1781057822889_tu8i3m",
+        "sourceHandle": "row_1781057822889_tu8i3m",
+        "targetHandle": "in",
+        "row_id": "row_1781057822889_tu8i3m"
+      }
+    },
+    {
+      "id": "453b5dd2-9169-4285-b89d-237fe49a8ebf",
+      "source": "5817dfdc-a3a4-4c47-a54c-75992a15bab6",
+      "sourceHandle": "row_1781057843393_r8kw0e",
+      "target": "07fbf2c9-daaf-496a-b79c-86db7be6ad08",
+      "animated": true,
+      "label": null,
+      "data": {
+        "button_id": "row_1781057843393_r8kw0e",
+        "sourceHandle": "row_1781057843393_r8kw0e",
+        "targetHandle": "in",
+        "row_id": "row_1781057843393_r8kw0e"
+      }
+    },
+    {
+      "id": "20420227-b38a-4f32-996a-1bbe386802ae",
+      "source": "5817dfdc-a3a4-4c47-a54c-75992a15bab6",
+      "sourceHandle": "row_1781057850057_gw9r4b",
+      "target": "07fbf2c9-daaf-496a-b79c-86db7be6ad08",
+      "animated": true,
+      "label": null,
+      "data": {
+        "button_id": "row_1781057850057_gw9r4b",
+        "sourceHandle": "row_1781057850057_gw9r4b",
+        "targetHandle": "in",
+        "row_id": "row_1781057850057_gw9r4b"
+      }
+    },
+    {
+      "id": "98227589-6490-4473-89a3-c9168dac18c1",
+      "source": "5817dfdc-a3a4-4c47-a54c-75992a15bab6",
+      "sourceHandle": "row_1781057852769_8u8p49",
+      "target": "07fbf2c9-daaf-496a-b79c-86db7be6ad08",
+      "animated": true,
+      "label": null,
+      "data": {
+        "button_id": "row_1781057852769_8u8p49",
+        "sourceHandle": "row_1781057852769_8u8p49",
+        "targetHandle": "in",
+        "row_id": "row_1781057852769_8u8p49"
+      }
+    },
+    {
+      "id": "354b65dd-4070-44ab-891f-774b3907db5a",
+      "source": "5817dfdc-a3a4-4c47-a54c-75992a15bab6",
+      "sourceHandle": "row_1781057859601_o83ht8",
+      "target": "07fbf2c9-daaf-496a-b79c-86db7be6ad08",
+      "animated": true,
+      "label": null,
+      "data": {
+        "button_id": "row_1781057859601_o83ht8",
+        "sourceHandle": "row_1781057859601_o83ht8",
+        "targetHandle": "in",
+        "row_id": "row_1781057859601_o83ht8"
+      }
+    },
+    {
+      "id": "d5bb0a81-2bc7-4e72-8a48-ad67c9890742",
+      "source": "7f9f7ba0-faad-4533-965b-0c74e89be60c",
+      "sourceHandle": "row_1781058103209_d37nan",
+      "target": "b433a6a7-caff-42bb-8a00-77ea0608fce8",
+      "animated": true,
+      "label": null,
+      "data": {
+        "button_id": "row_1781058103209_d37nan",
+        "sourceHandle": "row_1781058103209_d37nan",
+        "targetHandle": "in",
+        "row_id": "row_1781058103209_d37nan"
+      }
+    },
+    {
+      "id": "0dd6a5ff-7107-4543-ab6c-8b94952a6b81",
+      "source": "7f9f7ba0-faad-4533-965b-0c74e89be60c",
+      "sourceHandle": "row_1781058103209_vx94h9",
+      "target": "b433a6a7-caff-42bb-8a00-77ea0608fce8",
+      "animated": true,
+      "label": null,
+      "data": {
+        "button_id": "row_1781058103209_vx94h9",
+        "sourceHandle": "row_1781058103209_vx94h9",
+        "targetHandle": "in",
+        "row_id": "row_1781058103209_vx94h9"
+      }
+    },
+    {
+      "id": "8c306fe7-3a77-464d-aac8-67e30e89bf77",
+      "source": "7f9f7ba0-faad-4533-965b-0c74e89be60c",
+      "sourceHandle": "row_1781058103209_n8q0hi",
+      "target": "b433a6a7-caff-42bb-8a00-77ea0608fce8",
+      "animated": true,
+      "label": null,
+      "data": {
+        "button_id": "row_1781058103209_n8q0hi",
+        "sourceHandle": "row_1781058103209_n8q0hi",
+        "targetHandle": "in",
+        "row_id": "row_1781058103209_n8q0hi"
+      }
+    },
+    {
+      "id": "3a6f0d0b-23a9-4df4-8901-16d7293818ff",
+      "source": "7f9f7ba0-faad-4533-965b-0c74e89be60c",
+      "sourceHandle": "row_1781058103209_5g8vmy",
+      "target": "b433a6a7-caff-42bb-8a00-77ea0608fce8",
+      "animated": true,
+      "label": null,
+      "data": {
+        "button_id": "row_1781058103209_5g8vmy",
+        "sourceHandle": "row_1781058103209_5g8vmy",
+        "targetHandle": "in",
+        "row_id": "row_1781058103209_5g8vmy"
+      }
+    },
+    {
+      "id": "c2aa2b67-403d-452f-a9c0-e5d4dcb37dd6",
+      "source": "7f9f7ba0-faad-4533-965b-0c74e89be60c",
+      "sourceHandle": "row_1781058103209_1lr71m",
+      "target": "b433a6a7-caff-42bb-8a00-77ea0608fce8",
+      "animated": true,
+      "label": null,
+      "data": {
+        "button_id": "row_1781058103209_1lr71m",
+        "sourceHandle": "row_1781058103209_1lr71m",
+        "targetHandle": "in",
+        "row_id": "row_1781058103209_1lr71m"
+      }
+    },
+    {
+      "id": "947a7012-fe09-47f5-872f-286f97228e58",
+      "source": "7f9f7ba0-faad-4533-965b-0c74e89be60c",
+      "sourceHandle": "row_1781058103209_35d7ck",
+      "target": "b433a6a7-caff-42bb-8a00-77ea0608fce8",
+      "animated": true,
+      "label": null,
+      "data": {
+        "button_id": "row_1781058103209_35d7ck",
+        "sourceHandle": "row_1781058103209_35d7ck",
+        "targetHandle": "in",
+        "row_id": "row_1781058103209_35d7ck"
+      }
+    },
+    {
+      "id": "e41510ce-e52d-4916-b28c-322d7a1f62e0",
+      "source": "7f9f7ba0-faad-4533-965b-0c74e89be60c",
+      "sourceHandle": "row_1781058103209_nb3jli",
+      "target": "b433a6a7-caff-42bb-8a00-77ea0608fce8",
+      "animated": true,
+      "label": null,
+      "data": {
+        "button_id": "row_1781058103209_nb3jli",
+        "sourceHandle": "row_1781058103209_nb3jli",
+        "targetHandle": "in",
+        "row_id": "row_1781058103209_nb3jli"
+      }
+    },
+    {
+      "id": "544d5438-b717-4afc-a952-265733be3d69",
+      "source": "7f9f7ba0-faad-4533-965b-0c74e89be60c",
+      "sourceHandle": "row_1781058103209_inm12m",
+      "target": "b433a6a7-caff-42bb-8a00-77ea0608fce8",
+      "animated": true,
+      "label": null,
+      "data": {
+        "button_id": "row_1781058103209_inm12m",
+        "sourceHandle": "row_1781058103209_inm12m",
+        "targetHandle": "in",
+        "row_id": "row_1781058103209_inm12m"
+      }
+    },
+    {
+      "id": "bd34c20c-398b-4233-b71f-77da1dcd00ec",
+      "source": "78f6c0bb-9352-4a92-9d8e-10b5a72760e5",
+      "sourceHandle": "default",
+      "target": "b1219880-2028-494f-9081-338e72050013",
+      "animated": true,
+      "label": null,
+      "data": {
+        "sourceHandle": "default",
+        "targetHandle": "in"
+      }
+    },
+    {
+      "id": "dc96c9e4-75b5-433f-bf44-f6475266bf6f",
+      "source": "b1219880-2028-494f-9081-338e72050013",
+      "sourceHandle": "default",
+      "target": "9f56c4b8-c6c0-4d0e-be28-ff556bb84f79",
+      "animated": true,
+      "label": null,
+      "data": {
+        "sourceHandle": "default",
+        "targetHandle": "in"
+      }
+    },
+    {
+      "id": "7323354a-0149-4098-abe5-ff4ed8c554d8",
+      "source": "9f56c4b8-c6c0-4d0e-be28-ff556bb84f79",
+      "sourceHandle": "condition-true-9f56c4b8-c6c0-4d0e-be28-ff556bb84f79",
+      "target": "fee66286-c634-40af-8625-b88d3a7dc5b3",
+      "animated": true,
+      "label": "True",
+      "data": {
+        "condition": "true",
+        "sourceHandle": "condition-true-9f56c4b8-c6c0-4d0e-be28-ff556bb84f79",
+        "targetHandle": "in",
+        "branch": "true"
+      }
+    },
+    {
+      "id": "9e286374-64f8-422f-aae3-9b7e59359452",
+      "source": "9f56c4b8-c6c0-4d0e-be28-ff556bb84f79",
+      "sourceHandle": "condition-false-9f56c4b8-c6c0-4d0e-be28-ff556bb84f79",
+      "target": "90a50b2a-e5f9-4541-bacd-83f47fee0d48",
+      "animated": true,
+      "label": "False",
+      "data": {
+        "condition": "false",
+        "sourceHandle": "condition-false-9f56c4b8-c6c0-4d0e-be28-ff556bb84f79",
+        "targetHandle": "in",
+        "branch": "false"
+      }
+    },
+    {
+      "id": "71c38096-d33c-4147-81e1-843cd3d07cf9",
+      "source": "578428f7-2115-4bd5-a7c2-9b870e0b81bc",
+      "sourceHandle": "default",
+      "target": "6326b206-f038-476c-b0f3-1fe2022f5c06",
+      "animated": true,
+      "label": null,
+      "data": {
+        "sourceHandle": "default",
+        "targetHandle": "in"
+      }
+    },
+    {
+      "id": "43be9ca2-e0fc-493d-87f8-d67d736fb7e0",
+      "source": "6326b206-f038-476c-b0f3-1fe2022f5c06",
+      "sourceHandle": "default",
+      "target": "1ddd899a-8cf3-491f-8b05-6ed3727d0721",
+      "animated": true,
+      "label": null,
+      "data": {
+        "sourceHandle": "default",
+        "targetHandle": "in"
+      }
+    },
+    {
+      "id": "875b199b-232d-45b0-99e2-d96806bfcda3",
+      "source": "1ddd899a-8cf3-491f-8b05-6ed3727d0721",
+      "sourceHandle": "condition-true-1ddd899a-8cf3-491f-8b05-6ed3727d0721",
+      "target": "c49d7141-f97c-4926-bdb6-5c6c0ecc294f",
+      "animated": true,
+      "label": "True",
+      "data": {
+        "condition": "true",
+        "sourceHandle": "condition-true-1ddd899a-8cf3-491f-8b05-6ed3727d0721",
+        "targetHandle": "in",
+        "branch": "true"
+      }
+    },
+    {
+      "id": "bc851dc5-981c-4f6b-ac07-8960dfa11092",
+      "source": "1ddd899a-8cf3-491f-8b05-6ed3727d0721",
+      "sourceHandle": "condition-false-1ddd899a-8cf3-491f-8b05-6ed3727d0721",
+      "target": "cb00f1d5-693b-4be7-8a23-c9a563f7d8b7",
+      "animated": true,
+      "label": "False",
+      "data": {
+        "condition": "false",
+        "sourceHandle": "condition-false-1ddd899a-8cf3-491f-8b05-6ed3727d0721",
+        "targetHandle": "in",
+        "branch": "false"
+      }
+    },
+    {
+      "id": "3c783a32-3c56-47a5-8c8a-27000e5d8b9d",
+      "source": "3f7e0e2e-1ff7-4f43-8508-54747fbecb5d",
+      "sourceHandle": "btn_1778387708834_jht34d",
+      "target": "72465d7e-e705-4a4d-b6a4-4c197a67656e",
+      "animated": true,
+      "label": null,
+      "data": {
+        "button_id": "btn_1778387708834_jht34d",
+        "sourceHandle": "btn_1778387708834_jht34d",
+        "targetHandle": "in"
+      }
+    },
+    {
+      "id": "c651942b-c253-4a52-82f5-21fe9fc45f7a",
+      "source": "3f7e0e2e-1ff7-4f43-8508-54747fbecb5d",
+      "sourceHandle": "btn_1778387752823_edeeki",
+      "target": "c1e2d5fc-97c6-4589-a477-03642c3e7c32",
+      "animated": true,
+      "label": null,
+      "data": {
+        "button_id": "btn_1778387752823_edeeki",
+        "sourceHandle": "btn_1778387752823_edeeki",
+        "targetHandle": "in"
+      }
+    },
+    {
+      "id": "37f1dbea-b5f5-46ef-8fe1-f1abf886a0ed",
+      "source": "72465d7e-e705-4a4d-b6a4-4c197a67656e",
+      "sourceHandle": "default",
+      "target": "256f6b68-07bd-49cb-9b59-32bbbf27b184",
+      "animated": true,
+      "label": null,
+      "data": {
+        "sourceHandle": "default",
+        "targetHandle": "in"
+      }
+    },
+    {
+      "id": "3de6d25f-baeb-4c8d-b64f-1e55b4d04dc8",
+      "source": "256f6b68-07bd-49cb-9b59-32bbbf27b184",
+      "sourceHandle": "condition-true-256f6b68-07bd-49cb-9b59-32bbbf27b184",
+      "target": "708c9957-d4df-42f2-ae7d-9ef2969c7545",
+      "animated": true,
+      "label": "True",
+      "data": {
+        "condition": "true",
+        "sourceHandle": "condition-true-256f6b68-07bd-49cb-9b59-32bbbf27b184",
+        "targetHandle": "in",
+        "branch": "true"
+      }
+    },
+    {
+      "id": "b25cf07a-b000-4b66-9b82-086e506190c7",
+      "source": "256f6b68-07bd-49cb-9b59-32bbbf27b184",
+      "sourceHandle": "condition-false-256f6b68-07bd-49cb-9b59-32bbbf27b184",
+      "target": "7f9f7ba0-faad-4533-965b-0c74e89be60c",
+      "animated": true,
+      "label": "False",
+      "data": {
+        "condition": "false",
+        "sourceHandle": "condition-false-256f6b68-07bd-49cb-9b59-32bbbf27b184",
+        "targetHandle": "in",
+        "branch": "false"
+      }
+    },
+    {
+      "id": "74775561-e499-4ea7-bf82-08365940898a",
+      "source": "c1e2d5fc-97c6-4589-a477-03642c3e7c32",
+      "sourceHandle": "default",
+      "target": "407175f3-0765-44e4-b039-9c29367ec369",
+      "animated": true,
+      "label": null,
+      "data": {
+        "sourceHandle": "default",
+        "targetHandle": "in"
+      }
+    },
+    {
+      "id": "13c25836-eebe-4325-8c30-2f2ad3ebc7be",
+      "source": "407175f3-0765-44e4-b039-9c29367ec369",
+      "sourceHandle": "condition-true-407175f3-0765-44e4-b039-9c29367ec369",
+      "target": "5a0f6f4c-3d00-4f3b-977e-e2557926fa52",
+      "animated": true,
+      "label": "True",
+      "data": {
+        "condition": "true",
+        "sourceHandle": "condition-true-407175f3-0765-44e4-b039-9c29367ec369",
+        "targetHandle": "in",
+        "branch": "true"
+      }
+    },
+    {
+      "id": "46ca919c-7e29-4e4d-b689-8c3503b263c2",
+      "source": "407175f3-0765-44e4-b039-9c29367ec369",
+      "sourceHandle": "condition-false-407175f3-0765-44e4-b039-9c29367ec369",
+      "target": "5817dfdc-a3a4-4c47-a54c-75992a15bab6",
+      "animated": true,
+      "label": "False",
+      "data": {
+        "condition": "false",
+        "sourceHandle": "condition-false-407175f3-0765-44e4-b039-9c29367ec369",
+        "targetHandle": "in",
+        "branch": "false"
+      }
+    },
+    {
+      "id": "ac7460f1-97fd-4ed2-8628-8c45d01720ce",
+      "source": "3f7e0e2e-1ff7-4f43-8508-54747fbecb5d",
+      "sourceHandle": "btn_1781085462863_e3jwj1",
+      "target": "669256f0-53ba-4358-adb9-d6ad0a0d6180",
+      "animated": true,
+      "label": null,
+      "data": {
+        "button_id": "btn_1781085462863_e3jwj1",
+        "sourceHandle": "btn_1781085462863_e3jwj1",
+        "targetHandle": "in"
+      }
+    },
+    {
+      "id": "1d7277a0-bc09-4f70-b494-eb6f80a37ab7",
+      "source": "1617c2fb-b009-47f0-9bc8-d29854fd7bc1",
+      "sourceHandle": "condition-true-1617c2fb-b009-47f0-9bc8-d29854fd7bc1",
+      "target": "d0136e35-35b2-4534-a728-45f80003c2d1",
+      "animated": true,
+      "label": "True",
+      "data": {
+        "condition": "true",
+        "sourceHandle": "condition-true-1617c2fb-b009-47f0-9bc8-d29854fd7bc1",
+        "targetHandle": "in",
+        "branch": "true"
+      }
+    },
+    {
+      "id": "e7e6d07a-2b06-4d72-869b-e8dc2e2d4428",
+      "source": "1617c2fb-b009-47f0-9bc8-d29854fd7bc1",
+      "sourceHandle": "condition-false-1617c2fb-b009-47f0-9bc8-d29854fd7bc1",
+      "target": "9e37d9ba-3ff5-410b-a281-4e7cf3330096",
+      "animated": true,
+      "label": "False",
+      "data": {
+        "condition": "false",
+        "sourceHandle": "condition-false-1617c2fb-b009-47f0-9bc8-d29854fd7bc1",
+        "targetHandle": "in",
+        "branch": "false"
+      }
+    },
+    {
+      "id": "815a1316-9b40-482a-8280-e4ca58f27370",
+      "source": "9e37d9ba-3ff5-410b-a281-4e7cf3330096",
+      "sourceHandle": "row_1781085839615_claktt",
+      "target": "87deafe4-12f4-412c-9f30-3d90060245bb",
+      "animated": true,
+      "label": null,
+      "data": {
+        "button_id": "row_1781085839615_claktt",
+        "sourceHandle": "row_1781085839615_claktt",
+        "targetHandle": "in",
+        "row_id": "row_1781085839615_claktt"
+      }
+    },
+    {
+      "id": "6bad1337-ef19-46f4-b518-ff3c756591d0",
+      "source": "9e37d9ba-3ff5-410b-a281-4e7cf3330096",
+      "sourceHandle": "row_1781085839615_pq33of",
+      "target": "87deafe4-12f4-412c-9f30-3d90060245bb",
+      "animated": true,
+      "label": null,
+      "data": {
+        "button_id": "row_1781085839615_pq33of",
+        "sourceHandle": "row_1781085839615_pq33of",
+        "targetHandle": "in",
+        "row_id": "row_1781085839615_pq33of"
+      }
+    },
+    {
+      "id": "522a6c72-b11b-41eb-92d2-797f4fbfc608",
+      "source": "9e37d9ba-3ff5-410b-a281-4e7cf3330096",
+      "sourceHandle": "row_1781085839615_v0bd8z",
+      "target": "87deafe4-12f4-412c-9f30-3d90060245bb",
+      "animated": true,
+      "label": null,
+      "data": {
+        "button_id": "row_1781085839615_v0bd8z",
+        "sourceHandle": "row_1781085839615_v0bd8z",
+        "targetHandle": "in",
+        "row_id": "row_1781085839615_v0bd8z"
+      }
+    },
+    {
+      "id": "203c0ea7-9a4f-40f2-98ec-cc94c13ce899",
+      "source": "9e37d9ba-3ff5-410b-a281-4e7cf3330096",
+      "sourceHandle": "row_1781085839615_dlns3t",
+      "target": "87deafe4-12f4-412c-9f30-3d90060245bb",
+      "animated": true,
+      "label": null,
+      "data": {
+        "button_id": "row_1781085839615_dlns3t",
+        "sourceHandle": "row_1781085839615_dlns3t",
+        "targetHandle": "in",
+        "row_id": "row_1781085839615_dlns3t"
+      }
+    },
+    {
+      "id": "83e362a6-dae9-4053-921e-3079aac51774",
+      "source": "9e37d9ba-3ff5-410b-a281-4e7cf3330096",
+      "sourceHandle": "row_1781085839615_r01efw",
+      "target": "87deafe4-12f4-412c-9f30-3d90060245bb",
+      "animated": true,
+      "label": null,
+      "data": {
+        "button_id": "row_1781085839615_r01efw",
+        "sourceHandle": "row_1781085839615_r01efw",
+        "targetHandle": "in",
+        "row_id": "row_1781085839615_r01efw"
+      }
+    },
+    {
+      "id": "bb7aa641-0111-40ce-aa08-8c9d76ff938c",
+      "source": "9e37d9ba-3ff5-410b-a281-4e7cf3330096",
+      "sourceHandle": "row_1781085839615_hl37m8",
+      "target": "87deafe4-12f4-412c-9f30-3d90060245bb",
+      "animated": true,
+      "label": null,
+      "data": {
+        "button_id": "row_1781085839615_hl37m8",
+        "sourceHandle": "row_1781085839615_hl37m8",
+        "targetHandle": "in",
+        "row_id": "row_1781085839615_hl37m8"
+      }
+    },
+    {
+      "id": "6a39a1fa-5219-487a-a041-ffd28fd05469",
+      "source": "9e37d9ba-3ff5-410b-a281-4e7cf3330096",
+      "sourceHandle": "row_1781085839615_ez89gq",
+      "target": "87deafe4-12f4-412c-9f30-3d90060245bb",
+      "animated": true,
+      "label": null,
+      "data": {
+        "button_id": "row_1781085839615_ez89gq",
+        "sourceHandle": "row_1781085839615_ez89gq",
+        "targetHandle": "in",
+        "row_id": "row_1781085839615_ez89gq"
+      }
+    },
+    {
+      "id": "670fc4d9-2902-4c33-8fea-67f4ac8e0bcb",
+      "source": "9e37d9ba-3ff5-410b-a281-4e7cf3330096",
+      "sourceHandle": "default",
+      "target": "87deafe4-12f4-412c-9f30-3d90060245bb",
+      "animated": true,
+      "label": null,
+      "data": {
+        "sourceHandle": "default",
+        "targetHandle": "in"
+      }
+    },
+    {
+      "id": "e7532f4f-40b6-41b5-b71d-eaf2f3648bac",
+      "source": "87deafe4-12f4-412c-9f30-3d90060245bb",
+      "sourceHandle": "default",
+      "target": "42ad0767-42ec-4748-9f2f-0edfe0c7dd09",
+      "animated": true,
+      "label": null,
+      "data": {
+        "sourceHandle": "default",
+        "targetHandle": "in"
+      }
+    },
+    {
+      "id": "5c858f53-3eb3-46e0-be06-6e35c49e8e35",
+      "source": "42ad0767-42ec-4748-9f2f-0edfe0c7dd09",
+      "sourceHandle": "default",
+      "target": "4a4ba9d5-9c8b-4bf0-9b22-5e508e0e1703",
+      "animated": true,
+      "label": null,
+      "data": {
+        "sourceHandle": "default",
+        "targetHandle": "in"
+      }
+    },
+    {
+      "id": "864efbc7-4eb4-4682-b535-7a5f13e63f26",
+      "source": "4a4ba9d5-9c8b-4bf0-9b22-5e508e0e1703",
+      "sourceHandle": "default",
+      "target": "0296b4bc-2eb7-4113-9d25-372a7fb8225a",
+      "animated": true,
+      "label": null,
+      "data": {
+        "sourceHandle": "default",
+        "targetHandle": "in"
+      }
+    },
+    {
+      "id": "55832457-94de-4e50-87c4-b5212c2bb7a5",
+      "source": "0296b4bc-2eb7-4113-9d25-372a7fb8225a",
+      "sourceHandle": "default",
+      "target": "e8b30e00-5c76-4bb5-82cc-a81be57ad0eb",
+      "animated": true,
+      "label": null,
+      "data": {
+        "sourceHandle": "default",
+        "targetHandle": "in"
+      }
+    },
+    {
+      "id": "118d7979-5f43-45c7-95f1-640383ff0efb",
+      "source": "e8b30e00-5c76-4bb5-82cc-a81be57ad0eb",
+      "sourceHandle": "default",
+      "target": "95ebf551-6520-4106-8e4c-1e53ac3978fa",
+      "animated": true,
+      "label": null,
+      "data": {
+        "sourceHandle": "default",
+        "targetHandle": "in"
+      }
+    },
+    {
+      "id": "5e99aaa9-2315-4b20-bb76-373b0b98313f",
+      "source": "95ebf551-6520-4106-8e4c-1e53ac3978fa",
+      "sourceHandle": "condition-true-95ebf551-6520-4106-8e4c-1e53ac3978fa",
+      "target": "8f9e27b2-83d3-42ff-9f05-c84921ec42de",
+      "animated": true,
+      "label": "True",
+      "data": {
+        "condition": "true",
+        "sourceHandle": "condition-true-95ebf551-6520-4106-8e4c-1e53ac3978fa",
+        "targetHandle": "in",
+        "branch": "true"
+      }
+    },
+    {
+      "id": "1f451ae5-28d1-4a0e-95a9-5ec7a9cabd2d",
+      "source": "95ebf551-6520-4106-8e4c-1e53ac3978fa",
+      "sourceHandle": "condition-false-95ebf551-6520-4106-8e4c-1e53ac3978fa",
+      "target": "41721533-2956-4716-8e6f-d2cb47130f47",
+      "animated": true,
+      "label": "False",
+      "data": {
+        "condition": "false",
+        "sourceHandle": "condition-false-95ebf551-6520-4106-8e4c-1e53ac3978fa",
+        "targetHandle": "in",
+        "branch": "false"
+      }
+    },
+    {
+      "id": "0895de22-3716-481f-b773-cb1628fe2180",
+      "source": "c3b12aaa-4501-40a8-ab1c-ffee06005b55",
+      "sourceHandle": "default",
+      "target": "c3da7bb1-55fe-4d60-9545-8f698b5562aa",
+      "animated": true,
+      "label": null,
+      "data": {
+        "sourceHandle": "default",
+        "targetHandle": "in"
+      }
+    },
+    {
+      "id": "036a136d-8e96-469b-9d3a-e492f2e40753",
+      "source": "c3da7bb1-55fe-4d60-9545-8f698b5562aa",
+      "sourceHandle": "default",
+      "target": "f796a2a8-c442-4e19-8621-9cdae2601c5b",
+      "animated": true,
+      "label": null,
+      "data": {
+        "sourceHandle": "default",
+        "targetHandle": "in"
+      }
+    },
+    {
+      "id": "25dc7a28-2a23-4f1b-96ce-2acae3a16381",
+      "source": "f796a2a8-c442-4e19-8621-9cdae2601c5b",
+      "sourceHandle": "condition-false-f796a2a8-c442-4e19-8621-9cdae2601c5b",
+      "target": "67fe48d1-e2af-49e3-8e39-7c865416ec10",
+      "animated": true,
+      "label": "False",
+      "data": {
+        "condition": "false",
+        "sourceHandle": "condition-false-f796a2a8-c442-4e19-8621-9cdae2601c5b",
+        "targetHandle": "in",
+        "branch": "false"
+      }
+    },
+    {
+      "id": "4fc85f79-4789-468c-acb2-3a43e89d943e",
+      "source": "76889aef-7f81-490a-bf09-0655322dc26c",
+      "sourceHandle": "default",
+      "target": "a8853605-6f50-4a92-a023-3e85c1093a54",
+      "animated": true,
+      "label": null,
+      "data": {
+        "sourceHandle": "default",
+        "targetHandle": "in"
+      }
+    },
+    {
+      "id": "dd2c9bcc-a1f6-454a-83f4-0ec0f8d02a6a",
+      "source": "a8853605-6f50-4a92-a023-3e85c1093a54",
+      "sourceHandle": "default",
+      "target": "37b68b55-d8dd-408a-8fec-37e6a87312d2",
+      "animated": true,
+      "label": null,
+      "data": {
+        "sourceHandle": "default",
+        "targetHandle": "in"
+      }
+    },
+    {
+      "id": "3b0386b5-65b2-475b-9b06-82c4095c5199",
+      "source": "37b68b55-d8dd-408a-8fec-37e6a87312d2",
+      "sourceHandle": "condition-true-37b68b55-d8dd-408a-8fec-37e6a87312d2",
+      "target": "712062b8-d9bf-4c34-9786-ca4dc9b53b9d",
+      "animated": true,
+      "label": "True",
+      "data": {
+        "condition": "true",
+        "sourceHandle": "condition-true-37b68b55-d8dd-408a-8fec-37e6a87312d2",
+        "targetHandle": "in",
+        "branch": "true"
+      }
+    },
+    {
+      "id": "46e9d230-9eca-4384-ac74-7b21db06baeb",
+      "source": "712062b8-d9bf-4c34-9786-ca4dc9b53b9d",
+      "sourceHandle": "condition-true-712062b8-d9bf-4c34-9786-ca4dc9b53b9d",
+      "target": "05788f82-531b-441f-afa5-2b6cdbc76263",
+      "animated": true,
+      "label": "True",
+      "data": {
+        "condition": "true",
+        "sourceHandle": "condition-true-712062b8-d9bf-4c34-9786-ca4dc9b53b9d",
+        "targetHandle": "in",
+        "branch": "true"
+      }
+    },
+    {
+      "id": "5b123c7e-7faa-4a46-a2b7-8a4397910b8c",
+      "source": "712062b8-d9bf-4c34-9786-ca4dc9b53b9d",
+      "sourceHandle": "condition-false-712062b8-d9bf-4c34-9786-ca4dc9b53b9d",
+      "target": "05788f82-531b-441f-afa5-2b6cdbc76263",
+      "animated": true,
+      "label": "False",
+      "data": {
+        "condition": "false",
+        "sourceHandle": "condition-false-712062b8-d9bf-4c34-9786-ca4dc9b53b9d",
+        "targetHandle": "in",
+        "branch": "false"
+      }
+    },
+    {
+      "id": "683f4745-2076-43d4-9a12-b4f867bf3b5f",
+      "source": "05788f82-531b-441f-afa5-2b6cdbc76263",
+      "sourceHandle": "default",
+      "target": "20804977-a74d-4e8c-bd50-64d3b1064ee2",
+      "animated": true,
+      "label": null,
+      "data": {
+        "sourceHandle": "default",
+        "targetHandle": "in"
+      }
+    },
+    {
+      "id": "482d0852-184f-4494-aa6b-e8cd97cd919c",
+      "source": "37b68b55-d8dd-408a-8fec-37e6a87312d2",
+      "sourceHandle": "condition-false-37b68b55-d8dd-408a-8fec-37e6a87312d2",
+      "target": "ec1518b8-8c10-43a6-8167-e6988b263342",
+      "animated": true,
+      "label": "False",
+      "data": {
+        "condition": "false",
+        "sourceHandle": "condition-false-37b68b55-d8dd-408a-8fec-37e6a87312d2",
+        "targetHandle": "in",
+        "branch": "false"
+      }
+    },
+    {
+      "id": "e276f4c9-4b18-4e33-9186-aed804ee7f57",
+      "source": "f796a2a8-c442-4e19-8621-9cdae2601c5b",
+      "sourceHandle": "condition-true-f796a2a8-c442-4e19-8621-9cdae2601c5b",
+      "target": "ab387b00-0736-41c3-bebc-7cd562750246",
+      "animated": true,
+      "label": "True",
+      "data": {
+        "condition": "true",
+        "sourceHandle": "condition-true-f796a2a8-c442-4e19-8621-9cdae2601c5b",
+        "targetHandle": "in",
+        "branch": "true"
+      }
+    },
+    {
+      "id": "0aaa6866-0c17-4dd1-bb85-75eae7de70ed",
+      "source": "ab387b00-0736-41c3-bebc-7cd562750246",
+      "sourceHandle": "default",
+      "target": "2c285999-ec49-4d86-bb33-e387a2262c03",
+      "animated": true,
+      "label": null,
+      "data": {
+        "sourceHandle": "default",
+        "targetHandle": "in"
+      }
+    },
+    {
+      "id": "b6d54e7f-1dc8-4427-b385-20fc4cc53668",
+      "source": "2c285999-ec49-4d86-bb33-e387a2262c03",
+      "sourceHandle": "condition-true-2c285999-ec49-4d86-bb33-e387a2262c03",
+      "target": "19b0b848-0763-40b8-94f4-5e1360f40434",
+      "animated": true,
+      "label": "True",
+      "data": {
+        "condition": "true",
+        "sourceHandle": "condition-true-2c285999-ec49-4d86-bb33-e387a2262c03",
+        "targetHandle": "in",
+        "branch": "true"
+      }
+    },
+    {
+      "id": "09794dea-47b8-4334-8cb8-accadc09414f",
+      "source": "2c285999-ec49-4d86-bb33-e387a2262c03",
+      "sourceHandle": "condition-false-2c285999-ec49-4d86-bb33-e387a2262c03",
+      "target": "0e6a80de-c470-4b2b-b036-a23129bb25d6",
+      "animated": true,
+      "label": "False",
+      "data": {
+        "condition": "false",
+        "sourceHandle": "condition-false-2c285999-ec49-4d86-bb33-e387a2262c03",
+        "targetHandle": "in",
+        "branch": "false"
+      }
+    },
+    {
+      "id": "4ceaf018-7743-4231-bf22-3e83f3aea965",
+      "source": "5817dfdc-a3a4-4c47-a54c-75992a15bab6",
+      "sourceHandle": "row_1781057830689_zsz226",
+      "target": "e3f81665-5cb8-401d-9206-b6ac0c909578",
+      "animated": true,
+      "label": null,
+      "data": {
+        "button_id": "row_1781057830689_zsz226",
+        "sourceHandle": "row_1781057830689_zsz226",
+        "targetHandle": "in",
+        "row_id": "row_1781057830689_zsz226"
+      }
+    },
+    {
+      "id": "b49e3799-a664-4de9-966d-b39cfa05af2a",
+      "source": "e3f81665-5cb8-401d-9206-b6ac0c909578",
+      "sourceHandle": "default",
+      "target": "c3b12aaa-4501-40a8-ab1c-ffee06005b55",
+      "animated": true,
+      "label": null,
+      "data": {
+        "sourceHandle": "default",
+        "targetHandle": "in"
+      }
+    },
+    {
+      "id": "d8550682-e362-4e03-81af-1278e4f5e675",
+      "source": "7f9f7ba0-faad-4533-965b-0c74e89be60c",
+      "sourceHandle": "row_1781058103209_rqr59d",
+      "target": "225f8e61-5302-4549-9c4f-9f487b75f43d",
+      "animated": true,
+      "label": null,
+      "data": {
+        "button_id": "row_1781058103209_rqr59d",
+        "sourceHandle": "row_1781058103209_rqr59d",
+        "targetHandle": "in",
+        "row_id": "row_1781058103209_rqr59d"
+      }
+    },
+    {
+      "id": "804b122c-477c-4a23-a7a7-29ca15fd978b",
+      "source": "225f8e61-5302-4549-9c4f-9f487b75f43d",
+      "sourceHandle": "default",
+      "target": "76889aef-7f81-490a-bf09-0655322dc26c",
+      "animated": true,
+      "label": null,
+      "data": {
+        "sourceHandle": "default",
+        "targetHandle": "in"
+      }
+    },
+    {
+      "id": "f40a7b61-5875-4957-b9eb-6cfb9cc0033e",
+      "source": "ec1518b8-8c10-43a6-8167-e6988b263342",
+      "sourceHandle": "default",
+      "target": "a8853605-6f50-4a92-a023-3e85c1093a54",
+      "animated": true,
+      "label": null,
+      "data": {
+        "sourceHandle": "default",
+        "targetHandle": "in"
+      }
+    },
+    {
+      "id": "a2da3376-e6e7-4fc4-aee0-ba2919761830",
+      "source": "67fe48d1-e2af-49e3-8e39-7c865416ec10",
+      "sourceHandle": "default",
+      "target": "c3da7bb1-55fe-4d60-9545-8f698b5562aa",
+      "animated": true,
+      "label": null,
+      "data": {
+        "sourceHandle": "default",
+        "targetHandle": "in"
+      }
+    },
+    {
+      "id": "87a7652c-5c5c-48e0-85e0-3b661850276b",
+      "source": "9e37d9ba-3ff5-410b-a281-4e7cf3330096",
+      "sourceHandle": "row_1781085839615_70fclc",
+      "target": "6141fd90-ab95-4c08-8d87-00dbd9386058",
+      "animated": true,
+      "label": null,
+      "data": {
+        "button_id": "row_1781085839615_70fclc",
+        "sourceHandle": "row_1781085839615_70fclc",
+        "targetHandle": "in",
+        "row_id": "row_1781085839615_70fclc"
+      }
+    },
+    {
+      "id": "093cdc1c-90eb-4c14-89f5-6bcc7c07867b",
+      "source": "6141fd90-ab95-4c08-8d87-00dbd9386058",
+      "sourceHandle": "default",
+      "target": "cfad3308-3128-440a-914d-bd1869cbfa5f",
+      "animated": true,
+      "label": null,
+      "data": {
+        "sourceHandle": "default",
+        "targetHandle": "in"
+      }
+    },
+    {
+      "id": "7d3cac12-3bbe-4333-8d9d-bd51113c9276",
+      "source": "cfad3308-3128-440a-914d-bd1869cbfa5f",
+      "sourceHandle": "default",
+      "target": "bc06a78d-933d-4e7f-9f44-9f975f09baaf",
+      "animated": true,
+      "label": null,
+      "data": {
+        "sourceHandle": "default",
+        "targetHandle": "in"
+      }
+    },
+    {
+      "id": "af162e1e-b39e-40d6-83ae-a90a84695aa5",
+      "source": "bc06a78d-933d-4e7f-9f44-9f975f09baaf",
+      "sourceHandle": "default",
+      "target": "121def8f-8db8-4d48-ac84-7f28effe4a46",
+      "animated": true,
+      "label": null,
+      "data": {
+        "sourceHandle": "default",
+        "targetHandle": "in"
+      }
+    },
+    {
+      "id": "d19f9562-0d24-497a-a29b-589ed79df72d",
+      "source": "121def8f-8db8-4d48-ac84-7f28effe4a46",
+      "sourceHandle": "condition-true-121def8f-8db8-4d48-ac84-7f28effe4a46",
+      "target": "0eff79dd-4737-418a-935e-d8ab39dabe90",
+      "animated": true,
+      "label": "True",
+      "data": {
+        "condition": "true",
+        "sourceHandle": "condition-true-121def8f-8db8-4d48-ac84-7f28effe4a46",
+        "targetHandle": "in",
+        "branch": "true"
+      }
+    },
+    {
+      "id": "0691e996-8a13-4292-a278-b6c3b5504507",
+      "source": "0eff79dd-4737-418a-935e-d8ab39dabe90",
+      "sourceHandle": "default",
+      "target": "53febbf0-67fa-4824-a838-92441e0e52e9",
+      "animated": true,
+      "label": null,
+      "data": {
+        "sourceHandle": "default",
+        "targetHandle": "in"
+      }
+    },
+    {
+      "id": "3edd938c-71dc-4801-990a-c59244921d78",
+      "source": "53febbf0-67fa-4824-a838-92441e0e52e9",
+      "sourceHandle": "condition-true-53febbf0-67fa-4824-a838-92441e0e52e9",
+      "target": "dd6c1d42-01f1-43fd-a630-4a9e3b89ec36",
+      "animated": true,
+      "label": "True",
+      "data": {
+        "condition": "true",
+        "sourceHandle": "condition-true-53febbf0-67fa-4824-a838-92441e0e52e9",
+        "targetHandle": "in",
+        "branch": "true"
+      }
+    },
+    {
+      "id": "6421e69d-1ff0-4f67-9eba-8e22f1e23ef8",
+      "source": "53febbf0-67fa-4824-a838-92441e0e52e9",
+      "sourceHandle": "condition-false-53febbf0-67fa-4824-a838-92441e0e52e9",
+      "target": "5a2e5eca-6e9c-4c62-8b42-7778354285df",
+      "animated": true,
+      "label": "False",
+      "data": {
+        "condition": "false",
+        "sourceHandle": "condition-false-53febbf0-67fa-4824-a838-92441e0e52e9",
+        "targetHandle": "in",
+        "branch": "false"
+      }
+    },
+    {
+      "id": "b4ca5fa5-e868-4151-9e16-d7d4a25f7e1c",
+      "source": "121def8f-8db8-4d48-ac84-7f28effe4a46",
+      "sourceHandle": "condition-false-121def8f-8db8-4d48-ac84-7f28effe4a46",
+      "target": "2306c03d-a107-4c05-b0a3-0c51e9f66af6",
+      "animated": true,
+      "label": "False",
+      "data": {
+        "condition": "false",
+        "sourceHandle": "condition-false-121def8f-8db8-4d48-ac84-7f28effe4a46",
+        "targetHandle": "in",
+        "branch": "false"
+      }
+    },
+    {
+      "id": "717f6b37-897d-4825-8147-d3cdf798d443",
+      "source": "2306c03d-a107-4c05-b0a3-0c51e9f66af6",
+      "sourceHandle": "default",
+      "target": "bc06a78d-933d-4e7f-9f44-9f975f09baaf",
+      "animated": true,
+      "label": null,
+      "data": {
+        "sourceHandle": "default",
+        "targetHandle": "in"
+      }
+    },
+    {
+      "id": "1073b699-4da6-41ac-9c55-f8a51549d4ac",
+      "source": "07fbf2c9-daaf-496a-b79c-86db7be6ad08",
+      "sourceHandle": "default",
+      "target": "0aecac62-f31e-4627-a008-11b8246d7802",
+      "animated": true,
+      "label": null,
+      "data": {
+        "sourceHandle": "default",
+        "targetHandle": "in"
+      }
+    },
+    {
+      "id": "dba7544d-d9bd-4e90-94d1-4bb2e6fd8edc",
+      "source": "ae716254-c230-4de9-8edf-988e813398c8",
+      "sourceHandle": "default",
+      "target": "3f7e0e2e-1ff7-4f43-8508-54747fbecb5d",
+      "animated": true,
+      "label": null,
+      "data": {
+        "sourceHandle": "default",
+        "targetHandle": "in"
+      }
+    },
+    {
+      "id": "743286a7-ef65-4d1e-b041-ab5b372793cb",
+      "source": "0aecac62-f31e-4627-a008-11b8246d7802",
+      "sourceHandle": "default",
+      "target": "d6e80a73-e3a1-46bc-99ab-18c0b49cc44f",
+      "animated": true,
+      "label": null,
+      "data": {
+        "sourceHandle": "default",
+        "targetHandle": "in"
+      }
+    },
+    {
+      "id": "a9564359-ae18-47f6-b3a0-2ad5f1ae5d76",
+      "source": "d6e80a73-e3a1-46bc-99ab-18c0b49cc44f",
+      "sourceHandle": "default",
+      "target": "78f6c0bb-9352-4a92-9d8e-10b5a72760e5",
+      "animated": true,
+      "label": null,
+      "data": {
+        "sourceHandle": "default",
+        "targetHandle": "in"
+      }
+    },
+    {
+      "id": "3f585dc6-d904-49b4-aae6-e9c4ee623990",
+      "source": "b433a6a7-caff-42bb-8a00-77ea0608fce8",
+      "sourceHandle": "default",
+      "target": "8664d337-aaa7-4eba-a6df-236bf9f13392",
+      "animated": true,
+      "label": null,
+      "data": {
+        "sourceHandle": "default",
+        "targetHandle": "in"
+      }
+    },
+    {
+      "id": "f1d6cc22-23e7-4c36-a688-e34181b891bc",
+      "source": "8664d337-aaa7-4eba-a6df-236bf9f13392",
+      "sourceHandle": "default",
+      "target": "f0c25770-08e9-47d4-bea2-fbfb1b7acb7d",
+      "animated": true,
+      "label": null,
+      "data": {
+        "sourceHandle": "default",
+        "targetHandle": "in"
+      }
+    },
+    {
+      "id": "ec7788a9-126a-48a9-af2c-835478559fef",
+      "source": "19b0b848-0763-40b8-94f4-5e1360f40434",
+      "sourceHandle": "default",
+      "target": "d9dd4067-8559-4f77-9988-9940228a534a",
+      "animated": true,
+      "data": {
+        "sourceHandle": "default",
+        "targetHandle": "in"
+      }
+    },
+    {
+      "id": "bcc7be1e-e5c1-4920-834c-65be0e35ba89",
+      "source": "0e6a80de-c470-4b2b-b036-a23129bb25d6",
+      "sourceHandle": "default",
+      "target": "d9dd4067-8559-4f77-9988-9940228a534a",
+      "animated": true,
+      "data": {
+        "sourceHandle": "default",
+        "targetHandle": "in"
+      }
+    }
+  ]
+}

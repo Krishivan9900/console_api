@@ -292,7 +292,11 @@ class MetaService {
   /**
    * Upload media to Meta
    */
-  async uploadMedia(phoneNumberId: string, file: Express.Multer.File, type: string): Promise<any> {
+  async uploadMedia(
+    phoneNumberId: string,
+    file: Pick<Express.Multer.File, 'originalname' | 'mimetype'> & Partial<Express.Multer.File>,
+    type: string
+  ): Promise<any> {
     try {
       const FormData = require('form-data');
       const fs = require('fs');
@@ -300,7 +304,9 @@ class MetaService {
       formData.append('messaging_product', 'whatsapp');
       
       // WhatsApp API expects the file as a stream or buffer
-      formData.append('file', fs.createReadStream(file.path), {
+      const content = file.buffer || (file.path ? fs.createReadStream(file.path) : null);
+      if (!content) throw new Error('Media upload requires a file buffer or path');
+      formData.append('file', content, {
         filename: file.originalname,
         contentType: file.mimetype,
       });

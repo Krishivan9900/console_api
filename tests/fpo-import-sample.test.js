@@ -1,0 +1,132 @@
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const vm = require('node:vm');
+const { test } = require('node:test');
+const ts = require('typescript');
+const XLSX = require('xlsx');
+
+function service(file, methods, globals) {
+  const source = ts.createSourceFile(file, fs.readFileSync(path.join(__dirname, '../src/app/services', file), 'utf8'), ts.ScriptTarget.Latest, true);
+  const declaration = source.statements.find(ts.isClassDeclaration);
+  const members = declaration.members.filter(member => methods.includes(member.name?.getText(source)));
+  const code = `new class { ${members.map(member => member.getText(source)).join('\n')} }`;
+  return vm.runInNewContext(ts.transpileModule(code, {
+    compilerOptions: { target: ts.ScriptTarget.ES2020 },
+  }).outputText, { console: { log() {}, warn() {}, error() {} }, ...globals });
+}
+
+function runtime(options = {}) {
+  const events = [];
+  const auth = service('auth.service.ts', ['generateFpoLeadsTemplate'], { XLSX });
+  const sender = service('message.service.ts', ['sendChatBotMessage'], {
+    AuthService: auth,
+    PhoneNumberModel: { findByPhoneNumberId: async () => ({ id: 'local-number', user_id: 'owner', company_id: 'company' }) },
+    MessageModel: { create: async data => events.push({ kind: 'save', data }) },
+    uuidv4: () => 'uuid',
+    MetaService: {
+      sendMessage: async (phoneNumberId, payload) => {
+        events.push({ kind: 'send', phoneNumberId, payload });
+        if (options.sendError) throw new Error('Send failed');
+        return { messages: [{ id: `${payload.type}-id` }] };
+      },
+      uploadMedia: async (phoneNumberId, file, type) => {
+        events.push({ kind: 'upload', phoneNumberId, file, type });
+        if (options.uploadError) throw new Error('Upload failed');
+        return { id: 'sample-media' };
+      },
+    },
+  });
+  return { sender, events };
+}
+
+const prompt = 'Please Import excel file for onboarding fpo leads';
+
+test('onboarding prompt is followed by a real Excel sample sent to the same recipient and stored', async () => {
+  const { sender, events } = runtime();
+  await sender.sendChatBotMessage('number', 'recipient', { type: 'text', text: prompt });
+  assert.deepEqual(events.map(event => event.kind), ['send', 'save', 'upload', 'send', 'save']);
+  const upload = events.find(event => event.kind === 'upload');
+  assert.equal(upload.phoneNumberId, 'number');
+  assert.equal(upload.file.originalname, 'fpo_leads_import_sample.xlsx');
+  assert.equal(upload.type, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  const workbook = XLSX.read(upload.file.buffer, { type: 'buffer' });
+  const rows = XLSX.utils.sheet_to_json(workbook.Sheets['FPO Leads']);
+  assert.equal(rows.length, 3);
+  assert(rows.every(row => row.phone_number && row.name && row.role));
+  const document = events.filter(event => event.kind === 'send')[1];
+  assert.equal(document.phoneNumberId, 'number');
+  assert.equal(document.payload.to, 'recipient');
+  assert.equal(document.payload.type, 'document');
+  assert.equal(document.payload.document.id, 'sample-media');
+  assert.equal(document.payload.document.filename, upload.file.originalname);
+  assert.equal(events.at(-1).data.type, 'document');
+});
+
+test('sample follows prompts with text objects, capitalization, whitespace and a trailing period', async () => {
+  const { sender, events } = runtime();
+  await sender.sendChatBotMessage('number', 'recipient', {
+    type: 'text', text: { body: '  PLEASE IMPORT EXCEL\n FILE FOR ONBOARDING FPO LEADS.  ' },
+  });
+  assert.deepEqual(events.filter(event => event.kind === 'send').map(event => event.payload.type), ['text', 'document']);
+});
+
+test('batched responses send the sample directly after the prompt', async () => {
+  const { sender, events } = runtime();
+  await sender.sendChatBotMessage('number', 'recipient', { messages: [
+    { type: 'text', text: prompt },
+    { type: 'text', text: 'Next message' },
+  ] });
+  assert.deepEqual(events.filter(event => event.kind === 'send').map(event => event.payload.type), ['text', 'document', 'text']);
+});
+
+test('unrelated and ignored responses never upload a sample', async () => {
+  const { sender, events } = runtime();
+  await sender.sendChatBotMessage('number', 'recipient', { type: 'text', text: 'Welcome' });
+  await sender.sendChatBotMessage('number', 'recipient', { type: 'text', text: prompt, ignoreMessage: true });
+  assert.equal(events.filter(event => event.kind === 'send').length, 1);
+  assert.equal(events.filter(event => event.kind === 'upload').length, 0);
+});
+
+test('a failed prompt send never uploads or sends the sample', async () => {
+  const { sender, events } = runtime({ sendError: true });
+  assert.equal(await sender.sendChatBotMessage('number', 'recipient', { type: 'text', text: prompt }), null);
+  assert.equal(events.filter(event => event.kind === 'upload').length, 0);
+});
+
+test('an upload failure does not send a document with a missing media ID', async () => {
+  const { sender, events } = runtime({ uploadError: true });
+  assert.equal(await sender.sendChatBotMessage('number', 'recipient', { type: 'text', text: prompt }), null);
+  assert.equal(events.filter(event => event.kind === 'send').length, 1);
+});
+
+test('Meta media uploads accept generated buffers and existing disk files', async () => {
+  for (const inMemory of [true, false]) {
+    const fields = [];
+    const buffer = Buffer.from('sample');
+    const stream = { diskStream: true };
+    class FormData {
+      append(...args) { fields.push(args); }
+      getHeaders() { return { 'content-type': 'multipart/form-data; boundary=test' }; }
+    }
+    const media = service('meta.service.ts', ['uploadMedia'], {
+      require: name => name === 'form-data' ? FormData : { createReadStream: file => {
+        assert.equal(file, 'sample.xlsx');
+        return stream;
+      } },
+    });
+    media.accessToken = 'token';
+    media.client = { post: async (url, form, options) => {
+      assert.equal(url, '/number/media');
+      assert.equal(options.headers.Authorization, 'Bearer token');
+      return { data: { id: 'uploaded' } };
+    } };
+    const result = await media.uploadMedia('number', {
+      originalname: 'sample.xlsx', mimetype: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      ...(inMemory ? { buffer } : { path: 'sample.xlsx' }),
+    }, 'document');
+    assert.equal(result.id, 'uploaded');
+    assert.equal(fields[1][1], inMemory ? buffer : stream);
+    assert.equal(fields[1][2].filename, 'sample.xlsx');
+  }
+});
