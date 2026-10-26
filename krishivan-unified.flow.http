@@ -1,0 +1,15 @@
+@apiBaseUrl = https://console-api-z4hc.onrender.com
+@chatBotId = 407fe203-a3a8-49bf-85d7-ea5e675b76d9
+@adminToken = REPLACE_WITH_YOUR_ADMIN_JWT
+
+### Save the combined flow into the existing services chatbot.
+# This chatbot is already published: saving replaces its live flow.
+POST {{apiBaseUrl}}/v1/admin/chatbot/flow/{{chatBotId}}
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+< ./krishivan-unified.flow.json
+
+### Inspect the stored flow after saving.
+GET {{apiBaseUrl}}/v1/admin/chatbot/{{chatBotId}}
+Authorization: Bearer {{adminToken}}

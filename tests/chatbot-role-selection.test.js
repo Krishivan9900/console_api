@@ -12,6 +12,7 @@ function runtime() {
     '@surefy/console/app/models/chatSession.model': { update: async (id, data) => updates.push({ id, ...data }) },
     '@surefy/console/services/chatbot/engine/executeNode': { executeNode: async ({ session }) => session.variables },
     '@surefy/console/utils': { downloadImage: async () => { throw new Error('Unexpected download'); } },
+    '../trigger.logic': require('../src/app/services/chatbot/trigger.logic'),
   };
   vm.runInNewContext(ts.transpileModule(fs.readFileSync(path.join(__dirname, '../src/app/services/chatbot/flows/menu.flow.ts'), 'utf8'), {
     compilerOptions: { target: ts.ScriptTarget.ES2020, module: ts.ModuleKind.CommonJS, esModuleInterop: true },

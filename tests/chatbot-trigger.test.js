@@ -156,6 +156,32 @@ test('ordinary answers and unmatched buttons continue the current session', asyn
   }
 });
 
+test('saved service replies take priority over matching order, booking and AI trigger keywords', async () => {
+  for (const [kind, title, replyId, edgeData] of [
+    ['button', 'Order / Booking', 'services/en/booking', { button_id: 'services/en/booking' }],
+    ['button', 'AI services', 'services/en/ai', { sourceHandle: 'services/en/ai' }],
+    ['list', 'Order products', 'saved-order-row', { sourceHandle: 'saved-order-row' }],
+    ['template', 'Order / Booking', 'saved-order-button', { button_id: 'saved-order-button' }],
+  ]) {
+    const serviceBot = bot('bot', 'order');
+    serviceBot.nodes.push({ id: 'services-menu', data: { key: kind === 'list' ? '@whatsapp/send-list-message' : '@whatsapp/send-button-message' } });
+    serviceBot.edges.push({ source: 'services-menu', target: 'booking', data: edgeData });
+    const candidates = [serviceBot, { ...serviceBot, trigger_word: 'booking' }, { ...serviceBot, trigger_word: 'ai' },
+      bot('alternate-order-bot', 'order'), bot('alternate-ai-bot', 'ai')];
+    const { handleIncomingMessageChatBot, calls, sessions } = runtime(candidates, [activeSession({ current_node_id: 'services-menu' })]);
+    const message = kind === 'template'
+      ? { type: 'button', button: { payload: replyId, text: title } }
+      : { type: 'interactive', interactive: { [kind === 'list' ? 'list_reply' : 'button_reply']: { id: replyId, title } } };
+    const result = await handleIncomingMessageChatBot('receiving-number', { from: 'customer', ...message }, 'Customer');
+    assert.equal(result.text, 'Continued');
+    assert.equal(calls.restarted.length, 0);
+    assert.equal(calls.menu[0].incomingId, replyId);
+    assert.equal(sessions.length, 1);
+    assert.equal(sessions[0].active, true);
+    assert.equal(calls.deactivated.length, 0);
+  }
+});
+
 test('a keyword switches bots only for the same customer and receiving number', async () => {
   const oldSessions = [
     activeSession(),

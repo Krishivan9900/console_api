@@ -8,7 +8,7 @@ import { flowRouter } from './flow.router'
 import contactModel from '@surefy/console/models/contact.model';
 import userModel from '../../models/user.model';
 import phoneNumberModel from '../../models/phoneNumber.model';
-import { normalizeTriggerText } from './trigger.logic';
+import { getInteractiveReplyEdge, normalizeTriggerText } from './trigger.logic';
 
 export const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST,
@@ -47,18 +47,27 @@ export async function handleIncomingMessageChatBot(phoneNumberId: any, message: 
 
     // 1️⃣ Get bot
     console.log("🔍 Finding bot for phone number:", phoneNumberId);
-    let bot: any = incomingText
+    // Menu titles can contain start keywords such as "Order" and "AI services".
+    // Use their saved reply IDs to continue the active conversation first.
+    const replySession = incomingId
+      ? await chatSessionModel.findActiveByPhoneNumberId(phone, phoneNumberId)
+      : null;
+    const replyBot = replySession
+      ? await getRuntimeBot(phoneNumberId, replySession.chatbot_id)
+      : null;
+    const isMenuReply = Boolean(replyBot && getInteractiveReplyEdge(replyBot, incomingId, replySession.current_node_id));
+    let bot: any = isMenuReply ? replyBot : incomingText
       ? await getRuntimeBot(phoneNumberId, undefined, incomingText)
       : null;
 
-    let triggerMatched = Boolean(bot);
+    const triggerMatched = !isMenuReply && Boolean(bot);
 
-    if (bot) {
+    if (triggerMatched) {
       await chatSessionModel.deactivateOtherBots(phone, phoneNumberId, bot.id);
-    } else {
+    } else if (!bot) {
       console.info('[Chatbot Routing] No keyword flow selected; checking active session', { phoneNumberId });
-      const activeSession = await chatSessionModel.findActiveByPhoneNumberId(phone, phoneNumberId);
-      bot = activeSession ? await getRuntimeBot(phoneNumberId, activeSession.chatbot_id) : null;
+      const activeSession = replySession || await chatSessionModel.findActiveByPhoneNumberId(phone, phoneNumberId);
+      bot = replyBot || (activeSession ? await getRuntimeBot(phoneNumberId, activeSession.chatbot_id) : null);
       if (!bot) return null;
     }
 

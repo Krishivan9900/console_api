@@ -269,26 +269,44 @@ export function normalizeLanguage(language: string) {
 
   const languageMap: any = {
     "english": "english",
+    "en": "english",
     "eng": "english",
     "अंग्रेज़ी": "english",
     "इंग्लिश": "english",
     "ఇంగ్లీష్": "english",
 
     "hindi": "hindi",
+    "hi": "hindi",
     "hin": "hindi",
     "हिंदी": "hindi",
     "हिन्दी": "hindi",
     "హిందీ": "hindi",
 
     "telugu": "telugu",
+    "te": "telugu",
     "tel": "telugu",
     "तेलुगु": "telugu",
     "తెలుగు": "telugu",
+    "తెలుగులో": "telugu",
   };
 
   return languageMap[normalized] || "english";
 }
 
+export function normalizeRegistrationData(data: any): any {
+  if (!data || typeof data !== 'object' || Array.isArray(data)) return data;
+  const normalized = { ...data };
+  const role = [data.role, data.details?.role].find(value => typeof value === 'string' && value.trim());
+  const language = [data.native_language, data.details?.native_language].find(value => typeof value === 'string' && value.trim());
+  if (role) normalized.role = normalizeRole(role);
+  if (language) normalized.native_language = normalizeLanguage(language);
+  if (data.details && typeof data.details === 'object' && !Array.isArray(data.details)) {
+    normalized.details = { ...data.details };
+    if (data.details.role) normalized.details.role = normalized.role || normalizeRole(data.details.role);
+    if (data.details.native_language) normalized.details.native_language = normalized.native_language;
+  }
+  return normalized;
+}
 
 
 
@@ -309,7 +327,7 @@ export function replaceVariables(
       // return variables?.details;
       const normalizedLanguage = normalizeLanguage(variables?.native_language)
       console.log("Variables", variables)
-      return {
+      return normalizeRegistrationData({
         name: variables.name,
         details: variables?.details?.company_details ?? null,
         native_language: normalizedLanguage,
@@ -335,7 +353,7 @@ export function replaceVariables(
         phone_number: variables.phone_number,
         fpo_id: variables.fpo_id,
         parent_user_id: variables.parent_user_id ? variables.parent_user_id : variables?.api_response?.data?.parent_user_id
-      }
+      });
     }
 
     if (key === "gstin") {
@@ -726,39 +744,85 @@ function buildWelcomeMessage(variables: any): string {
     ...(details.company_details || {}),
   };
 
-  const name = variables?.name || details.name || registeredUser.name || registeredUser.first_name || user.name || user.first_name || "there";
+  const name = variables?.name || details.name || registeredUser.name || registeredUser.first_name || user.name || user.first_name;
   const email = variables?.email || details.email || registeredUser.email || user.email;
   const phone = variables?.phone_number || details.phone_number || registeredUser.phone || registeredUser.mobile_number || user.phone_number || user.phone || user.mobile_number;
   const gstin = variables?.gstin || details.gstin || user.gstin || kyc.gst_no;
   const role = variables?.role || details.role || registeredUser.role_type || registeredUser.role || user.role_type || user.role;
   const companyName = companyDetails.legal_name || companyDetails.trade_name || kyc.company_name;
   const pan = companyDetails.pan || kyc.pan_no;
+  const language = normalizeLanguage(variables?.native_language || details.native_language ||
+    registeredUser.native_language || registeredUser.primary_language || user.native_language || user.primary_language);
+  const messages = {
+    english: {
+      heading: '🌱 *Welcome to Krishivan!*', greeting: (value: string) => `Hello ${value || 'there'},`,
+      created: 'Your account has been created successfully. 🎉', details: '*Your account details*',
+      company: 'Company', email: 'Email', phone: 'Phone', gstin: 'GSTIN', pan: 'PAN', role: 'Role',
+      login: '*Login to your account*', password: '*Temporary password:* 123456',
+      reminder: 'Please change your password after your first login and keep your credentials private.',
+      closing: 'Welcome aboard! 🤝',
+    },
+    hindi: {
+      heading: '🌱 *कृषिवन में आपका स्वागत है!*', greeting: (value: string) => value ? `नमस्ते ${value},` : 'नमस्ते,',
+      created: 'आपका खाता सफलतापूर्वक बन गया है। 🎉', details: '*आपके खाते की जानकारी*',
+      company: 'कंपनी', email: 'ईमेल', phone: 'फ़ोन', gstin: 'जीएसटीआईएन', pan: 'पैन', role: 'भूमिका',
+      login: '*अपने खाते में लॉग इन करें*', password: '*अस्थायी पासवर्ड:* 123456',
+      reminder: 'पहली बार लॉग इन करने के बाद कृपया अपना पासवर्ड बदलें और अपनी लॉगिन जानकारी गोपनीय रखें।',
+      closing: 'हमारे साथ जुड़ने के लिए धन्यवाद! 🤝',
+    },
+    telugu: {
+      heading: '🌱 *కృషివన్‌కు స్వాగతం!*', greeting: (value: string) => value ? `నమస్కారం ${value},` : 'నమస్కారం,',
+      created: 'మీ ఖాతా విజయవంతంగా సృష్టించబడింది. 🎉', details: '*మీ ఖాతా వివరాలు*',
+      company: 'సంస్థ', email: 'ఈమెయిల్', phone: 'ఫోన్', gstin: 'జీఎస్టీఐఎన్', pan: 'పాన్', role: 'పాత్ర',
+      login: '*మీ ఖాతాలో లాగిన్ అవ్వండి*', password: '*తాత్కాలిక పాస్‌వర్డ్:* 123456',
+      reminder: 'మొదటిసారి లాగిన్ అయిన తర్వాత మీ పాస్‌వర్డ్‌ను మార్చండి. మీ లాగిన్ వివరాలను గోప్యంగా ఉంచండి.',
+      closing: 'మాతో చేరినందుకు ధన్యవాదాలు! 🤝',
+    },
+  };
+  const roleNames: Record<string, Record<string, string>> = {
+    hindi: {
+      farmer: 'किसान', trader: 'व्यापारी', fpo: 'किसान उत्पादक संगठन (FPO)',
+      agricultural_transport_service: 'कृषि परिवहन सेवा', micro_entrepreneur: 'सूक्ष्म उद्यमी',
+      agricultural_machinery_service_provider: 'कृषि मशीन सेवा प्रदाता',
+      agricultural_input_supplier: 'कृषि इनपुट आपूर्तिकर्ता', livestock_farmer: 'पशुपालक',
+    },
+    telugu: {
+      farmer: 'రైతు', trader: 'వ్యాపారి', fpo: 'రైతు ఉత్పత్తిదారుల సంస్థ (FPO)',
+      agricultural_transport_service: 'వ్యవసాయ రవాణా సేవలు', micro_entrepreneur: 'సూక్ష్మ వ్యాపారవేత్త',
+      agricultural_machinery_service_provider: 'వ్యవసాయ యంత్ర సేవా ప్రదాత',
+      agricultural_input_supplier: 'వ్యవసాయ ఇన్‌పుట్ సరఫరాదారు', livestock_farmer: 'పశుపాలకుడు',
+    },
+  };
+  const copy = messages[language as keyof typeof messages];
+  const displayedRole = role && (language === 'english'
+    ? String(role).replace(/_/g, ' ').toUpperCase()
+    : roleNames[language]?.[normalizeRole(String(role))] || String(role));
 
   const detailLines = [
-    companyName && `*Company:* ${companyName}`,
-    email && `*Email:* ${email}`,
-    phone && `*Phone:* ${phone}`,
-    gstin && `*GSTIN:* ${gstin}`,
-    pan && `*PAN:* ${pan}`,
-    role && `*Role:* ${String(role).replace(/_/g, " ").toUpperCase()}`,
+    companyName && `*${copy.company}:* ${companyName}`,
+    email && `*${copy.email}:* ${email}`,
+    phone && `*${copy.phone}:* ${phone}`,
+    gstin && `*${copy.gstin}:* ${gstin}`,
+    pan && `*${copy.pan}:* ${pan}`,
+    role && `*${copy.role}:* ${displayedRole}`,
   ].filter(Boolean);
 
   return [
-    "🌱 *Welcome to Krishivan!*",
+    copy.heading,
     "",
-    `Hello ${name},`,
-    "Your account has been created successfully. 🎉",
+    copy.greeting(name),
+    copy.created,
     "",
-    "*Your account details*",
+    copy.details,
     ...detailLines,
     "",
-    "*Login to your account*",
+    copy.login,
     "https://fpo-krishivan.web.app/login",
-    "*Temporary password:* 123456",
+    copy.password,
     "",
-    "Please change your password after your first login and keep your credentials private.",
+    copy.reminder,
     "",
-    "Welcome aboard! 🤝",
+    copy.closing,
   ].join("\n");
 }
 

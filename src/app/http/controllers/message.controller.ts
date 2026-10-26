@@ -8,6 +8,7 @@ import { v4 as uuidv4, validate as uuidValidate } from "uuid";
 import { handleIncomingMessageChatBot } from  "@surefy/console/app/services/chatbot/chatbot.service"
 import MetaService from '@surefy/console/services/meta.service';
 import AuthService from '@surefy/console/services/auth.service';
+import { resumeAfterFpoLeadImport } from '../../services/chatbot/fpoImport.flow';
 import { stringify } from 'querystring';
 
 class MessageController {
@@ -235,9 +236,29 @@ class MessageController {
                   message.from,
                   {
                     type: 'text',
-                    text: roleSummary || 'No leads were imported.',
+                    text: [
+                      roleSummary || 'No leads were imported.',
+                      result.failed_count > 0
+                        ? `${result.failed_count} row(s) could not be imported. Please correct the file and upload it again.`
+                        : '',
+                    ].filter(Boolean).join('\n'),
                   }
                 );
+
+                // A continuation failure must not report a successful import as a failed import.
+                try {
+                  const nextResponse = await resumeAfterFpoLeadImport({
+                    phoneNumberId: value.metadata.phone_number_id,
+                    phone: message.from,
+                    document,
+                    result,
+                  });
+                  if (nextResponse) {
+                    await MessageService.sendChatBotMessage(value.metadata.phone_number_id, message.from, nextResponse);
+                  }
+                } catch (error: any) {
+                  console.error('FPO leads imported but chatbot continuation failed:', error?.message || error);
+                }
               } catch (error: any) {
                 console.error('FPO lead Excel import failed:', error?.message || error);
                 await MessageService.sendChatBotMessage(

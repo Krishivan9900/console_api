@@ -3,6 +3,7 @@
 import chatSessionModel from "@surefy/console/app/models/chatSession.model";
 import { executeNode } from "@surefy/console/services/chatbot/engine/executeNode"
 import { downloadImage } from "@surefy/console/utils";
+import { getInteractiveReplyEdge } from '../trigger.logic';
 
 export const menuFlow = async ({
   bot,
@@ -44,14 +45,12 @@ export const menuFlow = async ({
       message?.interactive?.button_reply?.title || incomingText;
 
     console.log("Global")
-    const globalEdge = bot.edges.find(
-      (e:any)=> e?.data?.button_id === incomingId
-    )
+    const globalEdge = getInteractiveReplyEdge(bot, incomingId, currentNodeId);
 
     console.log("Global Edge",globalEdge)
 
     if(globalEdge){
-      console.log("🌍 GLOBAL ACTION:",globalEdge.data.action);
+      console.log("🌍 GLOBAL ACTION:",globalEdge.data?.action);
 
       const nextNode = bot.nodes.find(
         (n:any)=> n.id === globalEdge.target
@@ -90,7 +89,8 @@ export const menuFlow = async ({
 
       // if(!nextNode) return null;
       if(!nextNode){
-        chatSessionModel.update(session.id,{active:false})
+        await chatSessionModel.update(session.id,{active:false})
+        return null;
       }
 
       //VARIABLES
@@ -166,6 +166,14 @@ export const menuFlow = async ({
 
     const variable =
       currentNode.data?.attributes?.variable;
+
+    // The spreadsheet webhook imports the file and advances this question on success.
+    if (variable === 'excel_file' && currentNode.data?.attributes?.resumeOnFpoImport === true) {
+      return {
+        type: 'text',
+        text: 'Please upload the completed Excel or CSV file, or type menu to choose a service.',
+      };
+    }
 
     console.log("Variable Identify",variable)
 

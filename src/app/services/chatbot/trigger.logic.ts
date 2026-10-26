@@ -2,6 +2,19 @@ export function normalizeTriggerText(value: string): string {
   return value.trim().toLowerCase().replace(/\s+/g, ' ');
 }
 
+/** Identify a reply to a saved menu before interpreting its visible title as a start keyword. */
+export function getInteractiveReplyEdge(bot: any, incomingId: string, currentNodeId?: string): any {
+  if (!incomingId) return undefined;
+  const parse = (value: any) => typeof value === 'string' ? JSON.parse(value) : value || {};
+  const matches = (bot.edges || []).filter((edge: any) => {
+    const data = parse(edge.data);
+    if (![data.button_id, data.sourceHandle, edge.sourceHandle].includes(incomingId)) return false;
+    const source = bot.nodes?.find((node: any) => node.id === edge.source);
+    return ['@whatsapp/send-button-message', '@whatsapp/send-list-message'].includes(parse(source?.data).key);
+  });
+  return matches.find((edge: any) => edge.source === currentNodeId) || matches[0];
+}
+
 export function matchesTriggerKeyword(text: string, keyword: string): boolean {
   const input = normalizeTriggerText(text);
   const trigger = normalizeTriggerText(keyword);

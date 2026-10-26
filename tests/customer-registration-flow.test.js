@@ -10,7 +10,7 @@ const flow = require('../customer-registration.fixed.json');
 
 // Use the real message builders and substitution functions without loading DB/email services.
 const utilsSource = ts.createSourceFile('utils.ts', fs.readFileSync(path.join(__dirname, '../src/utils.ts'), 'utf8'), ts.ScriptTarget.Latest, true);
-const functionNames = ['safeJSON', 'normalizeLanguage', 'replaceVariables', 'getNestedValue', 'replaceBodyVariables', 'buildWelcomeMessage', 'buildResponse'];
+const functionNames = ['safeJSON', 'normalizeRole', 'normalizeLanguage', 'normalizeRegistrationData', 'replaceVariables', 'getNestedValue', 'replaceBodyVariables', 'buildWelcomeMessage', 'buildResponse'];
 const functions = utilsSource.statements
   .filter(node => ts.isFunctionDeclaration(node) && functionNames.includes(node.name?.text))
   .map(node => node.getText(utilsSource).replace(/^export /, '')).join('\n');
@@ -53,6 +53,7 @@ function runtime(responses) {
     '@surefy/console/app/models/chatSession.model': model,
     '@surefy/console/services/chatbot/engine/executeNode': { executeNode },
     '@surefy/console/utils': {},
+    '../trigger.logic': require('../src/app/services/chatbot/trigger.logic'),
   });
   return {
     requests, session,
@@ -134,7 +135,7 @@ test('correcting GST in every language submits the new answer and registers exac
     const response = await rt.answer('CORRECTED');
     assert.equal(rt.requests[1].data.gstin, 'CORRECTED');
     assert.equal(rt.requests[2].data.session_data.gstin, 'CORRECTED');
-    assert.equal(rt.requests[2].data.session_data.role, 'FPO');
+    assert.equal(rt.requests[2].data.session_data.role, 'fpo');
     assert.equal(rt.requests[2].data.session_data.details.legal_name, 'Example FPO');
     assert.equal(rt.requests.length, 3);
     assert(!texts(response).some(text => text.includes('could not be completed')));
@@ -188,6 +189,34 @@ test('welcome uses stored registration details if top-level session fields are a
   for (const value of ['Hello Registered Person,', '*Company:* Example Company', '*Email:* member@example.test',
     '*Phone:* 919876543210', '*GSTIN:* 29AAICK0914G1ZL', '*PAN:* AAICK0914G', '*Role:* FPO']) {
     assert(response.text.includes(value), `Missing stored registration detail: ${value}`);
+  }
+});
+
+test('welcome follows Hindi or Telugu selection while retaining English company and account data', async () => {
+  const node = flow.nodes.find(n => n.data.attributes?.message?.text?.body === '{{registration_welcome}}');
+  for (const [language, selected, heading, confirmation, roleLabel] of [
+    ['hindi', 'हिंदी', 'कृषिवन में आपका स्वागत है', 'आपका खाता सफलतापूर्वक बन गया है', 'भूमिका'],
+    ['telugu', 'తెలుగు', 'కృషివన్‌కు స్వాగతం', 'మీ ఖాతా విజయవంతంగా సృష్టించబడింది', 'పాత్ర'],
+  ]) {
+    for (const source of ['selection', 'stored', 'user']) {
+      const variables = {
+        ...(source === 'selection' ? { native_language: selected } : {}),
+        http_response: {
+          ...(source === 'user' ? { user: { native_language: language } } : {}),
+          data: { data: {
+            native_language: source === 'stored' ? language : 'english', role: 'fpo',
+            email: 'member@example.test', phone_number: '919876543210', gstin: '36AAICK0914G1ZQ',
+            details: { legal_name: 'Example Company', pan: 'AAICK0914G' },
+          } },
+        },
+      };
+      const response = await utils.buildResponse(node, { variables });
+      for (const value of [heading, confirmation, roleLabel, 'Example Company', 'member@example.test',
+        '919876543210', '36AAICK0914G1ZQ', 'AAICK0914G', 'https://fpo-krishivan.web.app/login', '123456']) {
+        assert(response.text.includes(value), `Missing ${language} welcome value: ${value}`);
+      }
+      assert.doesNotMatch(response.text, /Your account has been created successfully|undefined|\{\{/);
+    }
   }
 });
 

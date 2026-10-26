@@ -8,12 +8,13 @@ const ts = require('typescript');
 function runtime(existingUser, options = {}) {
   const source = ts.createSourceFile('auth.service.ts', fs.readFileSync(path.join(__dirname, '../src/app/services/auth.service.ts'), 'utf8'), ts.ScriptTarget.Latest, true);
   const serviceClass = source.statements.find(node => ts.isClassDeclaration(node));
-  const methods = serviceClass.members.filter(member => ['registerUser', 'registerkrishivanUser', 'importFpoLeads'].includes(member.name?.getText(source)));
+  const methods = serviceClass.members.filter(member => ['registerUser', 'registerkrishivanUser', 'importFpoLeads', 'storedChatSession'].includes(member.name?.getText(source)));
   const utils = ts.createSourceFile('utils.ts', fs.readFileSync(path.join(__dirname, '../src/utils.ts'), 'utf8'), ts.ScriptTarget.Latest, true);
   const normalizer = utils.statements.find(node => ts.isFunctionDeclaration(node) && node.name?.text === 'normalizeRole');
   const languageNormalizer = utils.statements.find(node => ts.isFunctionDeclaration(node) && node.name?.text === 'normalizeLanguage');
+  const registrationNormalizer = utils.statements.find(node => ts.isFunctionDeclaration(node) && node.name?.text === 'normalizeRegistrationData');
   const replacer = utils.statements.find(node => ts.isFunctionDeclaration(node) && node.name?.text === 'replaceVariables');
-  const functions = [normalizer, languageNormalizer, replacer].map(node => node.getText(utils).replace(/^export /, '')).join('\n');
+  const functions = [normalizer, languageNormalizer, registrationNormalizer, replacer].map(node => node.getText(utils).replace(/^export /, '')).join('\n');
   const sourceText = `${functions}\nclass AuthService { ${methods.map(method => method.getText(source)).join('\n')} }\n({ service: new AuthService(), replaceVariables });`;
   const calls = { external: [], lookups: [], created: [], updated: [], parentLookups: [], stored: [], contactUpdates: [] };
   class BadRequest extends Error { constructor({ message }) { super(message); } }
@@ -33,6 +34,7 @@ function runtime(existingUser, options = {}) {
     normalizeRegistrationPhoneNumber: require('../src/phone').normalizeRegistrationPhoneNumber,
     XLSX: require('xlsx'), Buffer,
     phoneNumberModel: { findByPhoneNumberId: async () => ({ company_id: 'company', user_id: 'bot-owner' }) },
+    chatSessionModel: { findByPhoneNumber: async () => ({ id: 'chat-session', phoneNumberId: '760184003848443' }) },
     storesSessionModel: { create: async data => { calls.stored.push(data); return { id: 'stored-session' }; } },
     contactModel: {
       findByUserPhoneNumber: async () => options.contact,
@@ -117,6 +119,47 @@ test('registration normalizes the role labels actually offered in the role menus
     const user = await service.registerUser({ company_id: 'company' }, { role, phone_number: '919869650435' });
     assert.equal(user.role, expected);
     assert.equal(calls.external[0].role, expected);
+  }
+});
+
+test('Hindi and Telugu menu selections store English role and language codes in the registration record and user', async () => {
+  const flow = require('../krishivan-unified.flow.json');
+  const expectedRoles = ['farmer', 'trader', 'agricultural_transport_service', 'micro_entrepreneur', 'fpo',
+    'agricultural_machinery_service_provider', 'agricultural_input_supplier', 'livestock_farmer'];
+  const menus = flow.nodes.filter(n => n.data.attributes?.variable === 'role');
+  for (const [index, language, selectedLanguage] of [[1, 'hindi', 'हिंदी'], [2, 'telugu', 'తెలుగు']]) {
+    const labels = menus[index].data.attributes.message.interactive.action.sections.flatMap(section => section.rows.map(row => row.title));
+    for (let roleIndex = 0; roleIndex < labels.length; roleIndex++) {
+      const { service, calls, replaceVariables } = runtime();
+      const input = { role: labels[roleIndex], native_language: selectedLanguage, name: 'Test Customer',
+        phone_number: '919876543210', details: { role: labels[roleIndex] } };
+      const body = replaceVariables({ session_data: '{{data}}' }, input);
+      assert.equal(body.session_data.role, expectedRoles[roleIndex]);
+      // Direct requests must normalize before the raw registration record is stored as well.
+      await service.storedChatSession(input.phone_number, input);
+      assert.equal(calls.stored[0].data.role, expectedRoles[roleIndex]);
+      assert.equal(calls.stored[0].data.details.role, expectedRoles[roleIndex]);
+      assert.equal(calls.stored[0].data.native_language, language);
+      assert.equal(calls.created[0].role, expectedRoles[roleIndex]);
+      assert.equal(calls.created[0].native_language, language);
+      assert.equal(calls.external[0].role, expectedRoles[roleIndex]);
+      assert.equal(calls.external[0].primary_language, language);
+      assert.equal(input.role, labels[roleIndex]);
+      assert.equal(input.details.role, labels[roleIndex]);
+    }
+  }
+});
+
+test('legacy Telugu labels and language codes normalize consistently without translating names', async () => {
+  for (const [selected, expected] of [['తెలుగులో', 'telugu'], ['te', 'telugu'], ['hi', 'hindi'], ['हिन्दी', 'hindi'], ['en', 'english']]) {
+    const { service, calls } = runtime();
+    const name = expected === 'hindi' ? 'राम कुमार' : 'రమేష్';
+    const user = await service.registerUser({ company_id: 'company' }, {
+      role: 'FPO', name, phone_number: '919876543210', details: { native_language: selected },
+    });
+    assert.equal(user.native_language, expected);
+    assert.equal(calls.external[0].primary_language, expected);
+    assert.equal(user.name, name);
   }
 });
 

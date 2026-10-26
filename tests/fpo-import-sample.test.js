@@ -42,6 +42,28 @@ function runtime(options = {}) {
 
 const prompt = 'Please Import excel file for onboarding fpo leads';
 
+test('every FPO registration path in the updated flow sends welcome, upload prompt and Excel sample in order', async () => {
+  const flow = require('../krishivan-unified.flow.json');
+  for (const welcomeId of ['19b0b848-0763-40b8-94f4-5e1360f40434',
+    '20804977-a74d-4e8c-bd50-64d3b1064ee2', 'dd6c1d42-01f1-43fd-a630-4a9e3b89ec36']) {
+    const nextId = flow.edges.find(e => e.source === welcomeId).target;
+    const upload = flow.nodes.find(n => n.id === nextId);
+    assert.equal(upload.data.key, '@whatsapp/ask-question');
+    assert.equal(upload.data.attributes.variable, 'excel_file');
+    assert.equal(upload.data.attributes.resumeOnFpoImport, true);
+    const { sender, events } = runtime();
+    await sender.sendChatBotMessage('760184003848443', 'recipient', { messages: [
+      { type: 'text', text: 'Your account has been created successfully.' },
+      { type: 'text', text: upload.data.attributes.message.text.body },
+    ] });
+    const sent = events.filter(e => e.kind === 'send');
+    assert.deepEqual(sent.map(e => e.payload.type), ['text', 'text', 'document']);
+    assert.equal(sent[1].payload.text.body, prompt);
+    assert.equal(sent[2].payload.document.filename, 'fpo_leads_import_sample.xlsx');
+    assert(sent.every(e => e.phoneNumberId === '760184003848443'));
+  }
+});
+
 test('onboarding prompt is followed by a real Excel sample sent to the same recipient and stored', async () => {
   const { sender, events } = runtime();
   await sender.sendChatBotMessage('number', 'recipient', { type: 'text', text: prompt });

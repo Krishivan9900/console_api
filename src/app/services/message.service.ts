@@ -827,7 +827,7 @@ class MessageService {
     }
     if (!leadfpoId.parent_user_id) {
       return this.rejectIncomingOrder(data, 'FPO_NOT_MAPPED',
-        'Your account is not linked to an FPO. Please contact support to complete your registration before placing an order.');
+        'Your account is not linked under a FPO number. Please contact support to complete your registration before placing an order.');
     }
 
     const fpoNumber = await userModel.findById(leadfpoId.parent_user_id);

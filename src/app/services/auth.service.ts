@@ -17,7 +17,7 @@ import productVariantModel from '../models/productVariant.model';
 import axios from 'axios'
 import contactModel from '../models/contact.model';
 import { PhoneNumber } from 'libphonenumber-js';
-import { normalizeRegistrationPhoneNumber, normalizeRole } from '../../utils';
+import { normalizeRegistrationData, normalizeRegistrationPhoneNumber, normalizeRole } from '../../utils';
 import * as XLSX from 'xlsx';
 
 interface LoginCredentials {
@@ -355,6 +355,7 @@ class AuthService {
     data: any,
     parent_user_id?: any
   ) {
+    data = normalizeRegistrationData(data);
     // const isFPO = !!data.company_details;
 
     const role = [data.role, data.details?.role].find(
@@ -964,6 +965,7 @@ class AuthService {
 
   async storedChatSession(phone_number: any, data: any) {
     try {
+      data = normalizeRegistrationData(data);
       console.log('details', phone_number, data)
       const existingSession = await chatSessionModel.findByPhoneNumber(phone_number);
 
