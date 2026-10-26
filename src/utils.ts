@@ -704,6 +704,8 @@ function getNestedValue(obj: any, path: string) {
 
 function replaceBodyVariables(text: string, variables: any): string {
   return text.replace(/\{\{([^}]+)\}\}/g, (_, path) => {
+    // Registration success nodes can request the full account summary explicitly.
+    if (path.trim() === 'registration_welcome') return buildWelcomeMessage(variables);
     const value = getNestedValue(variables, path.trim());
     return value === undefined || value === null ? "" : String(value);
   });
@@ -711,8 +713,11 @@ function replaceBodyVariables(text: string, variables: any): string {
 
 function buildWelcomeMessage(variables: any): string {
   const details = variables?.details || {};
-  const responseData = variables?.http_response?.data || variables?.api_response?.data || {};
+  const response = variables?.http_response || variables?.api_response || {};
+  const responseData = response.data || {};
   const user = responseData.data || responseData;
+  const registeredUser = response.user || {};
+  const kyc = registeredUser.kyc_data || user.kyc_data || {};
   const companyDetails = {
     ...(user.details || {}),
     ...(user.company_details || {}),
@@ -721,13 +726,13 @@ function buildWelcomeMessage(variables: any): string {
     ...(details.company_details || {}),
   };
 
-  const name = details.name || variables?.name || user.name || user.first_name || "there";
-  const email = details.email || variables?.email || user.email;
-  const phone = details.phone_number || variables?.phone_number || user.phone_number || user.phone;
-  const gstin = details.gstin || variables?.gstin || user.gstin;
-  const role = details.role || variables?.role || user.role_type || user.role;
-  const companyName = companyDetails.legal_name || companyDetails.trade_name;
-  const pan = companyDetails.pan;
+  const name = variables?.name || details.name || registeredUser.name || registeredUser.first_name || user.name || user.first_name || "there";
+  const email = variables?.email || details.email || registeredUser.email || user.email;
+  const phone = variables?.phone_number || details.phone_number || registeredUser.phone || registeredUser.mobile_number || user.phone_number || user.phone || user.mobile_number;
+  const gstin = variables?.gstin || details.gstin || user.gstin || kyc.gst_no;
+  const role = variables?.role || details.role || registeredUser.role_type || registeredUser.role || user.role_type || user.role;
+  const companyName = companyDetails.legal_name || companyDetails.trade_name || kyc.company_name;
+  const pan = companyDetails.pan || kyc.pan_no;
 
   const detailLines = [
     companyName && `*Company:* ${companyName}`,
@@ -909,13 +914,10 @@ if (data.key === "@whatsapp/send-cta-message") {
 
   if (key === "@whatsapp/send-text-message") {
     // A body configured on the flow node takes precedence over this default.
-    // let text = data?.attributes?.message?.text?.body ||
-    //   buildWelcomeMessage(session?.variables || {});
-    let text  = buildWelcomeMessage(session?.variables || {});
-    // text = replaceBodyVariables(
-    //   text,
-    //   session?.variables || {}
-    // );
+    const configuredBody = data?.attributes?.message?.text?.body;
+    const text = typeof configuredBody === 'string' && configuredBody.trim()
+      ? replaceBodyVariables(configuredBody, session?.variables || {})
+      : buildWelcomeMessage(session?.variables || {});
 
     console.log('Next Node',node?.nextNodeId)
     return {

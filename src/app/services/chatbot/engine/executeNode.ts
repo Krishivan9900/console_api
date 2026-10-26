@@ -1,7 +1,7 @@
 import axios from 'axios';
 import chatSessionModel from "@surefy/console/app/models/chatSession.model";
 import { buildResponse } from "@surefy/console/utils";
-import { replaceVariables } from '@surefy/console/utils';
+import { replaceVariables, normalizeRegistrationPhoneNumber } from '@surefy/console/utils';
 import contactTagModel from '@surefy/console/app/models/contactTag.model';
 import contactModel from '@surefy/console/app/models/contact.model';
 import contactTagRelationModel from '@surefy/console/app/models/contactTagRelation.model';
@@ -76,6 +76,17 @@ export const executeNode = async ({
                 session.variables || {}
             );
 
+            // Krishivan's lookup accepts national numbers, while WhatsApp sends 91-prefixed IDs.
+            // Keep the session phone unchanged for WhatsApp replies and registration attribution.
+            if (/\/farmer-function\/check-user\/?(?:\?.*)?$/.test(data?.attributes?.url || '') &&
+                requestBody && typeof requestBody === 'object' && !Array.isArray(requestBody) &&
+                requestBody.mobile_number != null) {
+                requestBody = {
+                    ...requestBody,
+                    mobile_number: normalizeRegistrationPhoneNumber(requestBody.mobile_number),
+                };
+            }
+
             requestHeaders = replaceVariables(
                 requestHeaders,
                 session.variables || {}
@@ -136,20 +147,32 @@ export const executeNode = async ({
             console.log("HTTP STATUS:", response.status);
             console.log("HTTP RESPONSE:", response.data);
 
-            // Treat non-success status as error
-            if (response.status >= 400) {
+            // Validation endpoints can return useful JSON with a 4xx response. Flows must
+            // explicitly opt in and check the response before continuing registration.
+            const continueOnClientError = data?.attributes?.continueOnHttpError === true &&
+                response.status >= 400 && response.status < 500 &&
+                response.data && typeof response.data === 'object';
+            if (response.status >= 400 && !continueOnClientError) {
                 throw Object.assign(
                     new Error(`Request failed with status ${response.status}`),
                     { response }
                 );
             }
 
+            const responseMessage = [response.data?.message, response.data?.data?.message,
+                response.data?.error?.message, response.data?.error]
+                .find(message => typeof message === 'string' && message.trim());
+            const invalidGstin = /\/farmer-function\/verify-gstin\/?(?:\?.*)?$/.test(data?.attributes?.url || '') &&
+                (response.data?.data?.valid === false || response.data?.success === false);
             const updatedVariables = {
                 ...(session.variables || {}),
                 http_response: response.data,
                 http_status: response.status,
                 http_headers: response.headers,
-                http_error: null
+                http_error: continueOnClientError ? `Request failed with status ${response.status}` : null,
+                http_response_message: responseMessage || (invalidGstin
+                    ? 'The GST number is invalid. Please enter a valid GST number.'
+                    : ''),
             };
 
             console.log('Update variables', updatedVariables)
