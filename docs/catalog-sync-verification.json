@@ -1,0 +1,503 @@
+{
+  "catalog_id": "795853123055079",
+  "tested_at": "2026-10-26T07:57:24.518Z",
+  "test": "Local HTTP endpoint using real database, Firebase storage and Meta API",
+  "http_status": 207,
+  "seconds": 93,
+  "success": false,
+  "message": "Organization catalog sync has failures",
+  "total": 242,
+  "synced": 215,
+  "failed": 27,
+  "pending": 0,
+  "blocked_products": [
+    {
+      "product_id": "6ab79e5ee850b298e605181a",
+      "product_name": "Knapsack Power Sprayer",
+      "reason": "Product image is a browser-only blob URL. Upload the product image in the product admin and save its public HTTPS URL before syncing.",
+      "variant_ids": [
+        "6ab79eb0ca453ede4edeac6e"
+      ]
+    },
+    {
+      "product_id": "6ab79afa2f8926d96db06d3c",
+      "product_name": "Seeder machine",
+      "reason": "Product image is a browser-only blob URL. Upload the product image in the product admin and save its public HTTPS URL before syncing.",
+      "variant_ids": [
+        "6ab79bc27deb886d5f0d3691"
+      ]
+    },
+    {
+      "product_id": "6ab796936d8f287f4444e8ef",
+      "product_name": "Mulching Machine",
+      "reason": "Product image is a browser-only blob URL. Upload the product image in the product admin and save its public HTTPS URL before syncing.",
+      "variant_ids": [
+        "6ab797f0e850b298e605180a",
+        "6ab79725b5dfd58dfd2b2cb5"
+      ]
+    },
+    {
+      "product_id": "6ab793f87042c3b37bcdda73",
+      "product_name": "Pouch Sealing Machine",
+      "reason": "Product image is a browser-only blob URL. Upload the product image in the product admin and save its public HTTPS URL before syncing.",
+      "variant_ids": [
+        "6ab794ae540c1034d3b71020",
+        "6ab794aa540c1034d3b7101f"
+      ]
+    },
+    {
+      "product_id": "6ab77c6a6ad140c089e272b3",
+      "product_name": "Paddy Weeder",
+      "reason": "Product image is a browser-only blob URL. Upload the product image in the product admin and save its public HTTPS URL before syncing.",
+      "variant_ids": [
+        "6ab78a9e3ac6be4c68b171aa",
+        "6ab77d9f5bc2a2f93abab242",
+        "6ab78aa23ac6be4c68b171ac",
+        "6ab791a19586befc8f7ffb37",
+        "6ab791a79586befc8f7ffb38",
+        "6ab77d935bc2a2f93abab240"
+      ]
+    },
+    {
+      "product_id": "6ab38ae1f58f34b46a44b281",
+      "product_name": "Yellow Tarpaulin-160 GSM",
+      "reason": "Product image is a browser-only blob URL. Upload the product image in the product admin and save its public HTTPS URL before syncing.",
+      "variant_ids": [
+        "6ab3a4b25c4eec174981a8b0",
+        "6ab3a4b25c4eec174981a8b1",
+        "6ab3a4bc5c4eec174981a8b2",
+        "6ab3a4c85dff4023faf5da2a",
+        "6ab3a4a85dff4023faf5da29",
+        "6ab3a4b15c4eec174981a8af",
+        "6ab3a4a45dff4023faf5da27",
+        "6ab3a4a55dff4023faf5da28"
+      ]
+    },
+    {
+      "product_id": "6ab3a7e5abbf0c70c6783cab",
+      "product_name": "Yellow tarpaulin-180 GSM",
+      "reason": "Product image is a browser-only blob URL. Upload the product image in the product admin and save its public HTTPS URL before syncing.",
+      "variant_ids": [
+        "6ab3a8c11c374e24ef294c6b",
+        "6ab3a8664efbb03bcb910d96"
+      ]
+    },
+    {
+      "product_id": "6ab0d6079ba8bf54c668deb8",
+      "product_name": "Virgin Yellow Tarpaulin-250 GSM",
+      "reason": "Product image is a browser-only blob URL. Upload the product image in the product admin and save its public HTTPS URL before syncing.",
+      "variant_ids": [
+        "6ab12a703cdebd3f585676fe",
+        "6ab12b25f52fef0ca30c1010",
+        "6ab12a2a010c6ba0605aec9d",
+        "6ab122a7010c6ba0605aec8e",
+        "6ab1230441932faf100414f8"
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "variant_id": "6ab79eb0ca453ede4edeac6e",
+      "product_id": "6ab79e5ee850b298e605181a",
+      "error": "Product image is a browser-only blob URL. Upload the product image in the product admin and save its public HTTPS URL before syncing."
+    },
+    {
+      "variant_id": "6ab79bc27deb886d5f0d3691",
+      "product_id": "6ab79afa2f8926d96db06d3c",
+      "error": "Product image is a browser-only blob URL. Upload the product image in the product admin and save its public HTTPS URL before syncing."
+    },
+    {
+      "variant_id": "6ab797f0e850b298e605180a",
+      "product_id": "6ab796936d8f287f4444e8ef",
+      "error": "Product image is a browser-only blob URL. Upload the product image in the product admin and save its public HTTPS URL before syncing."
+    },
+    {
+      "variant_id": "6ab79725b5dfd58dfd2b2cb5",
+      "product_id": "6ab796936d8f287f4444e8ef",
+      "error": "Product image is a browser-only blob URL. Upload the product image in the product admin and save its public HTTPS URL before syncing."
+    },
+    {
+      "variant_id": "6ab794ae540c1034d3b71020",
+      "product_id": "6ab793f87042c3b37bcdda73",
+      "error": "Product image is a browser-only blob URL. Upload the product image in the product admin and save its public HTTPS URL before syncing."
+    },
+    {
+      "variant_id": "6ab794aa540c1034d3b7101f",
+      "product_id": "6ab793f87042c3b37bcdda73",
+      "error": "Product image is a browser-only blob URL. Upload the product image in the product admin and save its public HTTPS URL before syncing."
+    },
+    {
+      "variant_id": "6ab78a9e3ac6be4c68b171aa",
+      "product_id": "6ab77c6a6ad140c089e272b3",
+      "error": "Product image is a browser-only blob URL. Upload the product image in the product admin and save its public HTTPS URL before syncing."
+    },
+    {
+      "variant_id": "6ab77d9f5bc2a2f93abab242",
+      "product_id": "6ab77c6a6ad140c089e272b3",
+      "error": "Product image is a browser-only blob URL. Upload the product image in the product admin and save its public HTTPS URL before syncing."
+    },
+    {
+      "variant_id": "6ab78aa23ac6be4c68b171ac",
+      "product_id": "6ab77c6a6ad140c089e272b3",
+      "error": "Product image is a browser-only blob URL. Upload the product image in the product admin and save its public HTTPS URL before syncing."
+    },
+    {
+      "variant_id": "6ab791a19586befc8f7ffb37",
+      "product_id": "6ab77c6a6ad140c089e272b3",
+      "error": "Product image is a browser-only blob URL. Upload the product image in the product admin and save its public HTTPS URL before syncing."
+    },
+    {
+      "variant_id": "6ab791a79586befc8f7ffb38",
+      "product_id": "6ab77c6a6ad140c089e272b3",
+      "error": "Product image is a browser-only blob URL. Upload the product image in the product admin and save its public HTTPS URL before syncing."
+    },
+    {
+      "variant_id": "6ab77d935bc2a2f93abab240",
+      "product_id": "6ab77c6a6ad140c089e272b3",
+      "error": "Product image is a browser-only blob URL. Upload the product image in the product admin and save its public HTTPS URL before syncing."
+    },
+    {
+      "variant_id": "6ab3a4b25c4eec174981a8b0",
+      "product_id": "6ab38ae1f58f34b46a44b281",
+      "error": "Product image is a browser-only blob URL. Upload the product image in the product admin and save its public HTTPS URL before syncing."
+    },
+    {
+      "variant_id": "6ab3a4b25c4eec174981a8b1",
+      "product_id": "6ab38ae1f58f34b46a44b281",
+      "error": "Product image is a browser-only blob URL. Upload the product image in the product admin and save its public HTTPS URL before syncing."
+    },
+    {
+      "variant_id": "6ab3a4bc5c4eec174981a8b2",
+      "product_id": "6ab38ae1f58f34b46a44b281",
+      "error": "Product image is a browser-only blob URL. Upload the product image in the product admin and save its public HTTPS URL before syncing."
+    },
+    {
+      "variant_id": "6ab3a4c85dff4023faf5da2a",
+      "product_id": "6ab38ae1f58f34b46a44b281",
+      "error": "Product image is a browser-only blob URL. Upload the product image in the product admin and save its public HTTPS URL before syncing."
+    },
+    {
+      "variant_id": "6ab3a8c11c374e24ef294c6b",
+      "product_id": "6ab3a7e5abbf0c70c6783cab",
+      "error": "Product image is a browser-only blob URL. Upload the product image in the product admin and save its public HTTPS URL before syncing."
+    },
+    {
+      "variant_id": "6ab3a8664efbb03bcb910d96",
+      "product_id": "6ab3a7e5abbf0c70c6783cab",
+      "error": "Product image is a browser-only blob URL. Upload the product image in the product admin and save its public HTTPS URL before syncing."
+    },
+    {
+      "variant_id": "6ab3a4a85dff4023faf5da29",
+      "product_id": "6ab38ae1f58f34b46a44b281",
+      "error": "Product image is a browser-only blob URL. Upload the product image in the product admin and save its public HTTPS URL before syncing."
+    },
+    {
+      "variant_id": "6ab12a703cdebd3f585676fe",
+      "product_id": "6ab0d6079ba8bf54c668deb8",
+      "error": "Product image is a browser-only blob URL. Upload the product image in the product admin and save its public HTTPS URL before syncing."
+    },
+    {
+      "variant_id": "6ab3a4b15c4eec174981a8af",
+      "product_id": "6ab38ae1f58f34b46a44b281",
+      "error": "Product image is a browser-only blob URL. Upload the product image in the product admin and save its public HTTPS URL before syncing."
+    },
+    {
+      "variant_id": "6ab3a4a45dff4023faf5da27",
+      "product_id": "6ab38ae1f58f34b46a44b281",
+      "error": "Product image is a browser-only blob URL. Upload the product image in the product admin and save its public HTTPS URL before syncing."
+    },
+    {
+      "variant_id": "6ab12b25f52fef0ca30c1010",
+      "product_id": "6ab0d6079ba8bf54c668deb8",
+      "error": "Product image is a browser-only blob URL. Upload the product image in the product admin and save its public HTTPS URL before syncing."
+    },
+    {
+      "variant_id": "6ab3a4a55dff4023faf5da28",
+      "product_id": "6ab38ae1f58f34b46a44b281",
+      "error": "Product image is a browser-only blob URL. Upload the product image in the product admin and save its public HTTPS URL before syncing."
+    },
+    {
+      "variant_id": "6ab12a2a010c6ba0605aec9d",
+      "product_id": "6ab0d6079ba8bf54c668deb8",
+      "error": "Product image is a browser-only blob URL. Upload the product image in the product admin and save its public HTTPS URL before syncing."
+    },
+    {
+      "variant_id": "6ab122a7010c6ba0605aec8e",
+      "product_id": "6ab0d6079ba8bf54c668deb8",
+      "error": "Product image is a browser-only blob URL. Upload the product image in the product admin and save its public HTTPS URL before syncing."
+    },
+    {
+      "variant_id": "6ab1230441932faf100414f8",
+      "product_id": "6ab0d6079ba8bf54c668deb8",
+      "error": "Product image is a browser-only blob URL. Upload the product image in the product admin and save its public HTTPS URL before syncing."
+    }
+  ],
+  "batches": [
+    {
+      "handles": [
+        "AcxxvBd9eyNF2oTYQ_UxupWhRu3xnlOTDZEeJkzaAv-vohPTRK3jQ3LM6mM1gXM9Tn-uzkJRdU-llo_0WxjJx_Ci"
+      ],
+      "retailer_ids": [
+        "SHRESAM_SPRINKLER_SET_6ac9e70294c13d8811672258",
+        "Black_Tarpaulin_350_GSM_6ab6564b8edee80fc3f4eef5",
+        "Black_Tarpaulin_350_GSM_6ab6564b8edee80fc3f4eef6",
+        "Black_Tarpaulin_350_GSM_6ab6564a8edee80fc3f4eef4",
+        "Black_Tarpaulin_350_GSM_6ab656498edee80fc3f4eef3",
+        "Black_Tarpaulin_250_GSM_6ab1297a3cdebd3f585676f8",
+        "Virgin_Black_Tarpaulin_350_GSM_6ab126b3d43b85db05039db5",
+        "Black_Tarpaulin_250_GSM_6ab1251668b3c2cd87f53737",
+        "Black_Tarpaulin_250_GSM_6ab124e035e34f29cf92c9a0",
+        "Virgin_Black_Tarpaulin_350_GSM_6ab1273cbdc4f32275cb8fe7",
+        "Virgin_Black_Tarpaulin_350_GSM_6ab126fd41932faf10041508",
+        "Virgin_Black_Tarpaulin_350_GSM_6ab1277cf52fef0ca30c100d",
+        "Virgin_Black_Tarpaulin_350_GSM_6ab127e3d43b85db05039db9",
+        "Virgin_Black_Tarpaulin_350_GSM_6ab127b941932faf1004150a",
+        "Black_Tarpaulin_150_GSM_6ab121fff52fef0ca30c0ffd",
+        "Black_Tarpaulin_150_GSM_6ab1219241932faf100414f4",
+        "Black_Tarpaulin_300_GSM_6ab1247641932faf100414ff",
+        "Black_Tarpaulin_250_GSM_6ab124aed43b85db05039db2",
+        "Black_Tarpaulin_150_GSM_6ab121c4010c6ba0605aec8d",
+        "Black_Tarpaulin_250_GSM_6ab12440bdc4f32275cb8fdd",
+        "Black_Tarpaulin_150_GSM_6ab120bd77c1eb5ff3bb0b24",
+        "Black_Tarpaulin_150_GSM_6ab1207e19523b0e867b59e6",
+        "Black_Tarpaulin_150_GSM_6ab1203a89ea545bfe3ca29a",
+        "Black_Tarpaulin_150_GSM_6ab120ff35e34f29cf92c997",
+        "Black_Tarpaulin_150_GSM_6ab11d1a20f23c77ca2275dd",
+        "Black_Tarpaulin_250_GSM_6ab11c838827d8a59953d0e4",
+        "Black_Tarpaulin_250_GSM_6ab11c34ce118c51a142c2fc",
+        "Black_Tarpaulin_150_GSM_6ab1214389ea545bfe3ca29e",
+        "Black_Tarpaulin_250_GSM_6ab11a75862b181da74902da",
+        "Black_Tarpaulin_250_GSM_6ab11aabce118c51a142c2f4",
+        "Black_Tarpaulin_350_GSM_6ab119c9e16329abe0c40bde",
+        "Black_Tarpaulin_350_GSM_6ab118f841932faf100414e3",
+        "Black_Tarpaulin_250_GSM_6ab11aed41932faf100414e4",
+        "Black_Tarpaulin_250_GSM_6ab11bc6bdc4f32275cb8fcf",
+        "Black_Tarpaulin_250_GSM_6ab11b6341932faf100414e6",
+        "Black_Tarpaulin_350_GSM_6ab118b1bdc4f32275cb8fca",
+        "Black_Tarpaulin_350_GSM_6ab112327301ee9975210229",
+        "Black_Tarpaulin_350_GSM_6ab110e6bf2ce5acca55e2fa",
+        "Black_Tarpaulin_400_GSM_6ab110aa4f1c852a04cf037c",
+        "Black_Tarpaulin_350_GSM_6ab111b5d10ab3a924358556",
+        "Black_Tarpaulin_400_GSM_6ab10fad91b733e25a2bb7b8",
+        "Black_Tarpaulin_350_GSM_6ab11113bd93271a9fe01e4b",
+        "Black_Tarpaulin_350_GSM_6ab11145e16329abe0c40bc6",
+        "Black_Tarpaulin_400_GSM_6ab10f7c7301ee9975210224",
+        "MAIJO_WM1100C_6_DLX_POWER_WEEDER_3_SPEED_GEAR_BOX_9HP_MANUAL_6a896a1dbd5b306be5d9c860",
+        "30_18_6a894cf6c92597c5663ef3e7",
+        "Black_Tarpaulin_400_GSM_6ab10e79388bea203d3ff4a9",
+        "18_24_6a894b271f52a4622e4ed6cd",
+        "Black_Tarpaulin_400_GSM_6ab10f3e06d034a699eab0c5",
+        "Black_Tarpaulin_400_GSM_6ab10da7fc94410e78ae7636",
+        "Black_Tarpaulin_400_GSM_6ab10ebdfb22169ff145442a",
+        "Black_Tarpaulin_400_GSM_6ab10f08fb22169ff145442c",
+        "Drill_Bit_6_6a8bed2248d0ba395b22232b",
+        "Handy_Fogging_Machinec_NEP_10H_6a8bf9c188f754cf7b5aae96",
+        "Electric_Brush_Cutter_1200_W_BC_1200E_6a8be967385c98533bf4fd17",
+        "Drill_Bit_2_5_6a8becd7b5d32a7e45e9855f",
+        "HTP_22_Silver_6a8be025f1e79349e51486f6",
+        "CS_62M_52_CC_22_Bar_6a8be4c4530bbc9ccc26813d",
+        "Hariyali_10_Metal_Base_6a8977c8077b7e599d70dac4",
+        "C6_Plus_with_Ditcher_6a896cecebac766ea120d500",
+        "CS_58_58_CC_22_Bar_6a8be43c75d551a0de851692",
+        "Battery_Sprayer_12V_12AH_6a8979a8284b950e3ef36ef2",
+        "1000NAM_Elite_6a8ece883d52499222105508",
+        "60_40_6a894a019a91cff45f6de266",
+        "30_18_6a89498096d2354a7858719e",
+        "980_Series_NX_35_Engine_6a8ecfed8f527160f444cf49",
+        "Portable_Fogging_Machine_NPF_150_6a8bfb4b55e5b45d75fe1f9c",
+        "Portable_Fogging_Machine_HDPE_Tank_NPF_35_P_6a8bfaadd8a9275eed2d7df8",
+        "Power_Sprayer_2_Stroke_708_Series_TU34_Engine_Aluminium_VN_6a898d82808df857d28a6446",
+        "Vehicle_Mounted_Fogging_Machine_6a8bfbd4fc50dfa85edc299b",
+        "MAIJO_WM1100C_6_DLX_POWER_WEEDER_3_SPEED_GEAR_BOX_9HP_ELECTRIC_STAT_6a8969e4dee52abb57518a38",
+        "24_30_6a894e789c290167e04ce38f",
+        "Double_Barrel_Vehicle_Mounted_Machine_Black_6a8bfba055e5b45d75fe1f9e",
+        "Portable_Fogging_Machine_NPF_280_6a8bfb1c530af4824761c23b",
+        "NPR_1230_Cutting_Height_30MM_6_5HP_Petrol_Engine_Soyabean_6a8bf6cd19bd62b99247ccb8",
+        "LMAM_16_6a8bf6112e12555f9fe51b01",
+        "Power_Sprayer_4_Stroke_767_Series_NX_139_Engine_Aluminium_VN_6a898e4c8c200b8c142818dc",
+        "30_34_6a894dd8dc5e56b021bef93a",
+        "Chaff_Cutter_with_Conveyor_3HP_Motor_6a8bfee2fa3f40ec084ec09d",
+        "WM_1100C6_DLX_PLUS_BR_192F_6a896be457c3ae629f28bcca",
+        "40_40_6a8947eb996f061df6cb6055",
+        "CS_58M_58_CC_22_Bar_Magnesium_Body_6a8be49b70f814bc88eeff88",
+        "HTP_30_Gold_6a8be0445b61ae897d6e5304",
+        "PS_50_4_Stroke_6a8bdc605d29beb5fb2b32ec",
+        "NPP_90_Petrol_Water_Pump_3_6a8bfd3de32d3311f18fa0e1",
+        "NPP_30_PRO_Petrol_Water_Pump_3_6a8bfce65611464267883a8b",
+        "Backpack_Leaf_Blower_76_CC_4_Stroke_6a8beb3eb5d32a7e45e98559",
+        "35CC_4_Stroke_Engine_BC_360W_6a8be6edbe836b4cc0e2865d",
+        "Power_Sprayer_4_Stroke_767_Series_NX_35_Engine_Brass_NF_6a898f9b1f5914123a4e1639",
+        "Drill_Bit_12_6a8bed939ab0094f0c40a3fc",
+        "PW_768_2_STROKE_A_6a8bdcc02c232986948a0f3d",
+        "Power_Sprayer_4_Stroke_767_Series_NX_139_Engine_Double_Suction_AL_6a898f0c318a3006be2bee85",
+        "BC_360_35_CC_4_Stroke_Engine_6a8be5f398c36d725a92940c",
+        "MANUAL_SEEDER_SINGLE_6a8be53d16484eb02bc283e4",
+        "E_TYPE_DITCHING_ASSEMBLY_6a896960d48f5de17e148d71",
+        "HTP_50_Gold_Plus_3_Cocks_6a8be09385a9fa3de1cc7ede",
+        "NF_999_GX_25_Honda_Engine_6a8992f367025a93a56be806",
+        "40_50_6a894ba469d131114c17005b",
+        "Manual_Sugarcane_Juice_Machine_with_Pulley_6a8bfe493842f88e149be0c8",
+        "NF_07_6a897581db50a4b5c3011326"
+      ]
+    },
+    {
+      "handles": [
+        "AcxJznYkifynILFRfr7Y9YCVZCUqrh40aNeNZoa9uFf2AiJqeA-tqlsttXwCEeIGq7Lbssz7-OGMb9qGO_i8tRoX"
+      ],
+      "retailer_ids": [
+        "Battery_Sprayer_12V_8AH_2_in_1_6a89795c97108d35e13c6073",
+        "Mist_Blower_Gun_6a898aee4ec3c274b27fbae5",
+        "Fawar_33_6a8977498268f603c799641f",
+        "C8_Plus_with_Ditcher_192F_6a896d1a3165619e02fef9e0",
+        "Electric_Grass_Trimmer_300W_6a8be9bd176089fcd6494a5d",
+        "40_40_6a894fae7b71760b4889faf4",
+        "60_40_6a894d457b71760b4889faf1",
+        "30_30_6a894aaf0648714c7b986940",
+        "PW_768_WH_50_Mtr_Hose_6a8bdd0a2c232986948a0f3f",
+        "Drill_Bit_8_6a8bed4a39f3cb54661bc05c",
+        "Brushcutter_4_Stroke_Honda_Engine_BC_99_6a8bea22385c98533bf4fd19",
+        "MANUAL_SEEDER_12_TEETH_6a8be4f2b06459690b486818",
+        "Electric_Chain_Saw_2600W_6a8be41a460b84bb7c76c09e",
+        "Power_Sprayer_4_Stroke_767_Series_NX_35_Engine_Aluminium_VN_6a898f427965925952d85c25",
+        "HTP_120_6a8be0d55b61ae897d6e5306",
+        "Extra_Battery_6a898b9f9320adc871b9b1c9",
+        "30_34_6a894a8673dbc28df9e81088",
+        "30_60_6a894f1129b304d3d556ee15",
+        "MAIJO_WM490_POWER_WEEDER_6a895befb6515ad08055e715",
+        "NPP_152_Petrol_Water_Pump_1_5_6a8bfd67d8a9275eed2d7dfc",
+        "NPP_30_Petrol_Water_Pump_3_6a8bfcbcfa3f40ec084ec09a",
+        "NEP_8000_Cold_Fogging_Machine_110_220V_6a8bfc0a21cdd79e507349ae",
+        "Handy_Fogging_Machine_KB_90_6a8bfa2236d643e0d6a8672c",
+        "Drill_Bit_10_6a8bed6fcf04d5eec1441b0b",
+        "52_CC_2_Stroke_Engine_BC_520W_6a8be6d157f290b0635f78bb",
+        "AG_173_173_CC_6a8bec7a5d71bfd73e361de2",
+        "Manual_Sugarcane_fuice_Machine_with_Pulley_4_Rollers_6a8bfe6dc01b4afc56dcba88",
+        "Back_Pack_Brush_Cutter_36_CC_4_Stroke_Engine_BC_360BPK_6a8be6a198c36d725a92940e",
+        "BC_520_52_CC_2_Stroke_Engine_6a8be5c5be836b4cc0e2865b",
+        "PS_50_2_Stroke_6a8bdc8f45cd0b6b521a2545",
+        "MBD_20_2_Stroke_6a8bdc02584efc9adc0b88f8",
+        "Hariyali_08_6a897791831e88b84100233c",
+        "Ultra_Mist_Gun_with_Lithium_Battery_1500_MAH_6a898b6a5cf789f51f931e71",
+        "967_Series_NX_35_Engine_6a89923e318a3006be2bee87",
+        "Chaff_Cutter_with_SHP_Motor_6a8bfec1bad37885fc9bbf85",
+        "18_24_6a89452e918b9824467f2c15",
+        "NPW_50_6a8bdd4bd30f97c9bda3cfee",
+        "900_Series_NX_35_Engine_6a8991c5bf0824b5902c1ccf",
+        "30_60_6a894b65112a477d20677a5d",
+        "WM_1100C6_DLX_PLUS_PRIME_195F_6a896bb4db808cc8cf0fc8af",
+        "NPR_1250_Cutting_Height_50MM_6_5HP_Petrol_Engine_Wheat_Paddy_6a8bf6a5ad52d019a999e063",
+        "18_24_6a894ec182db09a3bf954c02",
+        "50_MTR_PRESSURE_HOSE_8_5_MM_6a8be2335b61ae897d6e5308",
+        "40_30_6a894a4cfe068489f3eabf2c",
+        "30_40_6a894792996f061df6cb6051",
+        "Back_Pack_Brush_Cutter_52_CC_2_Stroke_Engine_BC_520BPK_6a8be6763b7820aec50c01f2",
+        "AG_63D_Two_man_earth_auger_63_CC_2_stroke_engine_10_drill_6a8bec2f9feaabf834b75522",
+        "CS_59_59_CC_18_Bar_6a8be46888128d106c9e47c5",
+        "Power_Sprayer_4_Stroke_767_Series_NX_139_Engine_Brass_NF_6a898ec5703c24ff591ba764",
+        "Battery_Sprayer_12V8AH_Lithium_Battery_10_Ltr_6a897ab9583e766a893e3d26",
+        "HTP_45_Gold_Plus_2_Cocks_6a8be06c0e41e0e094d4d0ca",
+        "Power_Sprayer_2_Stroke_708_Series_TU34_Engine_Brass_NF_6a898ddff1c46009c74f2c08",
+        "WM1100C_ELITE_6a895b9d232819bda9e6aa1b",
+        "Battery_Sprayer_12V_12AH_Double_Motor_Lance_Gun_6a897a091d485550235309f3",
+        "M_700_Eco_BT_6a896b6905a36f8a4236e7de",
+        "40_50_6a894f7d69d131114c170060",
+        "24_30_6a89462d0c92a7ccb8da1879",
+        "MAIJO_WM1270A_DIESEL_WEEDER_6a896c74ebac766ea120d4fd",
+        "PBS_14_Portable_Battery_Sprayer_15_Mtr_Hose_30cm_Gun_6a898b2baacfe135d3163f2b",
+        "MAIJO_WEIMA_WM_1100B_ES_POWER_WEEDER_DIESEL_9_HP_ELEC_START_6a8969a257c3ae629f28bcc7",
+        "HT_600_22_5_CC_Petrol_Engine_6a8beb19b06459690b48681c",
+        "100_MTR_PRESSURE_HOSE_8_5_MM_6a8be2593fa2516c86f557b4",
+        "PP_786_26_CC_2_Stroke_Engine_12_Bar_and_Chain26cc_4_mtr_6a8bea67b5d32a7e45e98557",
+        "HTP_COMPLETE_SET_WITH_ELECTRIC_MOTOR_6a8be13c7f27b8818a1df079",
+        "NF_10B_6a89761d23f2ec47cb05662c",
+        "MANUAL_SEEDER_14_TEETH_6a8be51cbe836b4cc0e28659",
+        "WEIMA_MAIJO_WM_1100_A_6_A_3_Manual_6a896b00c1dd78031dad8ecd",
+        "30_30_6a8947219d71777665445bbf",
+        "HTP_COMPLETE_SET_Petrol_Engine_6a8be1090e41e0e094d4d0cc",
+        "MANUAL_SEEDER_DOUBLE_6a8be55c98c36d725a92940a",
+        "HTP_80_Platinum_6a8be0b4a588f08a922b856f",
+        "Backpack_Leaf_Blower_63_CC_2_Stroke_6a8beb5e385c98533bf4fd1b",
+        "MBD_20_4_Stroke_6a8bdc32e83e7300ccb23e31",
+        "909_Series_NX_139_Engine_6a8992149370ee54b913a8f5",
+        "Power_Sprayer_2_Stroke_708_Series_TU26_Engine_Brass_NF_6a898d4aefe03f77ef7a6480",
+        "Hariyali_12_With_Bearings_6a8977fbdb50a4b5c3011329",
+        "AG_62T_earth_auger_63_CC_2_stroke_engine_12_drill_6a8bec5fa0a7b6cf9153d202",
+        "F_Type_Ditching_Assembly_6a896c2157c3ae629f28bccd",
+        "MAIJO_6_HP_ECONOMY_DIESEL_WEEDER_WM_1000NA_6a895dbfb6515ad08055e717",
+        "30_30_6a894e3decc17a31fe5e2eb1",
+        "PW_769E_6a8bdd2cd30f97c9bda3cfeb",
+        "100_MTR_HOSE_PIPE_PRESSURE_HOSE_10_MM_6a8be27d0e41e0e094d4d0ce",
+        "Battery_Sprayer_12V_12AH_2_in_1_6a8979cfc05c880123fffb0f",
+        "WM1100C6_DLX_PLUS_6a896a4ebd5b306be5d9c862",
+        "Solar_Sprayer_Two_in_One_with_Solar_Panel_12V8AH_6a897b20f7bc20e5f14f53b8",
+        "24_30_6a894adf8e4751bc0187e10c",
+        "NPP_1_5_4_Stroke_Engine_1_5_6a8bfdc09becec7255d1137d",
+        "Drill_Bit_4_6a8becf5d3140b09b5d91bd7",
+        "Handy_Fogging_Machine_KB_100_6a8bfa4821cdd79e507349ab",
+        "MT_90_6a8bead939f3cb54661bc05a",
+        "Electric_Brush_Cutter_1800_W_BC_1800E_6a8be9f939f3cb54661bc058",
+        "Portable_Fogging_Machine_NPF_BPK_120_6a8bfaee1aeb66a0f5bf2f96",
+        "18_30_6a8945ab5b3e6aa69a86f63f",
+        "AG_63S_Single_man_earth_auger_63_CC_2_stroke_engine_8_drill_6a8bebdcb5d32a7e45e9855d",
+        "40_40_6a894be3786096580b68999f",
+        "45_48_6a894832e4adda8a54dc79bf",
+        "Wood_Chipper_6a896dc08e944b172c478a5b",
+        "NF_02_6a8974c356f750e225820140",
+        "980_Series_NX_35_Engine_6a8992a655caf2529cc4e54f",
+        "NPP_1_5_2_Stroke_Engine_1_5_6a8bfd93e32d3311f18fa0e4"
+      ]
+    },
+    {
+      "handles": [
+        "Acw9TC3rm0VMXj_eVJZLHkKkh06Fy2pMSx8u5IdeNXydtI3TxJ2wu0dpF1NOWTx89o8Fi1g1CunYSM9NccY3EYk3"
+      ],
+      "retailer_ids": [
+        "PW_768_4_STROKE_AL_B_6a8bdce2012dcc39e43e208e",
+        "Double_Barrel_Vehicle_Mounted_Machine_6a8bfb78ba3dab9cadac608d",
+        "Battery_Sprayer_12V_8AH_6a897910c6c1025e1fc50402",
+        "NPR_1260_6_5HP_Petrol_Engine_Direct_Gear_Drive_6a8bf98494fc18e8a812d553",
+        "LM_14_E_1400_W_6a8bf63f2e12555f9fe51b06",
+        "Electric_Blower_Cum_Vaccum_2600W_6a8beb99b5d32a7e45e9855b",
+        "Power_Sprayer_2_Stroke_708_Series_TU26_Engine_Aluminium_VN_6a898cfc1f5914123a4e1637",
+        "M_700_Eco_6a896b3edb808cc8cf0fc8ad",
+        "MAIJO_WM500DLX_6a895c2e5620fb037a4ed42f",
+        "40_30_6a894d8eb71803bbba159184",
+        "Battery_Sprayer_12V_14AH_Double_Motor_6a897a83284b950e3ef36ef4",
+        "LMA_18_E_1900_M_6a8bf665c0323bd213cba182",
+        "Portable_Fogging_Machine_SS_Tank_NPF_35_6a8bfa71660a049601d10df3",
+        "Chaff_Cutter_with_3HP_Motor_6a8bfe941aeb66a0f5bf2f99"
+      ]
+    }
+  ],
+  "followup": {
+    "tested_at": "2026-10-26T07:59:24.383Z",
+    "total": 2,
+    "synced": 2,
+    "failed": 0,
+    "pending": 0,
+    "batches": [
+      {
+        "handles": [
+          "AcziyYHBnKpQf26MlFNFYPtAWS4NXSXNXKL194PhtDj6tyM46jpb7LFIf5qxSbfXvKAWu4ik9tp6J3rDW7Oa7pnU"
+        ],
+        "retailer_ids": [
+          "SHRESAM_SPRINKLER_SET_6ac9e70294c13d8811672258",
+          "SHRESAM_SPRINKLER_SET_6ac9e6fe94c13d8811672257"
+        ]
+      }
+    ]
+  },
+  "final_verification": {
+    "verified_at": "2026-10-26T07:59:26.777Z",
+    "expected_usable_variants": 215,
+    "found_in_meta": 215,
+    "missing_in_meta": [],
+    "duplicate_local_retailer_ids": 0,
+    "image_fetch_statuses": {
+      "FETCHED": 215
+    },
+    "review_statuses": {
+      "": 215
+    }
+  }
+}

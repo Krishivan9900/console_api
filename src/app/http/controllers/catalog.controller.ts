@@ -159,19 +159,27 @@ class catalogController {
     })
 
     /**
-     * GET /org-variants/sync
+     * POST /org-variants/sync
      */
     syncOrganizationVarinats = tryCatchAsync(async(req:Request,res:Response)=>{
         try{
             const user_id = "d051edc7-52ae-45bd-abad-e021f94cf557"
             const company_id = "e964154b-7ed9-423d-bee3-c6e190dc0ab2"
-            const syncAllCatalog = await catalogService.syncOrganizationCatalog(user_id,company_id)
+            const syncAllCatalog = await catalogService.syncOrganizationCatalog(user_id,company_id,req.body?.catalog_id)
             console.log("Catalog",syncAllCatalog)
-            successResponse(req,res,"Sync Meta-variant successfully",syncAllCatalog,HttpStatusCode.OK)
+            const status = syncAllCatalog.failed > 0
+                ? (syncAllCatalog.success > 0 || syncAllCatalog.pending > 0 ? 207 : 502)
+                : syncAllCatalog.pending > 0 ? 202 : 200;
+            return res.status(status).json({
+                success: syncAllCatalog.failed === 0,
+                message: syncAllCatalog.message,
+                data: syncAllCatalog,
+            });
         }catch(error:any){
             return res.status(error.statusCode || 500).json({
                 success:false,
-                message:error.message || "Something went wrong"
+                message:error.message || "Something went wrong",
+                ...(error.details ? { details: error.details } : {}),
             })
         }
     })

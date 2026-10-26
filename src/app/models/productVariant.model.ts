@@ -39,11 +39,12 @@ class productVariantModel extends BaseModel {
         return query
     }
 
-    async findByVariantId(variant_id: string) {
-        return this.query()
+    async findByVariantId(variant_id: string, catalog_id?: string) {
+        const query = this.query()
             .where('variant_id', variant_id)
-            .whereNull('deleted_at')
-            .first();
+            .whereNull('deleted_at');
+        if (catalog_id) query.where('catalog_id', catalog_id);
+        return query.first();
     }
 
 

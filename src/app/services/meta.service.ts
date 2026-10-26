@@ -370,24 +370,107 @@ class MetaService {
    * Create Variant in catalog 
    */
   async createProductVariantBatch(catalog_id: string, variant: ProductVariant): Promise<any> {
-    try {
-      console.log("Variant meta", variant, catalog_id)
-      const response = await this.client.post(`/${catalog_id}/batch`, {
-        requests: [
-          variant
-        ]
-      })
-      console.log(
-        JSON.stringify(response.data.validation_status, null, 2)
-      );
+    const result = await this.createProductVariantsBatch(catalog_id, [variant]);
+    const item = result.items[0];
+    if (item.status === 'failed') {
+      throw new HTTP400Error({ message: item.error, details: item.details });
+    }
+    return { handles: result.handles, sync_status: item.status };
+  }
 
-      return response.data
+  private catalogError(error: any): HTTP400Error {
+    const meta = error.response?.data?.error || error;
+    return new HTTP400Error({
+      message: `Meta catalog request failed: ${meta.message || 'Unknown error'}`,
+      details: {
+        code: meta.code,
+        type: meta.type,
+        error_subcode: meta.error_subcode,
+        fbtrace_id: meta.fbtrace_id,
+        error_user_msg: meta.error_user_msg,
+      },
+    });
+  }
+
+  async getCatalogDetails(catalogId: string): Promise<any> {
+    try {
+      const response = await this.client.get(`/${catalogId}`, { params: { fields: 'id,name' } });
+      return response.data;
     } catch (error: any) {
-      console.error('Meta API Error - Failed To Upload Variant in catalog', error.response?.data || error.message);
-      throw new HTTP400Error({
-        message: 'Failed to fetch phone number details from Meta API',
-        details: error.response?.data || error.message,
-      })
+      throw this.catalogError(error);
+    }
+  }
+
+  /** Submit products together and confirm ingestion instead of treating a handle as success. */
+  async createProductVariantsBatch(catalogId: string, variants: ProductVariant[]): Promise<any> {
+    try {
+      const response = await this.client.post(`/${catalogId}/batch`, {
+        allow_upsert: true,
+        requests: variants,
+      });
+      const body = response.data;
+      if (body.error) throw { response: { data: body } };
+      const items = variants.map(variant => {
+        const validation = body.validation_status?.find((row: any) => row.retailer_id === variant.retailer_id);
+        const errors = validation?.errors || [];
+        return {
+          retailer_id: variant.retailer_id,
+          status: errors.length ? 'failed' : 'pending',
+          ...(errors.length ? { error: errors.map((error: any) => error.message).join('; '), details: errors } : {}),
+        } as any;
+      });
+      const handles = Array.isArray(body.handles) ? body.handles.filter((handle: any) => typeof handle === 'string' && handle) : [];
+      if (!handles.length) {
+        for (const item of items.filter(item => item.status === 'pending')) {
+          item.status = 'failed';
+          item.error = 'Meta returned no batch handle; no product ingestion was confirmed';
+        }
+        return { handles, items };
+      }
+
+      let finished = true;
+      for (const handle of handles) {
+        let status: any;
+        for (let attempt = 0; attempt < 15; attempt++) {
+          const result = await this.client.get(`/${catalogId}/check_batch_request_status`, {
+            params: { handle, load_ids_of_invalid_requests: true },
+          });
+          status = result.data?.data?.[0];
+          if (!status || !['started', 'in progress', 'pending'].includes(String(status.status).toLowerCase())) break;
+          if (attempt < 14) await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+        if (!status || String(status.status).toLowerCase() !== 'finished') finished = false;
+        const errors = status?.errors || [];
+        const invalidIds = new Set((status?.ids_of_invalid_requests || []).map(String));
+        if (Number(status?.errors_total_count) > 0 || errors.length || invalidIds.size) {
+          const knownIds = new Set(items.map(item => item.retailer_id));
+          const hasUnattributedErrors = [...invalidIds].some(id => !knownIds.has(id as string)) ||
+            errors.some((error: any) => !error.id || !knownIds.has(String(error.id))) ||
+            (!invalidIds.size && !errors.length);
+          for (const item of items.filter(item => item.status === 'pending')) {
+            const matchingErrors = errors.filter((error: any) => String(error.id) === item.retailer_id);
+            // Without item IDs, do not claim that the rest of the batch succeeded.
+            if (invalidIds.has(item.retailer_id) || matchingErrors.length ||
+                hasUnattributedErrors) {
+              item.status = 'failed';
+              item.error = (matchingErrors.length ? matchingErrors : errors)
+                .map((error: any) => error.message || String(error)).join('; ') || 'Meta rejected the product during ingestion';
+              item.details = status;
+            }
+          }
+        }
+        if (status && ['failed', 'error'].includes(String(status.status).toLowerCase())) {
+          for (const item of items.filter(item => item.status === 'pending')) {
+            item.status = 'failed';
+            item.error = 'Meta batch processing failed';
+            item.details = status;
+          }
+        }
+      }
+      if (finished) items.filter(item => item.status === 'pending').forEach(item => { item.status = 'synced'; });
+      return { handles, items };
+    } catch (error: any) {
+      throw this.catalogError(error);
     }
   }
 
