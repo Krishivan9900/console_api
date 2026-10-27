@@ -64,7 +64,7 @@ test('null or absent parent_user_id is handled without querying an undefined FPO
     assert.equal(result.reason, 'FPO_NOT_MAPPED');
     assert.equal(calls.parent.length, 0);
     assert.equal(calls.orders.length, 0);
-    assert.match(calls.replies[0][2].text, /not linked to an FPO/);
+    assert.match(calls.replies[0][2].text, /not linked.*FPO/);
   }
 });
 

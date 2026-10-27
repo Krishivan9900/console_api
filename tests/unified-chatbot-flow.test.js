@@ -44,7 +44,7 @@ function runtime({ registered = true, override, bot = flow } = {}) {
   };
   const user = { id: 'registered-customer', role: 'farmer', deleted_at: null };
   const source = ts.createSourceFile('utils.ts', fs.readFileSync(path.join(__dirname, '../src/utils.ts'), 'utf8'), ts.ScriptTarget.Latest, true);
-  const names = ['safeJSON', 'normalizeRole', 'normalizeLanguage', 'normalizeRegistrationData', 'replaceVariables', 'getNestedValue', 'replaceBodyVariables', 'buildWelcomeMessage', 'buildResponse'];
+  const names = ['safeJSON', 'normalizeRole', 'normalizeLanguage', 'getRegistrationLocation', 'getRegistrationEmail', 'normalizeRegistrationData', 'replaceVariables', 'getNestedValue', 'replaceBodyVariables', 'buildWelcomeMessage', 'buildResponse'];
   const functions = source.statements.filter(n => ts.isFunctionDeclaration(n) && names.includes(n.name?.text))
     .map(n => n.getText(source).replace(/^export /, '')).join('\n');
   const utils = vm.runInNewContext(ts.transpileModule(`${functions}\n({replaceVariables,buildResponse});`, {
@@ -302,6 +302,28 @@ test('failed registration in the combined flow never sends a welcome or opens se
   assert.match(result.text, /Registration could not be completed/);
   assert.equal(rt.session.active, false);
   assert(!messages(result).some(m => m?.text?.includes('created successfully') || m?.type === 'interactive'));
+});
+
+test('FPO GST email reaches the Render request and localized welcome in every language', async () => {
+  for (const languageIndex of [0, 1, 2]) {
+    for (const topLevelEmail of [false, true]) {
+      const rt = runtime({ registered: false, override: request => request.url.endsWith('/verify-gstin') ? {
+        status: 201, data: { success: true, data: {
+          valid: true, gstin: '36AAICK0914G1ZQ',
+          ...(topLevelEmail ? { email: 'gst-contact@example.test' } : {}),
+          company_details: { legal_name: 'Example FPO', ...(topLevelEmail ? {} : { email: 'gst-contact@example.test' }) },
+        } },
+      } : undefined });
+      await rt.start(); await rt.click(languageIndex); await rt.click(4);
+      assert.equal(rt.current().data.attributes.variable, 'gstin');
+      const response = await rt.answer('36AAICK0914G1ZQ');
+      const saved = rt.requests.find(request => request.url.endsWith('/stored-chat-session'));
+      assert.equal(saved.url, 'https://console-api-z4hc.onrender.com/v1/auth/stored-chat-session');
+      assert.equal(saved.data.session_data.email, 'gst-contact@example.test');
+      assert(messages(response).some(message => message?.text?.includes('gst-contact@example.test')));
+      assert.equal(rt.current().data.attributes.variable, 'excel_file');
+    }
+  }
 });
 
 test('lookup failures never start registration or services', async () => {

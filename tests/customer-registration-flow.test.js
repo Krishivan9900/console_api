@@ -10,7 +10,7 @@ const flow = require('../customer-registration.fixed.json');
 
 // Use the real message builders and substitution functions without loading DB/email services.
 const utilsSource = ts.createSourceFile('utils.ts', fs.readFileSync(path.join(__dirname, '../src/utils.ts'), 'utf8'), ts.ScriptTarget.Latest, true);
-const functionNames = ['safeJSON', 'normalizeRole', 'normalizeLanguage', 'normalizeRegistrationData', 'replaceVariables', 'getNestedValue', 'replaceBodyVariables', 'buildWelcomeMessage', 'buildResponse'];
+const functionNames = ['safeJSON', 'normalizeRole', 'normalizeLanguage', 'getRegistrationLocation', 'getRegistrationEmail', 'normalizeRegistrationData', 'replaceVariables', 'getNestedValue', 'replaceBodyVariables', 'buildWelcomeMessage', 'buildResponse'];
 const functions = utilsSource.statements
   .filter(node => ts.isFunctionDeclaration(node) && functionNames.includes(node.name?.text))
   .map(node => node.getText(utilsSource).replace(/^export /, '')).join('\n');
@@ -217,6 +217,23 @@ test('welcome follows Hindi or Telugu selection while retaining English company 
       }
       assert.doesNotMatch(response.text, /Your account has been created successfully|undefined|\{\{/);
     }
+  }
+});
+
+test('welcome includes the stored Excel address in English, Hindi and Telugu without changing its values', async () => {
+  const node = flow.nodes.find(n => n.data.attributes?.message?.text?.body === '{{registration_welcome}}');
+  for (const [language, labels] of [
+    ['english', ['State', 'District', 'Subdistrict', 'Village', 'Pincode']],
+    ['hindi', ['राज्य', 'ज़िला', 'उपज़िला', 'गाँव', 'पिनकोड']],
+    ['telugu', ['రాష్ట్రం', 'జిల్లా', 'ఉప జిల్లా', 'గ్రామం', 'పిన్‌కోడ్']],
+  ]) {
+    const fields = ['Madhya Pradesh', 'Indore', 'Rau', 'Example Village', '453331'];
+    const location = Object.fromEntries(['state', 'district', 'subdistrict', 'village', 'pincode'].map((key, i) => [key, fields[i]]));
+    const response = await utils.buildResponse(node, { variables: {
+      http_response: { data: { data: { name: 'Imported Customer', role: 'farmer', native_language: language, location } } },
+    } });
+    for (const [index, label] of labels.entries()) assert(response.text.includes(`*${label}:* ${fields[index]}`));
+    assert.doesNotMatch(response.text, /undefined|null|\[object Object\]/);
   }
 });
 

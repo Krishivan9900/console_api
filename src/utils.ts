@@ -293,6 +293,70 @@ export function normalizeLanguage(language: string) {
   return languageMap[normalized] || "english";
 }
 
+/** Read supplied address fields; coordinates are never converted into an address here. */
+export function getRegistrationLocation(...records: any[]): Record<string, any> {
+  const sources = records.flatMap(data => {
+    if (!data || typeof data !== 'object') return [];
+    const details = data.details || {};
+    const company = details.company_details || data.company_details || details;
+    const point = data.coordinates?.coordinates;
+    const coordinates = Array.isArray(point) && point.length === 2
+      ? { longitude: point[0], latitude: point[1] } : {};
+    return [data.location, typeof data.address === 'object' ? data.address : { full_address: data.address }, data,
+      coordinates, details.location, details.address, company.pradr, { state: company.state_info?.name }, details, company,
+      data.kyc_data?.address].filter(value => value && typeof value === 'object' && !Array.isArray(value));
+  });
+  const pick = (...keys: string[]) => {
+    for (const source of sources) {
+      for (const key of keys) {
+        const value = source[key];
+        if ((typeof value === 'string' && value.trim()) || typeof value === 'number' && Number.isFinite(value)) {
+          return typeof value === 'string' ? value.trim() : value;
+        }
+      }
+    }
+    return null;
+  };
+  const coordinate = (limit: number, ...keys: string[]) => {
+    const raw = pick(...keys);
+    if (raw === null) return null;
+    const value = Number(raw);
+    return Number.isFinite(value) && Math.abs(value) <= limit ? value : null;
+  };
+  const pincode = pick('pincode', 'pin_code', 'postal_code', 'postcode', 'pinc');
+  return {
+    full_address: pick('full_address', 'address_line', 'addr', 'address'),
+    state: pick('state', 'state_in_address'),
+    district: pick('district'),
+    subdistrict: pick('subdistrict', 'sub_district', 'sub_distric', 'taluk', 'tehsil', 'mandal'),
+    village: pick('village'),
+    pincode: pincode === null ? null : String(pincode),
+    latitude: coordinate(90, 'latitude', 'lat'),
+    longitude: coordinate(180, 'longitude', 'lng', 'lon'),
+  };
+}
+
+/** Prefer a supplied email, then a usable contact email returned with GST company details. */
+export function getRegistrationEmail(...records: any[]): string | null {
+  for (const data of records) {
+    if (!data || typeof data !== 'object') continue;
+    const sources = [data, data.details, data.company_details, data.details?.company_details, data.data?.company_details,
+      data.http_response?.data, data.http_response?.data?.company_details,
+      data.api_response?.data, data.api_response?.data?.company_details];
+    for (const source of sources) {
+      for (const contact of [source, source?.contact_details]) {
+        for (const key of ['email', 'email_address', 'email_id', 'emailAddress', 'emailId']) {
+          const raw = contact?.[key];
+          if (typeof raw !== 'string') continue;
+          const email = raw.trim();
+          if (/^[^\s@*•]+@[^\s@*•]+\.[^\s@*•]+$/.test(email)) return email;
+        }
+      }
+    }
+  }
+  return null;
+}
+
 export function normalizeRegistrationData(data: any): any {
   if (!data || typeof data !== 'object' || Array.isArray(data)) return data;
   const normalized = { ...data };
@@ -300,6 +364,12 @@ export function normalizeRegistrationData(data: any): any {
   const language = [data.native_language, data.details?.native_language].find(value => typeof value === 'string' && value.trim());
   if (role) normalized.role = normalizeRole(role);
   if (language) normalized.native_language = normalizeLanguage(language);
+  const email = getRegistrationEmail(data);
+  if (email) normalized.email = email;
+  const location = getRegistrationLocation(data);
+  if (Object.values(location).some(value => value !== null)) {
+    normalized.location = { ...(typeof data.location === 'object' ? data.location : {}), ...location };
+  }
   if (data.details && typeof data.details === 'object' && !Array.isArray(data.details)) {
     normalized.details = { ...data.details };
     if (data.details.role) normalized.details.role = normalized.role || normalizeRole(data.details.role);
@@ -333,23 +403,13 @@ export function replaceVariables(
         native_language: normalizedLanguage,
         gstin: variables?.gstin,
         role: variables.role || variables.details?.role,
-        email: variables.email,
+        email: getRegistrationEmail(variables) ?? variables.email,
         photo: variables.photo,
         chat: variables.chat,
         image_url: variables.image_url,
         voice: variables.voice,
 
-        location: {
-          latitude:
-            variables?.location?.latitude ||
-            variables?.details?.company_details?.pradr?.latitude ||
-            null,
-
-          longitude:
-            variables?.location?.longitude ||
-            variables?.details?.company_details?.pradr?.longitude ||
-            null,
-        },
+        location: getRegistrationLocation(variables),
         phone_number: variables.phone_number,
         fpo_id: variables.fpo_id,
         parent_user_id: variables.parent_user_id ? variables.parent_user_id : variables?.api_response?.data?.parent_user_id
@@ -745,12 +805,13 @@ function buildWelcomeMessage(variables: any): string {
   };
 
   const name = variables?.name || details.name || registeredUser.name || registeredUser.first_name || user.name || user.first_name;
-  const email = variables?.email || details.email || registeredUser.email || user.email;
+  const email = getRegistrationEmail(variables, registeredUser, user, companyDetails);
   const phone = variables?.phone_number || details.phone_number || registeredUser.phone || registeredUser.mobile_number || user.phone_number || user.phone || user.mobile_number;
   const gstin = variables?.gstin || details.gstin || user.gstin || kyc.gst_no;
   const role = variables?.role || details.role || registeredUser.role_type || registeredUser.role || user.role_type || user.role;
   const companyName = companyDetails.legal_name || companyDetails.trade_name || kyc.company_name;
   const pan = companyDetails.pan || kyc.pan_no;
+  const location = getRegistrationLocation(variables, registeredUser, user, { details: companyDetails }, { address: kyc.address });
   const language = normalizeLanguage(variables?.native_language || details.native_language ||
     registeredUser.native_language || registeredUser.primary_language || user.native_language || user.primary_language);
   const messages = {
@@ -758,6 +819,7 @@ function buildWelcomeMessage(variables: any): string {
       heading: '🌱 *Welcome to Krishivan!*', greeting: (value: string) => `Hello ${value || 'there'},`,
       created: 'Your account has been created successfully. 🎉', details: '*Your account details*',
       company: 'Company', email: 'Email', phone: 'Phone', gstin: 'GSTIN', pan: 'PAN', role: 'Role',
+      address: 'Address', state: 'State', district: 'District', subdistrict: 'Subdistrict', village: 'Village', pincode: 'Pincode',
       login: '*Login to your account*', password: '*Temporary password:* 123456',
       reminder: 'Please change your password after your first login and keep your credentials private.',
       closing: 'Welcome aboard! 🤝',
@@ -766,6 +828,7 @@ function buildWelcomeMessage(variables: any): string {
       heading: '🌱 *कृषिवन में आपका स्वागत है!*', greeting: (value: string) => value ? `नमस्ते ${value},` : 'नमस्ते,',
       created: 'आपका खाता सफलतापूर्वक बन गया है। 🎉', details: '*आपके खाते की जानकारी*',
       company: 'कंपनी', email: 'ईमेल', phone: 'फ़ोन', gstin: 'जीएसटीआईएन', pan: 'पैन', role: 'भूमिका',
+      address: 'पता', state: 'राज्य', district: 'ज़िला', subdistrict: 'उपज़िला', village: 'गाँव', pincode: 'पिनकोड',
       login: '*अपने खाते में लॉग इन करें*', password: '*अस्थायी पासवर्ड:* 123456',
       reminder: 'पहली बार लॉग इन करने के बाद कृपया अपना पासवर्ड बदलें और अपनी लॉगिन जानकारी गोपनीय रखें।',
       closing: 'हमारे साथ जुड़ने के लिए धन्यवाद! 🤝',
@@ -774,6 +837,7 @@ function buildWelcomeMessage(variables: any): string {
       heading: '🌱 *కృషివన్‌కు స్వాగతం!*', greeting: (value: string) => value ? `నమస్కారం ${value},` : 'నమస్కారం,',
       created: 'మీ ఖాతా విజయవంతంగా సృష్టించబడింది. 🎉', details: '*మీ ఖాతా వివరాలు*',
       company: 'సంస్థ', email: 'ఈమెయిల్', phone: 'ఫోన్', gstin: 'జీఎస్టీఐఎన్', pan: 'పాన్', role: 'పాత్ర',
+      address: 'చిరునామా', state: 'రాష్ట్రం', district: 'జిల్లా', subdistrict: 'ఉప జిల్లా', village: 'గ్రామం', pincode: 'పిన్‌కోడ్',
       login: '*మీ ఖాతాలో లాగిన్ అవ్వండి*', password: '*తాత్కాలిక పాస్‌వర్డ్:* 123456',
       reminder: 'మొదటిసారి లాగిన్ అయిన తర్వాత మీ పాస్‌వర్డ్‌ను మార్చండి. మీ లాగిన్ వివరాలను గోప్యంగా ఉంచండి.',
       closing: 'మాతో చేరినందుకు ధన్యవాదాలు! 🤝',
@@ -805,6 +869,12 @@ function buildWelcomeMessage(variables: any): string {
     gstin && `*${copy.gstin}:* ${gstin}`,
     pan && `*${copy.pan}:* ${pan}`,
     role && `*${copy.role}:* ${displayedRole}`,
+    location.full_address && `*${copy.address}:* ${location.full_address}`,
+    location.state && `*${copy.state}:* ${location.state}`,
+    location.district && `*${copy.district}:* ${location.district}`,
+    location.subdistrict && `*${copy.subdistrict}:* ${location.subdistrict}`,
+    location.village && `*${copy.village}:* ${location.village}`,
+    location.pincode && `*${copy.pincode}:* ${location.pincode}`,
   ].filter(Boolean);
 
   return [

@@ -17,7 +17,7 @@ import productVariantModel from '../models/productVariant.model';
 import axios from 'axios'
 import contactModel from '../models/contact.model';
 import { PhoneNumber } from 'libphonenumber-js';
-import { normalizeRegistrationData, normalizeRegistrationPhoneNumber, normalizeRole } from '../../utils';
+import { getRegistrationLocation, normalizeRegistrationData, normalizeRegistrationPhoneNumber, normalizeRole } from '../../utils';
 import * as XLSX from 'xlsx';
 
 interface LoginCredentials {
@@ -166,9 +166,26 @@ class AuthService {
    * REGISTER krishivan user
    */
   async registerkrishivanUser(data: any) {
+    const location = getRegistrationLocation(data);
+    const address = {
+      full_address: location.full_address,
+      state: location.state,
+      district: location.district,
+      sub_distric: location.subdistrict,
+      village: location.village,
+      pincode: location.pincode,
+    };
+    const hasAddress = Object.values(address).some(value => value !== null);
     const payload = {
       ...data,
       mobile_number: normalizeRegistrationPhoneNumber(data.mobile_number),
+      ...(hasAddress ? address : {}),
+      ...(hasAddress && data.kyc_data && typeof data.kyc_data === 'object' ? {
+        kyc_data: { ...data.kyc_data, address: { ...data.kyc_data.address, ...address } },
+      } : {}),
+      ...(location.latitude !== null && location.longitude !== null ? {
+        coordinates: { type: 'Point', coordinates: [location.longitude, location.latitude] },
+      } : {}),
     };
     console.log("Krishivan registration request", {
       mobile_number: payload.mobile_number,
@@ -181,6 +198,8 @@ class AuthService {
         'Content-Type': 'application/json'
       }
     };
+
+    
     try {
       const response = await axios.post(
         'https://l07yapr0ub.execute-api.ap-south-1.amazonaws.com/prod/farmer-function/register-user',
@@ -381,6 +400,7 @@ class AuthService {
     const roleCode = `${rolePrefix}${randomNumber}`;
 
     const company = data.details || {};
+    const location = getRegistrationLocation(data);
     // const fpo_info = await userModel.findByPhone(data.phone_number)
 
     const mappedFpoId = data.parent_user_id || data.details?.parent_user_id;
@@ -404,6 +424,13 @@ class AuthService {
 
       role: normalizedRole,
 
+      full_address: location.full_address,
+      state: location.state,
+      district: location.district,
+      sub_distric: location.subdistrict,
+      village: location.village,
+      pincode: location.pincode,
+
       kyc_data: company
         ? {
           gst_no: data.gstin || null,
@@ -413,19 +440,12 @@ class AuthService {
             company.legal_name,
 
           address: {
-            full_address:
-              company?.pradr?.addr || null,
-            state:
-              company?.pradr?.state_in_address ||
-              company?.state_info?.name,
-            district:
-              company?.pradr?.district || null,
-            sub_distric: "",
-            village: "",
-            pincode:
-              company?.pradr?.pincode ||
-              company?.pradr?.pinc ||
-              null,
+            full_address: location.full_address,
+            state: location.state,
+            district: location.district,
+            sub_distric: location.subdistrict,
+            village: location.village,
+            pincode: location.pincode,
           },
         }
         : null,
@@ -433,13 +453,8 @@ class AuthService {
       coordinates: {
         type: "Point",
         coordinates: [
-          data?.location?.longitude ||
-          company?.pradr?.longitude ||
-          null,
-
-          data?.location?.latitude ||
-          company?.pradr?.latitude ||
-          null,
+          location.longitude,
+          location.latitude,
         ],
       },
 
@@ -514,7 +529,7 @@ class AuthService {
 
       location: data.location || {},
 
-      state: company.state || null,
+      state: location.state,
 
       state_info:
         company.state_info || null,
@@ -1079,10 +1094,17 @@ class AuthService {
       });
     }
 
-    const getValue = (
-      row: Record<string, unknown>,
-      key: string
-    ) => String(row[key] ?? '').trim();
+    const getValue = (row: Record<string, unknown>, ...keys: string[]) => {
+      const normalizeHeader = (value: string) => value.trim().toLowerCase().replace(/[\s_-]+/g, '');
+      for (const key of keys) {
+        for (const [header, value] of Object.entries(row)) {
+          if (normalizeHeader(header) === normalizeHeader(key) && value != null && String(value).trim()) {
+            return String(value).trim();
+          }
+        }
+      }
+      return '';
+    };
 
     const normalisePhone = (value: string) => {
       return value.replace(/\D/g, '');
@@ -1116,7 +1138,7 @@ class AuthService {
 
       try {
         const leadPhone = normalizeRegistrationPhoneNumber(
-          getValue(row, 'Mobile Number')
+          getValue(row, 'Mobile Number', 'Phone Number', 'Mobile', 'Phone')
         );
 
         if (!leadPhone || leadPhone.length !== 10) {
@@ -1144,18 +1166,22 @@ class AuthService {
         };
 
         const location = {
+          full_address: getValue(row, 'Address', 'Full Address'),
           village: getValue(row, 'Village'),
           district: getValue(row, 'District'),
+          subdistrict: getValue(row, 'Sub District', 'Sub Distric', 'Taluk', 'Tehsil', 'Mandal'),
           state: getValue(row, 'State'),
-          pincode: getValue(row, 'Pincode'),
+          pincode: getValue(row, 'Pincode', 'Postal Code', 'Postcode'),
           latitude: parseCoordinate('Latitude'),
           longitude: parseCoordinate('Longitude'),
         };
 
-        const sessionData = {
+        const sessionData = normalizeRegistrationData({
           phone_number: leadPhone,
           name,
           role,
+          email: getValue(row, 'Email') || null,
+          native_language: getValue(row, 'Native Language', 'Language') || null,
 
           location,
 
@@ -1164,7 +1190,7 @@ class AuthService {
             district: location.district,
             state: location.state,
             pincode: location.pincode,
-            sub_district: getValue(row, 'Sub District'),
+            sub_district: location.subdistrict,
             total_land: getValue(row, 'Total Land'),
             gender: getValue(row, 'Gender'),
           },
@@ -1175,7 +1201,7 @@ class AuthService {
           fpo_phone_number: uploadingFpo.phone,
 
           created_by: 'fpo_excel_import',
-        };
+        });
 
         const registeredUser = await this.registerUser(
           phoneNumber,
@@ -1233,6 +1259,7 @@ class AuthService {
         fpo_phone_number: '919372597458',
         address: '12 Market Road',
         village: 'Kheda',
+        subdistrict: 'Indore',
         district: 'Indore',
         state: 'Madhya Pradesh',
         pincode: '452001',
@@ -1248,6 +1275,7 @@ class AuthService {
         fpo_phone_number: '919372597458',
         address: '45 Grain Market',
         village: 'Rau',
+        subdistrict: 'Rau',
         district: 'Indore',
         state: 'Madhya Pradesh',
         pincode: '453331',
@@ -1263,6 +1291,7 @@ class AuthService {
         fpo_phone_number: '919372597458',
         address: '8 Farm Link Road',
         village: 'Dewas',
+        subdistrict: 'Dewas',
         district: 'Dewas',
         state: 'Madhya Pradesh',
         pincode: '455001',

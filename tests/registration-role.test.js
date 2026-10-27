@@ -8,13 +8,15 @@ const ts = require('typescript');
 function runtime(existingUser, options = {}) {
   const source = ts.createSourceFile('auth.service.ts', fs.readFileSync(path.join(__dirname, '../src/app/services/auth.service.ts'), 'utf8'), ts.ScriptTarget.Latest, true);
   const serviceClass = source.statements.find(node => ts.isClassDeclaration(node));
-  const methods = serviceClass.members.filter(member => ['registerUser', 'registerkrishivanUser', 'importFpoLeads', 'storedChatSession'].includes(member.name?.getText(source)));
+  const methods = serviceClass.members.filter(member => ['registerUser', 'registerkrishivanUser', 'importFpoLeads', 'storedChatSession', 'generateFpoLeadsTemplate'].includes(member.name?.getText(source)));
   const utils = ts.createSourceFile('utils.ts', fs.readFileSync(path.join(__dirname, '../src/utils.ts'), 'utf8'), ts.ScriptTarget.Latest, true);
   const normalizer = utils.statements.find(node => ts.isFunctionDeclaration(node) && node.name?.text === 'normalizeRole');
   const languageNormalizer = utils.statements.find(node => ts.isFunctionDeclaration(node) && node.name?.text === 'normalizeLanguage');
   const registrationNormalizer = utils.statements.find(node => ts.isFunctionDeclaration(node) && node.name?.text === 'normalizeRegistrationData');
+  const locationReader = utils.statements.find(node => ts.isFunctionDeclaration(node) && node.name?.text === 'getRegistrationLocation');
+  const emailReader = utils.statements.find(node => ts.isFunctionDeclaration(node) && node.name?.text === 'getRegistrationEmail');
   const replacer = utils.statements.find(node => ts.isFunctionDeclaration(node) && node.name?.text === 'replaceVariables');
-  const functions = [normalizer, languageNormalizer, registrationNormalizer, replacer].map(node => node.getText(utils).replace(/^export /, '')).join('\n');
+  const functions = [normalizer, languageNormalizer, locationReader, emailReader, registrationNormalizer, replacer].map(node => node.getText(utils).replace(/^export /, '')).join('\n');
   const sourceText = `${functions}\nclass AuthService { ${methods.map(method => method.getText(source)).join('\n')} }\n({ service: new AuthService(), replaceVariables });`;
   const calls = { external: [], lookups: [], created: [], updated: [], parentLookups: [], stored: [], contactUpdates: [] };
   class BadRequest extends Error { constructor({ message }) { super(message); } }
@@ -200,11 +202,11 @@ test('older registration payloads resolve the creator from the mapped FPO user_i
   }
 });
 
-function excelFile(phone = '9869650435', role = 'Trader') {
+function excelFile(phone = '9869650435', role = 'Trader', fields = {}) {
   const XLSX = require('xlsx');
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet([
-    { 'Mobile Number': phone, Name: 'Parth', Role: role },
+    { 'Mobile Number': phone, Name: 'Parth', Role: role, ...fields },
   ]), 'Leads');
   return XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
 }
@@ -222,6 +224,162 @@ test('Excel import registers leads with the mapped FPO external creator ID and l
   assert.equal(calls.stored[0].data.fpo_id, 'fpo-external-user-id');
   assert.equal(calls.stored[0].data.parent_user_id, 'fpo-local-id');
   assert.equal(calls.parentLookups.length, 0);
+});
+
+test('Excel location values reach the registration API and both PostgreSQL records without a geocoding request', async () => {
+  for (const existingUser of [undefined, { id: 'existing-user' }]) {
+    const { service, calls } = runtime(existingUser, { mappedFpo: {
+      id: 'fpo-local-id', user_id: 'fpo-external-user-id', phone: '919372597458',
+    } });
+    const result = await service.importFpoLeads(excelFile('9869650435', 'Farmer', {
+      State: 'Madhya Pradesh', District: 'Indore', 'Sub District': 'Rau', Village: 'Example Village',
+      Pincode: 453331, Address: '12 Market Road', Latitude: 22.68, Longitude: 75.87,
+    }), 'receiving-number', '919372597458');
+    assert.equal(result.imported_count, 1);
+    assert.equal(result.failed_count, 0);
+    assert.equal(calls.external.length, 1);
+    const api = calls.external[0];
+    const local = existingUser ? calls.updated.find(call => call.data.role).data : calls.created[0];
+    const stored = calls.stored[0].data;
+    for (const [key, value] of Object.entries({
+      state: 'Madhya Pradesh', district: 'Indore', village: 'Example Village', pincode: '453331', full_address: '12 Market Road',
+    })) {
+      assert.equal(api[key], value);
+      assert.equal(api.kyc_data.address[key], value);
+      assert.equal(local.location[key], value);
+      assert.equal(stored.location[key], value);
+    }
+    assert.equal(api.sub_distric, 'Rau');
+    assert.equal(api.kyc_data.address.sub_distric, 'Rau');
+    assert.equal(local.location.subdistrict, 'Rau');
+    assert.equal(stored.location.subdistrict, 'Rau');
+    assert.equal(local.state, 'Madhya Pradesh');
+    assert.equal(api.coordinates.coordinates[0], 75.87);
+    assert.equal(api.coordinates.coordinates[1], 22.68);
+  }
+});
+
+test('the actual generated lowercase Excel template imports all rows and preserves its address columns', async () => {
+  const { service, calls } = runtime(undefined, { mappedFpo: {
+    id: 'fpo-local-id', user_id: 'fpo-external-user-id', phone: '919372597458',
+  } });
+  const sample = service.generateFpoLeadsTemplate();
+  const result = await service.importFpoLeads(sample, 'receiving-number', '919372597458');
+  assert.equal(result.imported_count, 3);
+  assert.equal(result.failed_count, 0);
+  assert.equal(calls.external.length, 3);
+  for (const [index, expected] of ['Indore', 'Rau', 'Dewas'].entries()) {
+    assert.equal(calls.external[index].sub_distric, expected);
+    assert.equal(calls.stored[index].data.location.subdistrict, expected);
+    assert(calls.created[index].location.state);
+    assert(calls.created[index].location.district);
+    assert(calls.created[index].location.village);
+    assert(calls.created[index].location.pincode);
+  }
+  assert.equal(calls.created[0].email, 'ramesh@example.com');
+  assert.equal(calls.created[0].native_language, 'hindi');
+});
+
+test('registration preserves supplied address fields through payload substitution, storage and the API', async () => {
+  const { service, calls, replaceVariables } = runtime();
+  const location = { state: 'Telangana', district: 'Warangal', sub_district: 'Example Mandal',
+    village: 'Example Village', pincode: '506330', latitude: 0, longitude: 0 };
+  const input = { name: 'Test', role: 'Farmer', phone_number: '919876543210', location };
+  const body = replaceVariables({ session_data: '{{data}}' }, input);
+  assert.equal(body.session_data.location.subdistrict, 'Example Mandal');
+  assert.equal(body.session_data.location.village, 'Example Village');
+  assert.equal(body.session_data.location.pincode, '506330');
+  await service.storedChatSession(input.phone_number, body.session_data);
+  assert.equal(calls.stored[0].data.location.subdistrict, 'Example Mandal');
+  assert.equal(calls.created[0].location.village, 'Example Village');
+  assert.equal(calls.external[0].sub_distric, 'Example Mandal');
+  assert.equal(calls.external[0].coordinates.coordinates[0], 0);
+  assert.equal(calls.external[0].coordinates.coordinates[1], 0);
+});
+
+test('FPO GST address reaches the API and normalized PostgreSQL location without guessing missing village or subdistrict', async () => {
+  for (const includeOptionalFields of [false, true]) {
+    const { service, calls, replaceVariables } = runtime();
+    const company = {
+      legal_name: 'Example FPO', state: '36 - Telangana TS', state_info: { name: 'Telangana' },
+      pradr: {
+        addr: 'Example GST address', state_in_address: 'Telangana', district: 'Medchal Malkajgiri',
+        pincode: '500094', loc: 'Secunderabad', latitude: '17.48918', longitude: '78.539475',
+        ...(includeOptionalFields ? { sub_district: 'Provided Mandal', village: 'Provided Village' } : {}),
+      },
+    };
+    const body = replaceVariables({ session_data: '{{data}}' }, {
+      role: 'FPO', phone_number: '919876543210', gstin: '36AAICK0914G1ZQ', details: { company_details: company },
+    });
+    await service.storedChatSession(body.session_data.phone_number, body.session_data);
+    const api = calls.external[0];
+    const stored = calls.stored[0].data.location;
+    const local = calls.created[0].location;
+    for (const [field, expected] of Object.entries({
+      state: 'Telangana', district: 'Medchal Malkajgiri', pincode: '500094', full_address: 'Example GST address',
+    })) {
+      assert.equal(api[field], expected);
+      assert.equal(api.kyc_data.address[field], expected);
+      assert.equal(stored[field], expected);
+      assert.equal(local[field], expected);
+    }
+    assert.equal(api.sub_distric, includeOptionalFields ? 'Provided Mandal' : null);
+    assert.equal(api.village, includeOptionalFields ? 'Provided Village' : null);
+    assert.equal(stored.subdistrict, includeOptionalFields ? 'Provided Mandal' : null);
+    assert.equal(local.village, includeOptionalFields ? 'Provided Village' : null);
+  }
+});
+
+test('GST email is stored by Render in the registration record and user without asking for it', async () => {
+  for (const shape of [
+    { details: { email: 'gst-contact@example.test' } },
+    { details: { company_details: { email_address: ' gst-contact@example.test ' } } },
+    { company_details: { email_id: 'gst-contact@example.test' } },
+  ]) {
+    const { service, calls } = runtime();
+    await service.storedChatSession('919876543210', {
+      role: 'FPO', name: 'Example FPO', phone_number: '919876543210', ...shape,
+    });
+    assert.equal(calls.stored[0].data.email, 'gst-contact@example.test');
+    assert.equal(calls.created[0].email, 'gst-contact@example.test');
+  }
+});
+
+test('an explicitly supplied email takes priority over the GST company email', async () => {
+  const { service, calls } = runtime();
+  await service.storedChatSession('919876543210', {
+    role: 'FPO', phone_number: '919876543210', email: 'selected@example.test',
+    details: { email: 'company@example.test' },
+  });
+  assert.equal(calls.stored[0].data.email, 'selected@example.test');
+  assert.equal(calls.created[0].email, 'selected@example.test');
+});
+
+test('missing, blank or masked GST emails remain optional instead of becoming a stored contact email', async () => {
+  for (const email of [undefined, null, '', '   ', 'N/A', 'pa***@example.test']) {
+    const { service, calls, replaceVariables } = runtime();
+    const body = replaceVariables({ session_data: '{{data}}' }, {
+      role: 'FPO', phone_number: '919876543210', details: { company_details: { email } },
+    });
+    assert.equal(body.session_data.email, undefined);
+    await service.storedChatSession(body.session_data.phone_number, body.session_data);
+    assert.equal(calls.stored[0].data.email, undefined);
+    assert.equal(calls.created[0].email, null);
+  }
+});
+
+test('coordinates alone never create or guess district, subdistrict, village or pincode', async () => {
+  const { service, calls } = runtime();
+  const user = await service.registerUser({ company_id: 'company' }, {
+    role: 'farmer', phone_number: '919876543210', location: { latitude: 17.48, longitude: 78.53 },
+  });
+  for (const field of ['state', 'district', 'village', 'pincode']) {
+    assert.equal(calls.external[0][field], null);
+    assert.equal(user.location[field], null);
+  }
+  assert.equal(calls.external[0].sub_distric, null);
+  assert.equal(user.location.subdistrict, null);
+  assert.equal(calls.external.length, 1);
 });
 
 test('mapped FPOs without an external user_id are rejected before registering users', async () => {
@@ -284,6 +442,29 @@ test('register-user HTTP boundary strips 91 for FPO and every other role even wh
     assert.equal(calls.external[0].role, role);
     assert.equal(calls.external[0].createdById, input.createdById);
     assert.equal(input.mobile_number, '919372597458');
+  }
+});
+
+test('AWS registration request keeps the flat address schema and GeoJSON coordinate order from the supplied example', async () => {
+  for (const nested of [false, true]) {
+    const { service, calls } = runtime();
+    const address = {
+      full_address: 'GWVM+V2 Vadapathy, Tamil Nadu, India', state: 'Tamil Nadu', district: 'Cuddalore',
+      village: 'cuddalore', pincode: '606108',
+    };
+    const input = {
+      role: 'trader', mobile_number: '2222222222',
+      ...(nested ? { location: { ...address, subdistrict: 'Vadapathy', latitude: 11.54462829, longitude: 78.93256254 } }
+        : { ...address, sub_distric: 'Vadapathy', coordinates: { type: 'Point', coordinates: [78.93256254, 11.54462829] } }),
+    };
+    await service.registerkrishivanUser(input);
+    const payload = calls.external[0];
+    for (const [field, value] of Object.entries(address)) assert.equal(payload[field], value);
+    assert.equal(payload.sub_distric, 'Vadapathy');
+    assert.equal(payload.coordinates.type, 'Point');
+    assert.equal(payload.coordinates.coordinates[0], 78.93256254);
+    assert.equal(payload.coordinates.coordinates[1], 11.54462829);
+    assert.equal(input.location?.sub_distric, undefined);
   }
 });
 
