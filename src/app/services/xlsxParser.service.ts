@@ -128,6 +128,49 @@ class XLSXParserService {
   }
 
   /**
+   * Remove rows whose phone number already appeared earlier in the sheet.
+   * Numbers are compared on their last 10 digits, so "+91 98765 43210",
+   * "919876543210" and "09876543210" count as the same farmer.
+   * Rows without a phone number are kept as-is.
+   */
+  removeDuplicatePhoneRows(
+    fileBuffer: Buffer,
+    bookType: XLSX.BookType = 'xlsx'
+  ): { buffer: Buffer; total: number; removed: number } {
+    const workbook = XLSX.read(fileBuffer, { type: 'buffer' });
+    const sheetName = workbook.SheetNames[0];
+    const worksheet = sheetName ? workbook.Sheets[sheetName] : undefined;
+    if (!worksheet) return { buffer: fileBuffer, total: 0, removed: 0 };
+
+    const rows: any[][] = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '', raw: false });
+    if (rows.length < 2) return { buffer: fileBuffer, total: Math.max(rows.length - 1, 0), removed: 0 };
+
+    const [headerRow, ...dataRows] = rows;
+    const phoneColumn = this.detectPhoneColumn(headerRow.map((h) => String(h)));
+    if (!phoneColumn) return { buffer: fileBuffer, total: dataRows.length, removed: 0 };
+
+    const phoneIndex = headerRow.findIndex((h) => String(h) === phoneColumn);
+    const seen = new Set<string>();
+    const uniqueRows = dataRows.filter((row) => {
+      const digits = String(row[phoneIndex] ?? '').replace(/\D/g, '');
+      if (!digits) return true;
+
+      const key = digits.slice(-10);
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+
+    const removed = dataRows.length - uniqueRows.length;
+    if (removed === 0) return { buffer: fileBuffer, total: dataRows.length, removed };
+
+    workbook.Sheets[sheetName] = XLSX.utils.aoa_to_sheet([headerRow, ...uniqueRows]);
+    const buffer = XLSX.write(workbook, { type: 'buffer', bookType });
+
+    return { buffer, total: dataRows.length, removed };
+  }
+
+  /**
    * Detect phone number column from headers
    */
   private detectPhoneColumn(headers: string[]): string | null {

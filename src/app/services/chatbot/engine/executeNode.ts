@@ -2,6 +2,7 @@ import axios from 'axios';
 import chatSessionModel from "@surefy/console/app/models/chatSession.model";
 import { buildResponse } from "@surefy/console/utils";
 import { replaceVariables, normalizeRegistrationPhoneNumber } from '@surefy/console/utils';
+import { executeProductMessageNode } from './productSearch';
 import contactTagModel from '@surefy/console/app/models/contactTag.model';
 import contactModel from '@surefy/console/app/models/contact.model';
 import contactTagRelationModel from '@surefy/console/app/models/contactTagRelation.model';
@@ -362,8 +363,11 @@ export const executeNode = async ({
     }
 
     /**
-     *  
-    */
+     * PRODUCT Node (single product or keyword search across the Meta catalog)
+     */
+    if (key === "@whatsapp/send-product-message") {
+        return executeProductMessageNode({ bot, session, currentNode });
+    }
 
     /**
      * NORMAL Message NODES

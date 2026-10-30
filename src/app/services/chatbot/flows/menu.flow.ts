@@ -205,7 +205,7 @@ export const menuFlow = async ({
       message?.type === "document" ||
       message?.type === "video"
     ) {
-      const mediaUrl = await downloadImage(message?.image.id)
+      const mediaUrl = await downloadImage(message?.[message.type]?.id)
       answer = mediaUrl.firebaseUrl;
     }
 
@@ -241,7 +241,8 @@ export const menuFlow = async ({
       session: {
         ...session,
         variables: updatedVariables,
-        current_node_id: nextNode.id
+        current_node_id: nextNode.id,
+        last_message: incomingText
       },
       currentNode: nextNode
     });

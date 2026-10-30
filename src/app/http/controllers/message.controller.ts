@@ -162,9 +162,20 @@ class MessageController {
    * POST /v1/webhook
    * Handle Meta webhook callbacks
    */
-  handleWebhook = tryCatchAsync(async (req: Request, res: Response) => {
-    const { entry } = req.body;
+  handleWebhook = async (req: Request, res: Response) => {
+    // Acknowledge immediately. Meta redelivers the same event if we don't answer
+    // in time, and slow work (media download, FPO lead import, chatbot HTTP nodes)
+    // was making the whole flow run again for every redelivery.
+    res.status(200).json({ success: true });
 
+    try {
+      await this.processWebhookPayload(req.body);
+    } catch (error) {
+      console.error('❌ Webhook processing error:', error);
+    }
+  };
+
+  private processWebhookPayload = async ({ entry }: any) => {
     console.log('JSON stringify',JSON.stringify(entry))
 
     for (const item of entry || []) {
@@ -184,105 +195,114 @@ class MessageController {
 
           // Handle incoming messages
           for (const message of value.messages || []) {
-            if(message.type === 'order' && message.order && Array.isArray(message.order.product_items)){
-               message.productItems = message.order.product_items
-               await MessageService.processIncomingOrderMessage({ ...message, phone_number_id: value.metadata.phone_number_id })
-            }
-
-            console.log('message',message)
-
-            await MessageService.saveIncomingMessage({
-              phone_number_id: value.metadata.phone_number_id,
-              profile_name: value.contacts?.[0]?.profile?.name || "",
-              message_id: message.id,
-              from: message.from,
-              type: message.type,
-              content: message,
-              context: message?.context?.id,
-            });
-
-            const document = message.document;
-            const filename = String(document?.filename || '').toLowerCase();
-            const isSpreadsheet = message.type === 'document' && Boolean(document?.id) && (
-              [
-                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                'application/vnd.ms-excel',
-                'text/csv',
-                'application/csv',
-              ].includes(document?.mime_type) ||
-              /\.(xlsx|xls|csv)$/.test(filename)
-            );
-
-            if (isSpreadsheet) {
-              try {
-                const media = await MetaService.downloadMediaBuffer(document.id);
-                const result = await AuthService.importFpoLeads(
-                  media.buffer,
-                  value.metadata.phone_number_id,
-                  message.from
-                );
-
-                const roleSummary = Object.entries(result.role_counts || {})
-                  .map(([role, count]) => {
-                    const roleName = role
-                      .replace(/_/g, ' ')
-                      .replace(/\b\w/g, (character) => character.toUpperCase());
-                    return `${count} ${roleName}`;
-                  })
-                  .join('\n');
-
-                await MessageService.sendChatBotMessage(
-                  value.metadata.phone_number_id,
-                  message.from,
-                  {
-                    type: 'text',
-                    text: [
-                      roleSummary || 'No leads were imported.',
-                      result.failed_count > 0
-                        ? `${result.failed_count} row(s) could not be imported. Please correct the file and upload it again.`
-                        : '',
-                    ].filter(Boolean).join('\n'),
-                  }
-                );
-
-                // A continuation failure must not report a successful import as a failed import.
-                try {
-                  const nextResponse = await resumeAfterFpoLeadImport({
-                    phoneNumberId: value.metadata.phone_number_id,
-                    phone: message.from,
-                    document,
-                    result,
-                  });
-                  if (nextResponse) {
-                    await MessageService.sendChatBotMessage(value.metadata.phone_number_id, message.from, nextResponse);
-                  }
-                } catch (error: any) {
-                  console.error('FPO leads imported but chatbot continuation failed:', error?.message || error);
-                }
-              } catch (error: any) {
-                console.error('FPO lead Excel import failed:', error?.message || error);
-                await MessageService.sendChatBotMessage(
-                  value.metadata.phone_number_id,
-                  message.from,
-                  {
-                    type: 'text',
-                    text: 'We could not process this Excel file. Please use the FPO lead template and try again.',
-                  }
-                );
-              }
-
-              // A spreadsheet is handled as a lead import, not as chatbot input.
+            // Skip redeliveries of a message we've already started handling
+            const isFirstDelivery = await MessageService.claimInboundMessage(message.id);
+            if (!isFirstDelivery) {
+              console.log(`⏭️ Duplicate webhook delivery skipped: ${message.id}`);
               continue;
             }
 
-            await handleIncomingMessageChatBot(value.metadata.phone_number_id,message,value.contacts?.[0]?.profile?.name)
+            // Handle one sender's messages in order so chatbot sessions don't race
+            MessageService.runInSenderQueue(message.from, async () => {
+              if(message.type === 'order' && message.order && Array.isArray(message.order.product_items)){
+                 message.productItems = message.order.product_items
+                 await MessageService.processIncomingOrderMessage({ ...message, phone_number_id: value.metadata.phone_number_id })
+              }
+
+              console.log('message',message)
+
+              await MessageService.saveIncomingMessage({
+                phone_number_id: value.metadata.phone_number_id,
+                profile_name: value.contacts?.[0]?.profile?.name || "",
+                message_id: message.id,
+                from: message.from,
+                type: message.type,
+                content: message,
+                context: message?.context?.id,
+              });
+
+              const document = message.document;
+              const filename = String(document?.filename || '').toLowerCase();
+              const isSpreadsheet = message.type === 'document' && Boolean(document?.id) && (
+                [
+                  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                  'application/vnd.ms-excel',
+                  'text/csv',
+                  'application/csv',
+                ].includes(document?.mime_type) ||
+                /\.(xlsx|xls|csv)$/.test(filename)
+              );
+
+              if (isSpreadsheet) {
+                try {
+                  const media = await MetaService.downloadMediaBuffer(document.id);
+                  const result = await AuthService.importFpoLeads(
+                    media.buffer,
+                    value.metadata.phone_number_id,
+                    message.from
+                  );
+
+                  const roleSummary = Object.entries(result.role_counts || {})
+                    .map(([role, count]) => {
+                      const roleName = role
+                        .replace(/_/g, ' ')
+                        .replace(/\b\w/g, (character) => character.toUpperCase());
+                      return `${count} ${roleName}`;
+                    })
+                    .join('\n');
+
+                  await MessageService.sendChatBotMessage(
+                    value.metadata.phone_number_id,
+                    message.from,
+                    {
+                      type: 'text',
+                      text: [
+                        roleSummary || 'No leads were imported.',
+                        result.failed_count > 0
+                          ? `${result.failed_count} row(s) could not be imported. Please correct the file and upload it again.`
+                          : '',
+                      ].filter(Boolean).join('\n'),
+                    }
+                  );
+
+                  // A continuation failure must not report a successful import as a failed import.
+                  try {
+                    const nextResponse = await resumeAfterFpoLeadImport({
+                      phoneNumberId: value.metadata.phone_number_id,
+                      phone: message.from,
+                      document,
+                      result,
+                    });
+                    if (nextResponse) {
+                      await MessageService.sendChatBotMessage(value.metadata.phone_number_id, message.from, nextResponse);
+                    }
+                  } catch (error: any) {
+                    console.error('FPO leads imported but chatbot continuation failed:', error?.message || error);
+                  }
+                } catch (error: any) {
+                  console.error('FPO lead Excel import failed:', error?.message || error);
+                  await MessageService.sendChatBotMessage(
+                    value.metadata.phone_number_id,
+                    message.from,
+                    {
+                      type: 'text',
+                      text: 'We could not process this Excel file. Please use the FPO lead template and try again.',
+                    }
+                  );
+                }
+
+                // A spreadsheet is handled as a lead import, not as chatbot input.
+                return;
+              }
+
+              await handleIncomingMessageChatBot(value.metadata.phone_number_id,message,value.contacts?.[0]?.profile?.name)
+            });
           }
         }
       }
     }
 
-    return res.status(200).json({ success: true });
-  });
+  };
 
   /**
    * GET /v1/webhook

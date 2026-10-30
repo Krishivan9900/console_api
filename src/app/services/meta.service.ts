@@ -5,6 +5,75 @@ import fs from 'fs';
 import path from 'path';
 import { ProductVariant } from '../interfaces/catalog.interface';
 import { productGroups } from '../interfaces/catalog.interface';
+import XLSXParserService from './xlsxParser.service';
+import type { BookType } from 'xlsx';
+
+const MEDIA_EXTENSIONS: Record<string, string> = {
+  'image/jpeg': 'jpg',
+  'image/png': 'png',
+  'image/webp': 'webp',
+  'video/mp4': 'mp4',
+  'audio/ogg': 'ogg',
+  'audio/mpeg': 'mp3',
+  'application/pdf': 'pdf',
+  'text/csv': 'csv',
+  'application/vnd.ms-excel': 'xls',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'xlsx',
+};
+
+// Meta rejects product_list messages with more than 30 items / 10 sections (#131009)
+export const PRODUCT_LIST_MAX_ITEMS = 28;
+const PRODUCT_LIST_MAX_SECTIONS = 10;
+
+/**
+ * Trim a product_list payload to what Meta accepts: remove duplicate/empty items,
+ * keep at most PRODUCT_LIST_MAX_ITEMS products and drop sections left empty.
+ * Any other payload is returned untouched.
+ */
+export function limitProductListItems(payload: any): any {
+  const interactive = payload?.interactive;
+  if (interactive?.type !== 'product_list' || !Array.isArray(interactive.action?.sections)) {
+    return payload;
+  }
+
+  const seen = new Set<string>();
+  const sections: any[] = [];
+  let total = 0;
+  let kept = 0;
+
+  for (const section of interactive.action.sections) {
+    const items: any[] = [];
+    for (const item of section?.product_items || []) {
+      const id = item?.product_retailer_id;
+      if (!id || seen.has(id)) continue;
+      seen.add(id);
+      total++;
+      if (kept < PRODUCT_LIST_MAX_ITEMS && sections.length < PRODUCT_LIST_MAX_SECTIONS) {
+        items.push(item);
+        kept++;
+      }
+    }
+    if (items.length > 0) sections.push({ ...section, product_items: items });
+  }
+
+  if (kept < total) {
+    console.warn(`⚠️ product_list trimmed: sending ${kept} of ${total} products`);
+  }
+
+  return {
+    ...payload,
+    interactive: {
+      ...interactive,
+      action: { ...interactive.action, sections },
+    },
+  };
+}
+
+const SPREADSHEET_BOOK_TYPES: Record<string, BookType> = {
+  'text/csv': 'csv',
+  'application/vnd.ms-excel': 'biff8',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'xlsx',
+};
 
 
 class MetaService {
@@ -30,6 +99,7 @@ class MetaService {
    * Send a message via WhatsApp Business API
    */
   async sendMessage(phoneNumberId: string, payload: any): Promise<any> {
+    payload = limitProductListItems(payload);
     try {
       const response = await this.client.post(`/${phoneNumberId}/messages`, payload);
       return response.data;
@@ -60,17 +130,31 @@ class MetaService {
         },
       });
 
-      const buffer = Buffer.from(downloadRes.data);
+      let buffer = Buffer.from(downloadRes.data);
+      const mimeType: string = (mediaRes.data.mime_type || 'image/jpeg').split(';')[0].trim();
+      const extension = MEDIA_EXTENSIONS[mimeType] || 'jpg';
+
+      // Spreadsheets (e.g. FPO farmer import): drop repeated phone numbers before anyone reads the file
+      const spreadsheetBookType = SPREADSHEET_BOOK_TYPES[mimeType];
+      if (spreadsheetBookType) {
+        try {
+          const result = XLSXParserService.removeDuplicatePhoneRows(buffer, spreadsheetBookType);
+          buffer = result.buffer;
+          console.log(`🧹 Spreadsheet rows: ${result.total}, duplicate phone rows removed: ${result.removed}`);
+        } catch (error: any) {
+          console.error('Spreadsheet dedupe skipped:', error.message);
+        }
+      }
 
       // Step 3: Create filename
-      const fileName = `${mediaId}_${Date.now()}.jpg`;
+      const fileName = `${mediaId}_${Date.now()}.${extension}`;
 
       // Step 4: Upload to Firebase Storage
       const file = bucket.file(fileName);
 
       await file.save(buffer, {
         metadata: {
-          contentType: 'image/jpeg',
+          contentType: mimeType,
         },
       });
 
@@ -94,7 +178,7 @@ class MetaService {
         firebaseUrl,
         filename: fileName,
         path: filePath,
-        mime_type: 'image/jpeg',
+        mime_type: mimeType,
       };
 
       console.log("📦 Image record:", imageRecord);
@@ -511,6 +595,28 @@ class MetaService {
   // fallback
   throw error
     }
+  }
+
+  /**
+   * Get every product in a catalog (follows Meta pagination)
+   */
+  async getAllCatalogProducts(catalogId: string): Promise<any[]> {
+    const products: any[] = [];
+    let response = await this.client.get(`/${catalogId}/products`, {
+      params: {
+        fields: 'id,name,description,retailer_id,brand,category,price,availability,review_status,image_url',
+        limit: 100,
+      },
+    });
+
+    for (let page = 0; page < 50; page++) {
+      products.push(...(response.data?.data || []));
+      const next = response.data?.paging?.next;
+      if (!next) break;
+      response = await axios.get(next);
+    }
+
+    return products;
   }
 
   /**

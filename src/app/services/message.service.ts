@@ -18,9 +18,53 @@ import { v4 as uuidv4, validate as uuidValidate } from "uuid";
 import messageModel from '@surefy/console/models/message.model';
 import userModel from '../models/user.model';
 import AuthService from './auth.service';
+import { redisConnection } from '@surefy/config/redis.config';
 
+const INBOUND_DEDUPE_TTL_SECONDS = 60 * 60 * 24;
 
 class MessageService {
+  private senderQueues = new Map<string, Promise<void>>();
+
+  /**
+   * Returns true only for the first delivery of a WhatsApp message (wamid).
+   * Meta redelivers webhooks, so later deliveries of the same wamid must be ignored.
+   */
+  async claimInboundMessage(wamid: string): Promise<boolean> {
+    if (!wamid) return true;
+
+    try {
+      const result = await redisConnection.set(
+        `wa:inbound:${wamid}`,
+        '1',
+        'EX',
+        INBOUND_DEDUPE_TTL_SECONDS,
+        'NX'
+      );
+      return result === 'OK';
+    } catch (error) {
+      console.error('Redis dedupe failed, falling back to DB check:', error);
+      const existing = await MessageModel.findByWamid(wamid);
+      return !existing;
+    }
+  }
+
+  /**
+   * Run tasks for the same sender one after another (in arrival order)
+   */
+  runInSenderQueue(sender: string, task: () => Promise<void>): Promise<void> {
+    const previous = this.senderQueues.get(sender) || Promise.resolve();
+    const current = previous
+      .then(task)
+      .catch((error) => console.error(`❌ Inbound message processing failed for ${sender}:`, error));
+
+    this.senderQueues.set(sender, current);
+    current.finally(() => {
+      if (this.senderQueues.get(sender) === current) this.senderQueues.delete(sender);
+    });
+
+    return current;
+  }
+
   /**
    * Calculate message cost (simplified pricing)
    */
