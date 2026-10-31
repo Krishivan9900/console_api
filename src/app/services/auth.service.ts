@@ -19,6 +19,7 @@ import contactModel from '../models/contact.model';
 import { PhoneNumber } from 'libphonenumber-js';
 import { getRegistrationLocation, normalizeRegistrationData, normalizeRegistrationPhoneNumber, normalizeRole } from '../../utils';
 import * as XLSX from 'xlsx';
+import { FPO_LEAD_IMPORT_COLUMNS, parseFpoLeadImport } from './fpoLeadImportFormat';
 
 interface LoginCredentials {
   identifier: string; // email or phone
@@ -1058,44 +1059,12 @@ class AuthService {
       onProgress: (result: any) => Promise<void>;
     }
   ) {
+    const { rows } = parseFpoLeadImport(file);
     const phoneNumber = await phoneNumberModel.findByPhoneNumberId(phoneNumberId);
 
     if (!phoneNumber) {
       throw new HTTP400Error({
         message: 'Invalid phone_number_id',
-      });
-    }
-
-    const workbook = Buffer.isBuffer(file)
-      ? XLSX.read(file, {
-        type: 'buffer',
-        cellText: true,
-        cellDates: true,
-      })
-      : XLSX.readFile(file, {
-        cellText: true,
-        cellDates: true,
-      });
-
-    const firstSheet = workbook.SheetNames[0];
-
-    if (!firstSheet) {
-      throw new HTTP400Error({
-        message: 'The Excel file does not contain a worksheet',
-      });
-    }
-
-    const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(
-      workbook.Sheets[firstSheet],
-      {
-        defval: '',
-        raw: false,
-      }
-    );
-
-    if (!rows.length) {
-      throw new HTTP400Error({
-        message: 'The Excel file does not contain any lead rows',
       });
     }
 
@@ -1312,7 +1281,7 @@ class AuthService {
       },
     ];
 
-    const worksheet = XLSX.utils.json_to_sheet(rows);
+    const worksheet = XLSX.utils.json_to_sheet(rows, { header: [...FPO_LEAD_IMPORT_COLUMNS] });
     worksheet['!cols'] = Object.keys(rows[0]).map((key) => ({ wch: Math.max(key.length + 2, 18) }));
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'FPO Leads');

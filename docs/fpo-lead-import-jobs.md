@@ -10,6 +10,30 @@ The file travels in the job as base64, so API nodes and workers can run on
 different machines without sharing an upload folder. Only the first worksheet
 is imported, matching the existing FPO importer.
 
+## Required sample format
+
+Every upload must contain exactly the sample's column headings:
+
+```text
+phone_number, name, email, role, native_language, address, village,
+subdistrict, district, state, pincode, latitude, longitude
+```
+
+Keep all headings even when optional values such as email or coordinates are
+blank. Column order, capitalization, spaces, underscores and hyphens may vary;
+the column names must otherwise match the sample. Alternate names such as
+`Mobile Number`, extra FPO-number columns, duplicate headings, unnamed columns
+with data and missing columns are rejected. Use `phone_number` for the farmer's
+number; the parent FPO still comes from the WhatsApp sender.
+
+Validation runs before a job is created or any farmer is registered, and again
+inside the worker. WhatsApp responds with “Please upload the Excel file in the
+sample format” and the column issues; direct API uploads return HTTP 400.
+An invalid file imports no contacts and leaves the conversation at the upload
+question. Correctly formatted files retain existing per-row validation and
+partial-import reporting. The generated sample and all saved sample workbooks
+use the same column list.
+
 ## Running
 
 Set `REDIS_URL` in `.env` on **every API node and worker**, using the same Redis
@@ -70,8 +94,8 @@ process existing ordinary contact imports.
 - Excel templates do not contain an FPO phone-number column. For WhatsApp
   uploads the parent FPO is looked up using Meta's `messages[].from` (the sender
   who uploaded the file). Meta's receiving business `phone_number_id` identifies
-  the bot/company, not the parent FPO. Older sheets containing FPO-number
-  columns are accepted, but those cells cannot override the uploader mapping.
+  the bot/company, not the parent FPO. Sheets containing FPO-number columns are
+  now rejected as outside the sample format; they cannot override the uploader.
 
 ## API imports and job status
 

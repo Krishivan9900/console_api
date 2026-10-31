@@ -9,7 +9,8 @@ function parseData(value: any) {
 export async function getRuntimeBot(phoneNumberId: string, chatbotId?: string, text?: string) {
   const bot = chatbotId
     ? await chatBotModel.getPublishedBotByPhoneNumber(phoneNumberId, chatbotId)
-    : text ? await chatBotModel.getPublishedBotByTrigger(phoneNumberId, text) : null;
+    : text ? await chatBotModel.getPublishedBotByTrigger(phoneNumberId, text)
+    : await chatBotModel.getPublishedBotByPhoneNumber(phoneNumberId);
   if (!bot) return null;
 
   const [nodes, edges] = await Promise.all([

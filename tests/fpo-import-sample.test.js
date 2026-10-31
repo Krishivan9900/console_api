@@ -5,6 +5,7 @@ const vm = require('node:vm');
 const { test } = require('node:test');
 const ts = require('typescript');
 const XLSX = require('xlsx');
+const { fpoFormat } = require('./helpers/fpo-import-runtime');
 
 function service(file, methods, globals) {
   const source = ts.createSourceFile(file, fs.readFileSync(path.join(__dirname, '../src/app/services', file), 'utf8'), ts.ScriptTarget.Latest, true);
@@ -18,7 +19,7 @@ function service(file, methods, globals) {
 
 function runtime(options = {}) {
   const events = [];
-  const auth = service('auth.service.ts', ['generateFpoLeadsTemplate'], { XLSX });
+  const auth = service('auth.service.ts', ['generateFpoLeadsTemplate'], { XLSX, ...fpoFormat });
   const sender = service('message.service.ts', ['sendChatBotMessage'], {
     AuthService: auth,
     PhoneNumberModel: { findByPhoneNumberId: async () => ({ id: 'local-number', user_id: 'owner', company_id: 'company' }) },
@@ -49,6 +50,7 @@ test('all saved FPO sample spreadsheets omit the parent FPO phone column', () =>
     for (const sheet of Object.values(workbook.Sheets)) {
       const headers = XLSX.utils.sheet_to_json(sheet, { header: 1 })[0];
       assert(headers.includes('phone_number'));
+      assert.deepEqual(headers, Array.from(fpoFormat.FPO_LEAD_IMPORT_COLUMNS));
       assert(!headers.some(header => /^fpo(?:phone)?number$/i.test(String(header).replace(/[ _-]/g, ''))), file);
     }
   }

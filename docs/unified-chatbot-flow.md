@@ -4,7 +4,7 @@ Import or save [`krishivan-unified.flow.json`](../krishivan-unified.flow.json) i
 
 ```mermaid
 flowchart TD
-  A[Hii / hi / hello / menu / service keywords] --> B[Check sender in the users database]
+  A[Any first text / saved restart keywords] --> B[Check sender in the users database]
   B -->|Registered| C[Choose service language]
   B -->|Confirmed missing| D[Choose registration language and role]
   B -->|Lookup failed| E[Show lookup error]
@@ -32,6 +32,17 @@ flowchart TD
 
 The single trigger owns these keywords: `hii`, `hi`, `hello`, `hey`, `hii i need help`, `hii i want to register under`, `register`, `registration`, `menu`, `services`, `order`, `booking`, and `ai`. Every keyword starts the same database check and hub. Typing `menu` restarts that check; it does not submit an order. A keyword such as `order` opens the hub rather than automatically submitting a booking.
 
+Any non-empty first text now starts a published chatbot even when it does not
+match a saved keyword. The runtime first checks existing keyword flows, then an
+active conversation, and finally the most recently updated published flow with
+an active trigger on the receiving WhatsApp number. Deleted or unpublished flows
+are excluded from this fallback. Existing menu replies and ordinary answers in
+an active flow continue their current step; they do not become new starts. Empty
+text and unmatched media/button replies do not start a fallback conversation.
+An arbitrary first message containing a phone number is not treated as an FPO
+referral; the existing keyword-based referral messages retain that behavior.
+This change requires the updated API, with no flow reimport or database migration.
+
 English, Hindi, and Telugu registration retain all eight supplied roles. After FPO registration, the original welcome is followed by **"Please Import excel file for onboarding fpo leads"** and the real **`fpo_leads_import_sample.xlsx`** attachment. The flow waits for the completed spreadsheet. After a fully successful import, the role summary is followed by the same services menu in the selected language. Failed or partial imports remain at the upload step. Other roles continue directly from their welcome to services. Existing users choose a service language. GST validation still uses the supplied AWS GST verification endpoint; registration, local user lookup, and catalog search use `https://console-api-z4hc.onrender.com`.
 
 The exact English upload prompt is retained for all three FPO paths because the existing message sender recognizes it and attaches the sample. The English path reuses the original upload-question node. Order/booking, AI menus, catalog search, and cart processing retain their previous behavior.
@@ -42,7 +53,7 @@ When GST verification returns a usable company contact email, the flow includes 
 
 Registration stores role and language values in English in both the raw registration record and the user record. For example, `किसान` and `రైతు` become `farmer`; `हिंदी` becomes `hindi`, and `తెలుగు`/`తెలుగులో` become `telugu`. The welcome message, account field labels, role display, and login instructions follow the selected Hindi, Telugu, or English language. Company names, GSTIN, PAN, email, phone numbers, and user-entered names or addresses retain their original values. Deploy the changes to `utils.ts` and `auth.service.ts` to enable this behavior; the saved flow uses `{{registration_welcome}}` without requiring another import.
 
-Location fields are taken from the Excel row or address data already supplied during registration. No geocoding service is used. The import accepts title-case headings such as `Mobile Number` and `Sub District`, as well as the sample's lowercase headings such as `phone_number` and `subdistrict`. Heading matching ignores spaces, underscores, hyphens, and capitalization.
+Location fields are taken from the Excel row or address data already supplied during registration. No geocoding service is used. Excel uploads must include exactly the column names in the sample, with optional values allowed to be blank. Heading matching ignores spaces, underscores, hyphens, and capitalization, so `Phone Number` and `Sub District` match `phone_number` and `subdistrict`. Missing, duplicate or extra columns reject the entire file before importing any rows; see [the required sample format](fpo-lead-import-jobs.md#required-sample-format).
 
 | Excel field | Registration API field | PostgreSQL JSON field |
 | --- | --- | --- |

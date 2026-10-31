@@ -61,6 +61,7 @@ export async function handleIncomingMessageChatBot(phoneNumberId: any, message: 
       : null;
 
     const triggerMatched = !isMenuReply && Boolean(bot);
+    let startOnAnyText = false;
 
     if (triggerMatched) {
       await chatSessionModel.deactivateOtherBots(phone, phoneNumberId, bot.id);
@@ -68,6 +69,13 @@ export async function handleIncomingMessageChatBot(phoneNumberId: any, message: 
       console.info('[Chatbot Routing] No keyword flow selected; checking active session', { phoneNumberId });
       const activeSession = replySession || await chatSessionModel.findActiveByPhoneNumberId(phone, phoneNumberId);
       bot = replyBot || (activeSession ? await getRuntimeBot(phoneNumberId, activeSession.chatbot_id) : null);
+      // Use any non-empty first text as a start message. Answers in an active
+      // flow and saved menu replies keep their existing routing.
+      if (!bot && message.type === 'text' && incomingText && !incomingId) {
+        bot = await getRuntimeBot(phoneNumberId);
+        startOnAnyText = Boolean(bot);
+        if (bot) await chatSessionModel.deactivateOtherBots(phone, phoneNumberId, bot.id);
+      }
       if (!bot) return null;
     }
 
@@ -123,6 +131,7 @@ export async function handleIncomingMessageChatBot(phoneNumberId: any, message: 
       incomingId,
       message,
       triggerMatched,
+      startOnAnyText,
       phoneNumberId
     })
 

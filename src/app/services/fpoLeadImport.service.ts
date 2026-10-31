@@ -1,4 +1,3 @@
-import * as XLSX from 'xlsx';
 import { v4 as uuidv4, v5 as uuidv5 } from 'uuid';
 import AuthService from './auth.service';
 import MessageService from './message.service';
@@ -7,6 +6,7 @@ import ChatSessionModel from '../models/chatSession.model';
 import ImportJobModel from '../models/importJob.model';
 import { contactImportQueue, FpoLeadImportJobData } from '../../queues/contactImport.queue';
 import { resumeAfterFpoLeadImport } from './chatbot/fpoImport.flow';
+import { parseFpoLeadImport } from './fpoLeadImportFormat';
 
 export const FPO_IMPORT_QUEUE_THRESHOLD = 10;
 
@@ -22,10 +22,7 @@ export async function submitFpoLeadImport({ file, phoneNumberId, uploadingFpoPho
   const existing = await ImportJobModel.findById(jobId);
   if (existing) return { queued: existing.status === 'queued' || existing.status === 'processing', job_id: jobId, duplicate: true };
 
-  const workbook = XLSX.read(file, { type: 'buffer', cellText: true, cellDates: true });
-  const sheet = workbook.Sheets[workbook.SheetNames[0]];
-  const rows = sheet ? XLSX.utils.sheet_to_json(sheet, { defval: '', raw: false }) : [];
-  if (!rows.length) throw new Error('The Excel file does not contain any lead rows');
+  const { rows } = parseFpoLeadImport(file);
   const phoneNumber = await PhoneNumberModel.findByPhoneNumberId(phoneNumberId);
   if (!phoneNumber) throw new Error('Invalid phone_number_id');
   if (!uploadingFpoPhone) throw new Error('Uploading FPO phone number is required');
@@ -180,7 +177,8 @@ export async function failFpoLeadImport(data: FpoLeadImportJobData, error: Error
   await ImportJobModel.markAsFailed(data.jobId, error);
   if (data.document && await ImportJobModel.claimFpoNotification(data.jobId, 'failure')) {
     await MessageService.sendChatBotMessage(data.phoneNumberId, data.uploadingFpoPhone, {
-      type: 'text', text: 'We could not finish this Excel import. Please check the import job results before uploading it again.',
+      type: 'text', text: (error as any).details?.code === 'FPO_IMPORT_FORMAT' ? error.message
+        : 'We could not finish this Excel import. Please check the import job results before uploading it again.',
     });
   }
 }

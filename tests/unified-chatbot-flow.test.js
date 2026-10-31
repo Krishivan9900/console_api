@@ -115,7 +115,10 @@ function runtime({ registered = true, override, bot = flow } = {}) {
   const { triggerFlow } = loadModule('src/app/services/chatbot/flows/trigger.flow.ts', {
     '@surefy/console/app/models/chatSession.model': model,
     '@surefy/console/app/models/user.model': { findByPhone: async () => null },
-    '@surefy/console/app/models/chatbot.model': { getPublishedBotByTrigger: async (_number, text) => triggeredBot(text) },
+    '@surefy/console/app/models/chatbot.model': {
+      getPublishedBotByTrigger: async (_number, text) => triggeredBot(text),
+      getPublishedBotByPhoneNumber: async (number, id) => number === session.phoneNumberId && (!id || id === bot.id) ? bot : null,
+    },
     '../engine/executeNode': { executeNode },
   });
   const { flowRouter } = loadModule('src/app/services/chatbot/flow.router.ts', {
@@ -124,7 +127,7 @@ function runtime({ registered = true, override, bot = flow } = {}) {
   });
   const { handleIncomingMessageChatBot } = loadModule('src/app/services/chatbot/chatbot.service.ts', {
     '@surefy/console/app/models/chatSession.model': model,
-    './runtimeBot': { getRuntimeBot: async (_number, botId, text) => botId ? bot : triggeredBot(text) },
+    './runtimeBot': { getRuntimeBot: async (_number, botId, text) => botId || !text ? bot : triggeredBot(text) },
     '@surefy/console/services/message.service': { sendChatBotMessage: async () => {} },
     nodemailer: { createTransport: () => ({}) }, './flow.router': { flowRouter },
     '@surefy/console/models/contact.model': { findByPhone: async () => ({ id: 'contact' }) },
@@ -396,6 +399,22 @@ test('GSM booking offers matching names and related tarps in all languages witho
     const ids = Array.from(sections.flatMap(section => section.product_items), item => item.product_retailer_id);
     assert.deepEqual(ids, ['retailer-1', 'related-tarp']);
     assert(ids.length < 30);
+    assert.equal(rt.current().data.attributes.variable, 'product_name');
+  }
+});
+
+test('an arbitrary first message opens the real flow and subsequent product answers do not restart it', async () => {
+  for (const text of ['Good morning', 'నమస్కారం', 'नमस्ते']) {
+    const rt = runtime();
+    rt.session.active = false;
+    const response = await rt.receive({ type: 'text', text: { body: text } });
+    assert.equal(messages(response).filter(message => message?.interactive?.type === 'button').length, 1);
+    assert.equal(rt.restarts(), 1);
+    await rt.click('en');
+    await rt.click('booking');
+    const products = await rt.receive({ type: 'text', text: { body: 'GSM' } });
+    assert.equal(products.interactive.type, 'product_list');
+    assert.equal(rt.restarts(), 1);
     assert.equal(rt.current().data.attributes.variable, 'product_name');
   }
 });

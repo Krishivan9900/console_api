@@ -7,12 +7,14 @@ export const triggerFlow = async ({
     bot,
     phone,
     incomingText,
-    phoneNumberId
+    phoneNumberId,
+    startOnAnyText = false
 }: {
     bot: any;
     phone: string;
     incomingText: string;
     phoneNumberId: string;
+    startOnAnyText?: boolean;
 }) => {
 
     console.log("Trigger Flow", phone, incomingText);
@@ -52,10 +54,9 @@ export const triggerFlow = async ({
     console.log("Trigger Node:", triggerNode.id);
 
     // Check trigger words
-    const matchedBot = await chatBotModel.getPublishedBotByTrigger(
-        phoneNumberId,
-        incomingText
-    );
+    const matchedBot = startOnAnyText && incomingText.trim()
+        ? await chatBotModel.getPublishedBotByPhoneNumber(phoneNumberId, bot.id)
+        : await chatBotModel.getPublishedBotByTrigger(phoneNumberId, incomingText);
 
     if (!matchedBot || matchedBot.id !== bot.id) {
         console.log("Trigger not matched");
@@ -69,7 +70,7 @@ export const triggerFlow = async ({
      * "Hi I want to register under 8888888888"
      * "register 919876543210"
      */
-    const numberMatch = incomingText.match(/\d{10,13}/);
+    const numberMatch = startOnAnyText ? null : incomingText.match(/\d{10,13}/);
     console.log("Number Match", numberMatch)
 
     if (numberMatch) {

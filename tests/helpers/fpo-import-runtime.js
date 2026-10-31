@@ -16,9 +16,17 @@ function moduleFrom(file, mocks) {
   return exports;
 }
 
+const fpoFormat = moduleFrom('src/app/services/fpoLeadImportFormat.ts', {
+  xlsx: XLSX,
+  '@surefy/exceptions/HTTP400Error': class extends Error {
+    constructor({ message, details }) { super(message); this.details = details; this.statusCode = 400; }
+  },
+});
+
 function excelFile(count) {
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(Array.from({ length: count }, (_, i) => ({
+    ...Object.fromEntries(fpoFormat.FPO_LEAD_IMPORT_COLUMNS.map(column => [column, ''])),
     phone_number: `98765${String(i).padStart(5, '0')}`, name: `Farmer ${i}`, role: 'farmer',
   }))), 'Farmers');
   return XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
@@ -81,7 +89,7 @@ function runtime(options = {}) {
   const auth = vm.runInNewContext(ts.transpileModule(`new class { ${importMethod.getText(authSource)} }`, {
     compilerOptions: { target: ts.ScriptTarget.ES2020 },
   }).outputText, {
-    XLSX, Buffer, HTTP400Error: class extends Error { constructor({ message }) { super(message); } },
+    XLSX, Buffer, ...fpoFormat, HTTP400Error: class extends Error { constructor({ message }) { super(message); } },
     phoneNumberModel: { findByPhoneNumberId: async () => ({ user_id: 'owner', company_id: 'company' }) },
     userModel: { findByPhone: async () => ({ id: 'fpo', user_id: 'external-fpo', phone }), update: async () => {} },
     storesSessionModel: { create: async data => { calls.rows.push(data); return { id: `stored-${calls.rows.length}` }; } },
@@ -105,6 +113,7 @@ function runtime(options = {}) {
     '../models/phoneNumber.model': { findByPhoneNumberId: async () => ({ user_id: 'owner', company_id: 'company' }) },
     '../models/chatSession.model': sessions, '../models/importJob.model': jobs,
     '../../queues/contactImport.queue': { contactImportQueue: queue }, './chatbot/fpoImport.flow': flow,
+    './fpoLeadImportFormat': fpoFormat,
   });
   const tasks = [], seen = new Set();
   const source = ts.createSourceFile('controller.ts', fs.readFileSync(path.join(__dirname, '../../src/app/http/controllers/message.controller.ts'), 'utf8'), ts.ScriptTarget.Latest, true);
@@ -118,7 +127,7 @@ function runtime(options = {}) {
       claimInboundMessage: async id => { if (seen.has(id)) return false; seen.add(id); return true; },
       runInSenderQueue: (_sender, task) => { const promise = task(); tasks.push(promise); return promise; },
     },
-    MetaService: { downloadMediaBuffer: async () => ({ buffer: excelFile(options.count || 3) }) },
+    MetaService: { downloadMediaBuffer: async () => ({ buffer: options.file || excelFile(options.count || 3) }) },
     submitFpoLeadImport: service.submitFpoLeadImport,
     handleIncomingMessageChatBot: async (...args) => calls.normal.push(args),
   });
@@ -142,4 +151,4 @@ function runtime(options = {}) {
   };
 }
 
-module.exports = { runtime, excelFile, moduleFrom };
+module.exports = { runtime, excelFile, moduleFrom, fpoFormat };

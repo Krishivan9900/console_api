@@ -72,13 +72,16 @@ class chatBotModel extends BaseModel {
                 phoneNumberId
             )
             .where("chat_bot.published", true)
-            .where("chatbot_triggers.active", true);
+            .where("chatbot_triggers.active", true)
+            .whereNull("chat_bot.deleted_at");
 
         if (chatBotId) {
             query.where("chat_bot.id", chatBotId);
         }
 
-        return query.first();
+        // A number can host several keyword flows. For an unmatched first
+        // message, use its most recently updated published, active flow.
+        return query.orderBy('chat_bot.updated_at', 'desc').orderBy('chat_bot.id', 'asc').first();
     }
 }
 

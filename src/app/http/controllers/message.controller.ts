@@ -249,7 +249,8 @@ class MessageController {
                     message.from,
                     {
                       type: 'text',
-                      text: 'We could not process this Excel file. Please use the FPO lead template and try again.',
+                      text: error?.details?.code === 'FPO_IMPORT_FORMAT' ? error.message
+                        : 'We could not process this Excel file. Please use the FPO lead template and try again.',
                     }
                   );
                 }

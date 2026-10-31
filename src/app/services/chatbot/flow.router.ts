@@ -16,6 +16,7 @@ type FlowRouterParams={
     message:string;
     phoneNumberId:string;
     triggerMatched?: boolean;
+    startOnAnyText?: boolean;
 }
 
 export const flowRouter = async ({ 
@@ -25,22 +26,23 @@ export const flowRouter = async ({
     incomingId,
     message,
     phoneNumberId,
-    triggerMatched = false
+    triggerMatched = false,
+    startOnAnyText = false
 }: FlowRouterParams)=> {
     // Get Session
     console.log("Flow Body",phone,incomingText,incomingId)
-    if (triggerMatched) {
+    if (triggerMatched || startOnAnyText) {
         await chatSessionModel.deactivateActiveSession({ phoneNumber: phone, chatbotId: bot.id, phoneNumberId });
-        return triggerFlow({ bot, phone, incomingText, phoneNumberId });
+        return triggerFlow({ bot, phone, incomingText, phoneNumberId, startOnAnyText });
     }
     const session = await chatSessionModel.findActiveSession({ phoneNumber: phone, chatbotId: bot.id, phoneNumberId })
     console.log('Session',session)
 
     if(session){
-        if (bot.isDefault && incomingText && !incomingId &&
+        if (incomingText && !incomingId &&
             !bot.nodes?.some(node => node.id === session.current_node_id)) {
             await chatSessionModel.deactivateActiveSession({ phoneNumber: phone, chatbotId: bot.id, phoneNumberId });
-            return triggerFlow({ bot, phone, incomingText, phoneNumberId });
+            return triggerFlow({ bot, phone, incomingText, phoneNumberId, startOnAnyText: true });
         }
         return await menuFlow({bot,session,incomingId,incomingText,message})
         // if(session.current_flow === 'form'){

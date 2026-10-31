@@ -4,6 +4,7 @@ const path = require('node:path');
 const vm = require('node:vm');
 const { test } = require('node:test');
 const ts = require('typescript');
+const fpoFormat = require('./helpers/fpo-import-runtime').fpoFormat;
 
 function runtime(existingUser, options = {}) {
   const source = ts.createSourceFile('auth.service.ts', fs.readFileSync(path.join(__dirname, '../src/app/services/auth.service.ts'), 'utf8'), ts.ScriptTarget.Latest, true);
@@ -34,7 +35,7 @@ function runtime(existingUser, options = {}) {
     } },
     HTTP400Error: BadRequest,
     normalizeRegistrationPhoneNumber: require('../src/phone').normalizeRegistrationPhoneNumber,
-    XLSX: require('xlsx'), Buffer,
+    XLSX: require('xlsx'), Buffer, ...fpoFormat,
     phoneNumberModel: { findByPhoneNumberId: async () => ({ company_id: 'company', user_id: 'bot-owner' }) },
     chatSessionModel: { findByPhoneNumber: async () => ({ id: 'chat-session', phoneNumberId: '760184003848443' }) },
     storesSessionModel: { create: async data => { calls.stored.push(data); return { id: 'stored-session' }; } },
@@ -205,9 +206,14 @@ test('older registration payloads resolve the creator from the mapped FPO user_i
 function excelFile(phone = '9869650435', role = 'Trader', fields = {}) {
   const XLSX = require('xlsx');
   const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet([
-    { 'Mobile Number': phone, Name: 'Parth', Role: role, ...fields },
-  ]), 'Leads');
+  const row = { ...Object.fromEntries(fpoFormat.FPO_LEAD_IMPORT_COLUMNS.map(column => [column, ''])),
+    phone_number: phone, name: 'Parth', role };
+  for (const [header, value] of Object.entries(fields)) {
+    const normalize = text => text.toLowerCase().replace(/[\s_-]+/g, '');
+    const canonical = fpoFormat.FPO_LEAD_IMPORT_COLUMNS.find(column => normalize(column) === normalize(header));
+    row[canonical || header] = value;
+  }
+  XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet([row]), 'Leads');
   return XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
 }
 
@@ -227,17 +233,15 @@ test('Excel import registers leads with the mapped FPO external creator ID and l
   assert.equal(calls.parentLookups.length, 0);
 });
 
-test('FPO columns in an older spreadsheet cannot override the WhatsApp uploader parent', async () => {
+test('unexpected FPO columns are rejected before an older spreadsheet can override the uploader parent', async () => {
   const { service, calls } = runtime(undefined, { mappedFpo: {
     id: 'actual-fpo-local-id', user_id: 'actual-fpo-external-id', phone: '919372597458',
   } });
-  const result = await service.importFpoLeads(excelFile('9869650435', 'Farmer', {
+  await assert.rejects(service.importFpoLeads(excelFile('9869650435', 'Farmer', {
     fpo_phone_number: '919999999999', fpo_number: '918888888888', fpo_id: 'wrong-fpo-id',
-  }), 'receiving-number', '919372597458');
-  assert.equal(result.imported_count, 1);
-  assert.equal(calls.external[0].createdById, 'actual-fpo-external-id');
-  assert.equal(calls.stored[0].data.parent_user_id, 'actual-fpo-local-id');
-  assert.equal(calls.stored[0].data.fpo_phone_number, '919372597458');
+  }), 'receiving-number', '919372597458'), /sample format.*Unexpected columns/);
+  assert.equal(calls.external.length, 0);
+  assert.equal(calls.stored.length, 0);
 });
 
 test('Excel location values reach the registration API and both PostgreSQL records without a geocoding request', async () => {

@@ -24,7 +24,8 @@ function loadModule(file, mocks) {
 function bot(id, keyword) {
   return {
     id, user_id: 'owner', flow_type: 'menu', trigger_word: keyword,
-    nodes: [{ id: `${id}-trigger`, type: 'trigger' }, { id: `${id}-first`, type: 'action' }],
+    nodes: [{ id: `${id}-trigger`, type: 'trigger' }, { id: `${id}-first`, type: 'action' },
+      { id: 'waiting-for-name', data: { key: '@whatsapp/ask-question' } }],
     edges: [{ source: `${id}-trigger`, target: `${id}-first` }],
   };
 }
@@ -48,7 +49,12 @@ function runtime(candidates = [bot('bot', 'hii')], initialSessions = []) {
     create: async data => { const session = { id: `created-${sessions.length}`, ...data }; sessions.push(session); return session; },
     update: async (id, data) => Object.assign(sessions.find(session => session.id === id), data),
   };
-  const chatBotModel = { getPublishedBotByTrigger: async (_number, text) => logic.selectTriggeredBot(candidates, text) };
+  const availableBots = number => candidates.filter(candidate =>
+    candidate.published !== false && candidate.active !== false && (candidate.phoneNumberId || 'receiving-number') === number);
+  const chatBotModel = {
+    getPublishedBotByTrigger: async (number, text) => logic.selectTriggeredBot(availableBots(number), text),
+    getPublishedBotByPhoneNumber: async (number, id) => availableBots(number).find(candidate => !id || candidate.id === id),
+  };
   const { triggerFlow } = loadModule('src/app/services/chatbot/flows/trigger.flow.ts', {
     '@surefy/console/app/models/chatSession.model': chatSessionModel,
     '@surefy/console/app/models/user.model': { findByPhone: async () => ({ id: 'fpo', user_id: 'external-fpo' }) },
@@ -67,7 +73,8 @@ function runtime(candidates = [bot('bot', 'hii')], initialSessions = []) {
     '@surefy/console/app/models/chatSession.model': chatSessionModel,
     './runtimeBot': { getRuntimeBot: async (number, id, text) => {
       calls.lookups.push({ number, id, text });
-      return id ? candidates.find(candidate => candidate.id === id) : logic.selectTriggeredBot(candidates, text);
+      return id ? chatBotModel.getPublishedBotByPhoneNumber(number, id)
+        : text ? chatBotModel.getPublishedBotByTrigger(number, text) : chatBotModel.getPublishedBotByPhoneNumber(number);
     } },
     '@surefy/console/services/message.service': { sendChatBotMessage: async (...args) => { calls.sent.push(args); } },
     nodemailer: { createTransport: () => ({}) },
@@ -77,7 +84,7 @@ function runtime(candidates = [bot('bot', 'hii')], initialSessions = []) {
     '../../models/phoneNumber.model': { findByPhoneNumberId: async () => ({ user_id: 'owner', company_id: 'company' }) },
     './trigger.logic': logic,
   });
-  return { handleIncomingMessageChatBot, calls, sessions };
+  return { handleIncomingMessageChatBot, triggerFlow, calls, sessions };
 }
 
 function activeSession(overrides = {}) {
@@ -211,6 +218,127 @@ test('media without text does not look up keywords or restart the session', asyn
   assert.equal(calls.lookups[0].id, 'bot');
   assert.equal(calls.restarted.length, 0);
   assert.equal(calls.menu.length, 1);
+});
+
+test('any non-empty first text starts a published flow without changing its saved keywords', async () => {
+  for (const text of ['Good morning', 'What products do you sell?', 'नमस्ते', 'నమస్కారం', '👍', '1234567890']) {
+    const { handleIncomingMessageChatBot, calls, sessions } = runtime();
+    const response = await handleIncomingMessageChatBot('receiving-number', { from: 'customer', type: 'text', text: { body: text } }, 'Customer');
+    assert.equal(response.text, 'Restarted', text);
+    assert.equal(calls.restarted.length, 1);
+    assert.equal(calls.sent.length, 1);
+    assert.equal(sessions.length, 1);
+    assert.equal(sessions[0].chatbot_id, 'bot');
+    assert.equal(sessions[0].variables.requested_fpo, undefined, 'an arbitrary numeric first message is not an FPO referral');
+  }
+});
+
+test('unmatched first text prefers the active flow over starting another chatbot', async () => {
+  const { handleIncomingMessageChatBot, calls, sessions } = runtime([bot('default', 'hi'), bot('bot', 'hii')], [activeSession()]);
+  const response = await handleIncomingMessageChatBot('receiving-number', {
+    from: 'customer', type: 'text', text: { body: 'Ramesh Kumar' },
+  }, 'Customer');
+  assert.equal(response.text, 'Continued');
+  assert.equal(calls.menu[0].bot.id, 'bot');
+  assert.equal(calls.restarted.length, 0);
+  assert.equal(sessions.length, 1);
+});
+
+test('any text restarts after a completed session and repairs a session pointing to a removed node', async () => {
+  for (const old of [activeSession({ active: false }), activeSession({ current_node_id: 'removed-node' })]) {
+    const { handleIncomingMessageChatBot, calls, sessions } = runtime(undefined, [old]);
+    const result = await handleIncomingMessageChatBot('receiving-number', {
+      from: 'customer', type: 'text', text: { body: 'I would like assistance' },
+    }, 'Customer');
+    assert.equal(result.text, 'Restarted');
+    assert.equal(calls.restarted.length, 1);
+    assert.equal(sessions[0].active, false);
+    assert.equal(sessions[1].active, true);
+  }
+});
+
+test('blank text, unmatched button replies and media do not start a fresh fallback flow', async () => {
+  for (const message of [
+    { type: 'text', text: { body: '  ' } },
+    { type: 'interactive', interactive: { button_reply: { id: 'stale', title: 'Unknown option' } } },
+    { type: 'image', image: { id: 'image' } },
+    { type: 'location', location: { latitude: 12, longitude: 77 } },
+    { type: 'reaction', reaction: { emoji: '👍' } },
+  ]) {
+    const { handleIncomingMessageChatBot, calls, sessions } = runtime();
+    assert.equal(await handleIncomingMessageChatBot('receiving-number', { from: 'customer', ...message }, 'Customer'), null);
+    assert.equal(calls.restarted.length, 0);
+    assert.equal(sessions.length, 0);
+  }
+});
+
+test('fallback starts are restricted to published active flows on the receiving number', async () => {
+  for (const candidates of [[], [bot('other-number', 'hi')].map(b => ({ ...b, phoneNumberId: 'other-number' })),
+    [{ ...bot('draft', 'hi'), published: false }], [{ ...bot('inactive', 'hi'), active: false }]]) {
+    const { handleIncomingMessageChatBot, calls } = runtime(candidates);
+    assert.equal(await handleIncomingMessageChatBot('receiving-number', { from: 'customer', type: 'text', text: { body: 'Anything' } }, 'Customer'), null);
+    assert.equal(calls.restarted.length, 0);
+  }
+  const rt = runtime([{ ...bot('other-number', 'hi'), phoneNumberId: 'other-number' }]);
+  assert.equal(await rt.triggerFlow({ bot: bot('other-number', 'hi'), phone: 'customer',
+    phoneNumberId: 'receiving-number', incomingText: 'Anything', startOnAnyText: true }), null);
+  assert.equal(rt.calls.restarted.length, 0);
+});
+
+test('runtime loads and hydrates the receiving number default only when no keyword lookup was requested', async () => {
+  const calls = [];
+  const model = {
+    getPublishedBotByTrigger: async (number, text) => { calls.push(['keyword', number, text]); return null; },
+    getPublishedBotByPhoneNumber: async (number, id) => { calls.push(['number', number, id]); return bot('default', 'hi'); },
+  };
+  const { getRuntimeBot } = loadModule('src/app/services/chatbot/runtimeBot.ts', {
+    '../../models/chatbot.model': model,
+    '../../models/chatBotNode.model': { findByChatBotId: async () => [{ id: 'trigger', data: JSON.stringify({ attributes: { keywords: ['hi'] } }) }] },
+    '../../models/chatBotEdge.model': { findByChatBotId: async () => [{ source: 'trigger', data: '{}' }] },
+  });
+  assert.equal(await getRuntimeBot('receiving-number', undefined, 'unknown'), null);
+  const fallback = await getRuntimeBot('receiving-number');
+  assert.equal(fallback.id, 'default');
+  assert.equal(fallback.nodes[0].data.attributes.keywords[0], 'hi');
+  assert.deepEqual(calls, [['keyword', 'receiving-number', 'unknown'], ['number', 'receiving-number', undefined]]);
+});
+
+test('database fallback selects the newest published active non-deleted bot only on the receiving number', async () => {
+  const rows = [
+    { id: 'newest-other-number', phoneNumberId: 'other-number', active: true, published: true, updated_at: 10 },
+    { id: 'draft', phoneNumberId: 'receiving-number', active: true, published: false, updated_at: 9 },
+    { id: 'inactive', phoneNumberId: 'receiving-number', active: false, published: true, updated_at: 8 },
+    { id: 'deleted', phoneNumberId: 'receiving-number', active: true, published: true, deleted_at: 'deleted', updated_at: 7 },
+    { id: 'older', phoneNumberId: 'receiving-number', active: true, published: true, updated_at: 1 },
+    { id: 'latest', phoneNumberId: 'receiving-number', active: true, published: true, updated_at: 3 },
+  ];
+  const fields = { 'chatbot_triggers.phone_number_id': 'phoneNumberId', 'chatbot_triggers.active': 'active',
+    'chat_bot.published': 'published', 'chat_bot.id': 'id', 'chat_bot.deleted_at': 'deleted_at', 'chat_bot.updated_at': 'updated_at' };
+  class BaseModel {
+    query() {
+      const filters = [], order = [];
+      const query = {
+        select() { return query; }, join() { return query; },
+        where(field, value) { filters.push(row => row[fields[field]] === value); return query; },
+        whereNull(field) { filters.push(row => row[fields[field]] == null); return query; },
+        orderBy(field, direction) { order.push([fields[field], direction]); return query; },
+        first() { return rows.filter(row => filters.every(filter => filter(row))).sort((a, b) => {
+          for (const [field, direction] of order) {
+            const comparison = typeof a[field] === 'number' ? a[field] - b[field] : a[field].localeCompare(b[field]);
+            if (comparison) return direction === 'desc' ? -comparison : comparison;
+          }
+          return 0;
+        })[0]; },
+      };
+      return query;
+    }
+  }
+  const model = loadModule('src/app/models/chatbot.model.ts', {
+    '@surefy/models/base.model': { BaseModel }, '../services/chatbot/trigger.logic': logic,
+  }).default;
+  assert.equal((await model.getPublishedBotByPhoneNumber('receiving-number')).id, 'latest');
+  assert.equal((await model.getPublishedBotByPhoneNumber('receiving-number', 'older')).id, 'older');
+  assert.equal(await model.getPublishedBotByPhoneNumber('missing-number'), undefined);
 });
 
 test('database lookup restricts keyword candidates to published active bots on the receiving number', async () => {
