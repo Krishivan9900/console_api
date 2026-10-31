@@ -42,6 +42,18 @@ function runtime(options = {}) {
 
 const prompt = 'Please Import excel file for onboarding fpo leads';
 
+test('all saved FPO sample spreadsheets omit the parent FPO phone column', () => {
+  for (const file of ['docs/fpo_leads_import_sample.xlsx', 'docs/samples/fpo_leads_import_sample.xlsx',
+    'docs/fpo_leads_import_919372597458.xlsx']) {
+    const workbook = XLSX.readFile(path.join(__dirname, '..', file));
+    for (const sheet of Object.values(workbook.Sheets)) {
+      const headers = XLSX.utils.sheet_to_json(sheet, { header: 1 })[0];
+      assert(headers.includes('phone_number'));
+      assert(!headers.some(header => /^fpo(?:phone)?number$/i.test(String(header).replace(/[ _-]/g, ''))), file);
+    }
+  }
+});
+
 test('every FPO registration path in the updated flow sends welcome, upload prompt and Excel sample in order', async () => {
   const flow = require('../krishivan-unified.flow.json');
   for (const welcomeId of ['19b0b848-0763-40b8-94f4-5e1360f40434',
@@ -76,6 +88,7 @@ test('onboarding prompt is followed by a real Excel sample sent to the same reci
   const rows = XLSX.utils.sheet_to_json(workbook.Sheets['FPO Leads']);
   assert.equal(rows.length, 3);
   assert(rows.every(row => row.phone_number && row.name && row.role));
+  assert(rows.every(row => !Object.hasOwn(row, 'fpo_phone_number') && !Object.hasOwn(row, 'fpo_number')));
   const document = events.filter(event => event.kind === 'send')[1];
   assert.equal(document.phoneNumberId, 'number');
   assert.equal(document.payload.to, 'recipient');

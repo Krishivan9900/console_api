@@ -39,7 +39,7 @@ class ImportJobModel extends BaseModel {
   }
 
   /** Claim before sending: retries and multiple nodes cannot repeat a notification. */
-  async claimFpoNotification(jobId: string, phase: 'summary' | 'continuation' | 'failure') {
+  async claimFpoNotification(jobId: string, phase: 'progress_20' | 'progress_50' | 'summary' | 'continuation' | 'failure') {
     const key = `${phase}_claimed`;
     const updated = await this.query().where({ id: jobId })
       .whereRaw("COALESCE(import_options ->> ?, 'false') <> 'true'", [key])

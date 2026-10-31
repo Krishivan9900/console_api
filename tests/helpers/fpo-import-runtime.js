@@ -25,7 +25,7 @@ function excelFile(count) {
 }
 
 function runtime(options = {}) {
-  const calls = { imported: [], sent: [], updates: [], lookups: [], normal: [], errors: [], queued: [], rows: [] };
+  const calls = { imported: [], sent: [], sentSnapshots: [], updates: [], lookups: [], normal: [], errors: [], queued: [], rows: [] };
   const records = new Map();
   const number = '760184003848443', phone = '919372597458';
   const session = {
@@ -62,7 +62,10 @@ function runtime(options = {}) {
   const sender = { sendChatBotMessage: async (receivingNumber, recipient, response) => {
     assert.equal(receivingNumber, number); assert.equal(recipient, phone);
     calls.sent.push(response);
+    const record = [...records.values()][0];
+    calls.sentSnapshots.push({ stored: calls.rows.length, processed: record?.processed_rows, status: record?.status });
     if (options.sendThrows) throw new Error('Send uncertain');
+    if (options.failProgressSends && response.text?.startsWith('Contact import:')) return null;
     return options.sendFailure ? null : { messages: [{ id: 'sent' }] };
   } };
   const flow = moduleFrom('src/app/services/chatbot/fpoImport.flow.ts', {
@@ -86,7 +89,7 @@ function runtime(options = {}) {
     normalizeRole: role => role.toLowerCase(), normalizeRegistrationData: data => data,
   });
   auth.registerUser = async (_number, data) => {
-    if (options.rowError) throw new Error('Invalid row');
+    if (options.rowError || options.failRows?.includes(data.phone_number)) throw new Error('Invalid row');
     return { id: data.phone_number };
   };
   const actualImport = auth.importFpoLeads.bind(auth);

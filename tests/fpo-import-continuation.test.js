@@ -11,7 +11,7 @@ test('spreadsheet webhook imports once and finishes the upload step with only a 
   assert.equal(rt.calls.imported[0][2], rt.phone);
   assert.equal(rt.calls.normal.length, 0);
   assert.equal(rt.calls.sent.length, 1);
-  assert.equal(rt.calls.sent[0].text, 'Contact import complete.\n3 Farmer');
+  assert.equal(rt.calls.sent[0].text, 'Contact import complete: 100%.\n3 Farmer added.');
   assert.equal(rt.session.current_node_id, 'services');
   assert.equal(rt.session.variables.excel_file.filename, 'fpo-leads.xlsx');
   assert.equal(rt.session.variables.email, 'fpo@example.test');

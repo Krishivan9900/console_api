@@ -56,13 +56,17 @@ async function main() {
     assert.equal(result.imported_count, 11);
     assert.equal(rt.calls.rows.length, 11);
     assert.equal(rt.calls.imported.length, 2);
-    assert.equal(rt.calls.sent.length, 1);
+    assert.equal(rt.calls.sent.length, 3);
+    assert.match(rt.calls.sent[0].text, /27% processed.*\n3 Farmer added/);
+    assert.match(rt.calls.sent[1].text, /54% processed.*\n6 Farmer added/);
+    assert.match(rt.calls.sent[2].text, /complete: 100%.*\n11 Farmer added/);
     assert.equal(rt.records.get(submitted.job_id).status, 'completed');
     assert.equal(await queue.getCompletedCount(), 1);
     await rt.service.processFpoLeadImport(job.data);
-    assert.equal(rt.calls.sent.length, 1);
+    assert.equal(rt.calls.sent.length, 3);
     console.log('11-row Excel import: queued, retried, resumed, and completed once.');
-    console.log('Duplicate delivery: no extra import, completion summary, or subsequent chatbot messages.');
+    console.log('Progress: two milestone updates and one final completion, with stored farmer counts.');
+    console.log('Duplicate delivery: no extra imports, progress updates, summaries, or chatbot messages.');
   } finally {
     if (worker) await worker.close(true);
     if (events) await events.close();

@@ -41,6 +41,15 @@ process existing ordinary contact imports.
 
 ## Completion and duplicate prevention
 
+- Large WhatsApp imports send progress updates when processing crosses 20% and
+  50%, with counts of farmers and other roles successfully stored. For 100 farmer
+  rows these confirm 20 farmers and 50 farmers. Uneven file sizes report the
+  actual percentage at the first row past each threshold (for example 27% and
+  54% for 11 rows).
+- The final completion summary is the 100% update, sent after the job is marked
+  completed. Files with 1–10 rows receive only this final update. Percentages
+  refer to rows processed; any failed rows are reported separately and never
+  included in the number added.
 - A WhatsApp upload produces one completion summary after the rows finish, or
   one final failure message after worker retries are exhausted. Partial imports
   report the failed count and remain at the upload question.
@@ -58,12 +67,18 @@ process existing ordinary contact imports.
   network error. A crash in that interval can leave a completed job without a
   delivered summary; notification errors are recorded on the job, and are not
   automatically resent.
+- Excel templates do not contain an FPO phone-number column. For WhatsApp
+  uploads the parent FPO is looked up using Meta's `messages[].from` (the sender
+  who uploaded the file). Meta's receiving business `phone_number_id` identifies
+  the bot/company, not the parent FPO. Older sheets containing FPO-number
+  columns are accepted, but those cells cannot override the uploader mapping.
 
 ## API imports and job status
 
 `POST /v1/auth/fpo-leads/import` accepts multipart `file`, `phone_number_id`
-and `fpo_phone_number`. The FPO phone is required to link the imported farmers to
-their parent FPO. Small files return HTTP 201 and results; larger files return
+and `fpo_phone_number`. This separate HTTP upload has no Meta sender context, so
+its FPO phone is still provided as request metadata, never as an Excel column.
+WhatsApp uploads fill this automatically from the sender. Small files return HTTP 201 and results; larger files return
 HTTP 202 with `job_id`, `queued: true` and `total_rows`. API imports do not send
 WhatsApp messages.
 
@@ -83,8 +98,8 @@ npm run test:redis-import
 
 The Redis test uses the configured `REDIS_URL` and an isolated random BullMQ
 prefix. It sends an 11-row Excel file through a real Redis queue, simulates a
-worker interruption, checks that rows resume and only one final summary is
-  produced, then removes its own queue. Database writes and WhatsApp sends are
+worker interruption, checks that rows resume and each progress update and final
+summary is produced once, then removes its own queue. Database writes and WhatsApp sends are
 stubbed; production queues, contacts and messages are untouched.
 
 If the Redis connection times out, check that the endpoint and port are reachable

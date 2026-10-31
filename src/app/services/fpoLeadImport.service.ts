@@ -67,6 +67,8 @@ export async function submitFpoLeadImport({ file, phoneNumberId, uploadingFpoPho
 export async function processFpoLeadImport(data: FpoLeadImportJobData, onProgress?: (progress: number) => Promise<void>) {
   const record = await ImportJobModel.findById(data.jobId);
   if (!record) throw new Error('FPO import job not found');
+  const progressNotified = new Set<number>([20, 50].filter(milestone =>
+    record.import_options?.[`progress_${milestone}_claimed`] === true));
   let result = record.result;
   if (record.status !== 'completed') {
     await ImportJobModel.updateStatus(data.jobId, 'processing');
@@ -83,6 +85,8 @@ export async function processFpoLeadImport(data: FpoLeadImportJobData, onProgres
             progress_percentage: percentage,
           });
           if (onProgress) await onProgress(percentage);
+          // Rows and their checkpoint are stored before announcing progress.
+          await notifyFpoImportProgress(data, checkpoint, progressNotified);
         },
       }
     );
@@ -100,17 +104,53 @@ export async function processFpoLeadImport(data: FpoLeadImportJobData, onProgres
   return result;
 }
 
+function formatImportedRoles(result: any) {
+  return Object.entries(result.role_counts || {}).map(([role, count]) =>
+    `${count} ${role.replace(/_/g, ' ').replace(/\b\w/g, character => character.toUpperCase())} added.`
+  ).join('\n');
+}
+
+async function notifyFpoImportProgress(data: FpoLeadImportJobData, checkpoint: any, notified: Set<number>) {
+  const processed = checkpoint.imported_count + checkpoint.failed_count;
+  // Small files get one final message. 100% is the completion summary, not an
+  // extra progress message, and is sent only after the job is marked completed.
+  if (!data.document || checkpoint.total_rows <= FPO_IMPORT_QUEUE_THRESHOLD || processed >= checkpoint.total_rows) return;
+  const percentage = Math.floor(processed / checkpoint.total_rows * 100);
+  for (const milestone of [20, 50] as const) {
+    if (percentage < milestone || notified.has(milestone)) continue;
+    notified.add(milestone);
+    try {
+      if (!await ImportJobModel.claimFpoNotification(data.jobId, `progress_${milestone}`)) continue;
+      const sent = await MessageService.sendChatBotMessage(data.phoneNumberId, data.uploadingFpoPhone, {
+        type: 'text', text: [
+          `Contact import: ${percentage}% processed.`,
+          formatImportedRoles(checkpoint) || 'No contacts stored yet.',
+          `${checkpoint.imported_count} of ${checkpoint.total_rows} contacts stored.`,
+          checkpoint.failed_count ? `${checkpoint.failed_count} row(s) could not be imported so far.` : '',
+        ].filter(Boolean).join('\n'),
+      });
+      if (!sent) throw new Error('Progress message could not be confirmed');
+    } catch (error: any) {
+      // A notification failure must never stop storing farmers or replay rows.
+      console.error(`FPO import ${data.jobId} progress notification failed:`, error?.message || error);
+      try {
+        await ImportJobModel.update(data.jobId, { error_message: 'Import progress message could not be confirmed.' });
+      } catch (recordError: any) {
+        console.error('Unable to record FPO progress notification error:', recordError?.message || recordError);
+      }
+    }
+  }
+}
+
 async function notifyFpoImportComplete(data: FpoLeadImportJobData, result: any) {
   // Notifications are claimed before sending. An ambiguous network failure must
   // never replay a completed import or send another summary hours later.
   if (!await ImportJobModel.claimFpoNotification(data.jobId, 'summary')) return;
   {
-    const roles = Object.entries(result.role_counts || {}).map(([role, count]) =>
-      `${count} ${role.replace(/_/g, ' ').replace(/\b\w/g, character => character.toUpperCase())}`
-    ).join('\n');
+    const roles = formatImportedRoles(result);
     const sent = await MessageService.sendChatBotMessage(data.phoneNumberId, data.uploadingFpoPhone, {
       type: 'text', text: [
-        result.failed_count ? 'Contact import finished with errors.' : 'Contact import complete.',
+        result.failed_count ? 'Contact import finished: 100% processed, with errors.' : 'Contact import complete: 100%.',
         roles || 'No leads were imported.',
         result.failed_count ? `${result.failed_count} row(s) could not be imported. Please correct the file and upload it again.` : '',
       ].filter(Boolean).join('\n'),

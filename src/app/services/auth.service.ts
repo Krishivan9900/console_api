@@ -1115,7 +1115,8 @@ class AuthService {
       return value.replace(/\D/g, '');
     };
 
-    // Find FPO once
+    // The WhatsApp webhook supplies message.from. Never take the parent FPO
+    // from a spreadsheet cell; all rows belong to the FPO who uploaded the file.
     let uploadingFpo = null;
 
     if (uploadingFpoPhone) {
@@ -1270,7 +1271,6 @@ class AuthService {
         email: 'ramesh@example.com',
         role: 'farmer',
         native_language: 'hindi',
-        fpo_phone_number: '919372597458',
         address: '12 Market Road',
         village: 'Kheda',
         subdistrict: 'Indore',
@@ -1286,7 +1286,6 @@ class AuthService {
         email: 'sita.traders@example.com',
         role: 'trader',
         native_language: 'english',
-        fpo_phone_number: '919372597458',
         address: '45 Grain Market',
         village: 'Rau',
         subdistrict: 'Rau',
@@ -1302,7 +1301,6 @@ class AuthService {
         email: 'green.transport@example.com',
         role: 'agricultural transport service',
         native_language: 'telugu',
-        fpo_phone_number: '919372597458',
         address: '8 Farm Link Road',
         village: 'Dewas',
         subdistrict: 'Dewas',

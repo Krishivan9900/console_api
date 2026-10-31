@@ -223,7 +223,21 @@ test('Excel import registers leads with the mapped FPO external creator ID and l
   assert.equal(calls.created[0].parent_user_id, 'fpo-local-id');
   assert.equal(calls.stored[0].data.fpo_id, 'fpo-external-user-id');
   assert.equal(calls.stored[0].data.parent_user_id, 'fpo-local-id');
+  assert.equal(calls.stored[0].data.fpo_phone_number, '919372597458');
   assert.equal(calls.parentLookups.length, 0);
+});
+
+test('FPO columns in an older spreadsheet cannot override the WhatsApp uploader parent', async () => {
+  const { service, calls } = runtime(undefined, { mappedFpo: {
+    id: 'actual-fpo-local-id', user_id: 'actual-fpo-external-id', phone: '919372597458',
+  } });
+  const result = await service.importFpoLeads(excelFile('9869650435', 'Farmer', {
+    fpo_phone_number: '919999999999', fpo_number: '918888888888', fpo_id: 'wrong-fpo-id',
+  }), 'receiving-number', '919372597458');
+  assert.equal(result.imported_count, 1);
+  assert.equal(calls.external[0].createdById, 'actual-fpo-external-id');
+  assert.equal(calls.stored[0].data.parent_user_id, 'actual-fpo-local-id');
+  assert.equal(calls.stored[0].data.fpo_phone_number, '919372597458');
 });
 
 test('Excel location values reach the registration API and both PostgreSQL records without a geocoding request', async () => {
