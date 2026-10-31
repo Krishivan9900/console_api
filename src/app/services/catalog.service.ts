@@ -419,6 +419,13 @@ async getProductVariants(name: string, catalog_id: string) {
     return {
         success: true,
         data: retailerIds,
+        search_term: name,
+        catalog_id,
+        product_matches: existingProductVariants.map((product: any) => ({
+            retailer_id: product.retailer_id,
+            name: product.name,
+            match_type: product.search_match_type,
+        })),
     };
 }
 

@@ -1051,7 +1051,12 @@ class AuthService {
   async importFpoLeads(
     file: string | Buffer,
     phoneNumberId: string,
-    uploadingFpoPhone?: string
+    uploadingFpoPhone?: string,
+    checkpoint?: {
+      imported: any[];
+      failed: any[];
+      onProgress: (result: any) => Promise<void>;
+    }
   ) {
     const phoneNumber = await phoneNumberModel.findByPhoneNumberId(phoneNumberId);
 
@@ -1129,12 +1134,15 @@ class AuthService {
       throw new HTTP400Error({ message: 'Uploading FPO is missing its Krishivan user_id' });
     }
 
-    const imported: any[] = [];
-    const failed: any[] = [];
+    const imported: any[] = [...(checkpoint?.imported || [])];
+    const failed: any[] = [...(checkpoint?.failed || [])];
     const role_counts: Record<string, number> = {};
+    const processedRows = new Set([...imported, ...failed].map(entry => entry.row));
+    for (const entry of imported) role_counts[entry.role] = (role_counts[entry.role] || 0) + 1;
 
     for (const [index, row] of rows.entries()) {
       const rowNumber = index + 2;
+      if (processedRows.has(rowNumber)) continue;
 
       try {
         const leadPhone = normalizeRegistrationPhoneNumber(
@@ -1235,6 +1243,12 @@ class AuthService {
           error: error?.message || 'Unable to import lead',
         });
       }
+      // Persist outside the row catch: a checkpoint failure must stop the job,
+      // rather than turn a successfully registered farmer into a failed row.
+      if (checkpoint) await checkpoint.onProgress({
+        total_rows: rows.length, imported_count: imported.length, failed_count: failed.length,
+        role_counts, imported, failed,
+      });
     }
 
     return {

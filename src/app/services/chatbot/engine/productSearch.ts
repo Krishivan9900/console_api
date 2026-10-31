@@ -1,30 +1,24 @@
 import chatSessionModel from "@surefy/console/app/models/chatSession.model";
 import productGroupModel from "@surefy/console/models/productGroup.model";
 import metaService, { PRODUCT_LIST_MAX_ITEMS } from "@surefy/console/services/meta.service";
+import { normalizeProductSearch, ProductSearchMatch, rankProductMatches } from '../../productSearch.logic';
 
 // Meta product_list limits
 const MAX_PRODUCTS = PRODUCT_LIST_MAX_ITEMS;
-const MAX_SECTIONS = 10;
-const SECTION_TITLE_MAX = 24;
 const HEADER_MAX = 60;
 
 const CATALOG_CACHE_TTL_MS = 5 * 60 * 1000;
 const catalogCache = new Map<string, { expiresAt: number; products: any[] }>();
 
-const STOP_WORDS = new Set([
-  "i", "a", "an", "the", "to", "for", "of", "and", "or", "in", "on", "me", "my",
-  "want", "need", "book", "buy", "order", "please", "show", "some", "get", "give",
-]);
-
 /**
  * Send Product Message node
  * - retailerId set  → send that single product
  * - retailerId empty → search the Meta catalog with the customer's last answer
- *   and send every matching product as a product_list (customer adds to cart from there)
+ *   and send at most 28 matching/recommended products for the WhatsApp cart
  */
 export const executeProductMessageNode = async ({ bot, session, currentNode }: any) => {
   const attrs = currentNode.data?.attributes || {};
-  const catalogId = attrs.catalogId || (await resolveCatalogId(bot));
+  const catalogId = attrs.catalogId || attrs.message?.interactive?.action?.catalog_id || (await resolveCatalogId(bot));
 
   if (!catalogId) {
     console.error("❌ Product message: no catalog id configured for bot", bot.id);
@@ -51,17 +45,32 @@ export const executeProductMessageNode = async ({ bot, session, currentNode }: a
       ""
   ).trim();
 
-  let products: any[] = [];
+  let matches: ProductSearchMatch[] = [];
   try {
-    products = searchProducts(await getCatalogProducts(catalogId), searchTerm);
+    // The booking flow already queried the local catalog through check-category.
+    // Reuse that response only for this exact search and catalog, preserving rank.
+    const response = session.variables?.http_response;
+    if (response?.success === true && response.catalog_id === catalogId &&
+        normalizeProductSearch(response.search_term) === normalizeProductSearch(searchTerm) &&
+        Array.isArray(response.product_matches)) {
+      const seen = new Set<string>();
+      matches = response.product_matches.filter((product: any) => {
+        if (!product.retailer_id || seen.has(product.retailer_id)) return false;
+        seen.add(product.retailer_id); return true;
+      }).slice(0, MAX_PRODUCTS).map((product: any) => ({
+        product, matchType: product.match_type === 'recommended' ? 'recommended' : 'matching', score: 0,
+      }));
+    } else {
+      matches = rankProductMatches(await getCatalogProducts(catalogId), searchTerm, MAX_PRODUCTS);
+    }
   } catch (error: any) {
     console.error("❌ Catalog search failed:", error?.response?.data || error.message);
   }
 
-  console.log(`🔎 Catalog search "${searchTerm}" → ${products.length} match(es)`);
+  console.log(`🔎 Catalog search "${searchTerm}" → ${matches.length} recommendation(s)`);
 
   // No match: stay on the question so the next reply is searched again
-  if (products.length === 0) {
+  if (matches.length === 0) {
     if (questionNode) {
       await chatSessionModel.update(session.id, { current_node_id: questionNode.id });
     }
@@ -78,8 +87,8 @@ export const executeProductMessageNode = async ({ bot, session, currentNode }: a
     await chatSessionModel.update(session.id, { current_node_id: nextNodeId });
   }
 
-  const shown = products.slice(0, MAX_PRODUCTS);
-  const body = (attrs.body || `Found ${products.length} product(s) for "{{search}}". Tap View items and add them to your cart.`)
+  const shown = matches.slice(0, MAX_PRODUCTS);
+  const body = (attrs.body || `Showing ${shown.length} matching and related product(s) for "{{search}}". Tap View items to choose.`)
     .replace(/\{\{\s*search\s*\}\}/g, searchTerm);
 
   return {
@@ -98,33 +107,10 @@ export const executeProductMessageNode = async ({ bot, session, currentNode }: a
 };
 
 /**
- * Match products on every keyword the customer typed (name, brand, category, description).
- * A product is included if it matches at least one keyword; best matches come first.
+ * Shared matching rules for the local catalog API and Meta catalog fallback.
  */
 export function searchProducts(products: any[], searchTerm: string) {
-  const phrase = normalize(searchTerm);
-  const keywords = phrase
-    .split(" ")
-    .filter((word) => word.length >= 2 && !STOP_WORDS.has(word));
-
-  if (keywords.length === 0) return [];
-
-  return products
-    .filter((p) => p.retailer_id && p.availability !== "out of stock" && p.review_status !== "rejected")
-    .map((product) => {
-      const name = normalize(product.name);
-      const other = normalize([product.brand, product.category, product.description, product.retailer_id].join(" "));
-
-      let score = name.includes(phrase) ? 10 : 0;
-      for (const keyword of keywords) {
-        if (matchesWord(name, keyword)) score += 3;
-        else if (matchesWord(other, keyword)) score += 1;
-      }
-      return { product, score };
-    })
-    .filter(({ score }) => score > 0)
-    .sort((a, b) => b.score - a.score)
-    .map(({ product }) => product);
+  return rankProductMatches(products, searchTerm, MAX_PRODUCTS).map(match => match.product);
 }
 
 async function getCatalogProducts(catalogId: string) {
@@ -142,45 +128,25 @@ async function resolveCatalogId(bot: any): Promise<string | undefined> {
 }
 
 function findPreviousQuestionNode(bot: any, node: any) {
-  const incoming = bot.edges.filter((e: any) => e.target === node.id);
-  return incoming
-    .map((e: any) => bot.nodes.find((n: any) => n.id === e.source))
-    .find((n: any) => n?.data?.key === "@whatsapp/ask-question");
-}
-
-function buildSections(products: any[]) {
-  const byCategory = new Map<string, string[]>();
-  for (const product of products) {
-    const category = truncate(String(product.category || "Products").split(">").pop()!.trim(), SECTION_TITLE_MAX);
-    if (!byCategory.has(category)) byCategory.set(category, []);
-    byCategory.get(category)!.push(product.retailer_id);
+  const visited = new Set<string>([node.id]);
+  let targets = [node.id];
+  while (targets.length) {
+    const previous = bot.edges.filter((edge: any) => targets.includes(edge.target) && !visited.has(edge.source))
+      .map((edge: any) => bot.nodes.find((candidate: any) => candidate.id === edge.source)).filter(Boolean);
+    const question = previous.find((candidate: any) => candidate.data?.key === '@whatsapp/ask-question');
+    if (question) return question;
+    targets = previous.map((candidate: any) => candidate.id);
+    targets.forEach((id: string) => visited.add(id));
   }
-
-  const sections = [...byCategory.entries()].map(([title, ids]) => ({ title, ids }));
-
-  // Too many categories for one message: fold the rest into the last section
-  if (sections.length > MAX_SECTIONS) {
-    const overflow = sections.splice(MAX_SECTIONS - 1);
-    sections.push({ title: "More products", ids: overflow.flatMap((s) => s.ids) });
-  }
-
-  return sections.map(({ title, ids }) => ({
-    title,
-    product_items: ids.map((id) => ({ product_retailer_id: id })),
-  }));
+  return undefined;
 }
 
-function matchesWord(text: string, keyword: string) {
-  if (text.includes(keyword)) return true;
-  // Plural/singular and partial words, e.g. "seeds" ↔ "seed", "fertiliser" ↔ "fertil"
-  return keyword.length >= 3 && text.split(" ").some((word) => word.startsWith(keyword) || (word.length >= 4 && keyword.startsWith(word)));
-}
-
-function normalize(value: any) {
-  return String(value || "")
-    .toLowerCase()
-    .replace(/[^\p{L}\p{N}]+/gu, " ")
-    .trim();
+function buildSections(matches: ProductSearchMatch[]) {
+  return (['matching', 'recommended'] as const).map(matchType => ({
+    title: matchType === 'matching' ? 'Matching products' : 'Related recommendations',
+    product_items: matches.filter(match => match.matchType === matchType)
+      .map(match => ({ product_retailer_id: match.product.retailer_id })),
+  })).filter(section => section.product_items.length);
 }
 
 function truncate(value: string, max: number) {

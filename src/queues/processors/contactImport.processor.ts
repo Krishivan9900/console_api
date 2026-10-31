@@ -1,6 +1,7 @@
 import { Worker, Job } from 'bullmq';
 import { redisConnection } from '@surefy/config/redis.config'
-import { ContactImportJobData } from '../contactImport.queue';
+import { ContactImportJobData, ExcelImportJobData } from '../contactImport.queue';
+import { processFpoLeadImport, failFpoLeadImport } from '../../app/services/fpoLeadImport.service';
 import ImportJobModel from '@surefy/console/models/importJob.model';
 import ContactModel from '@surefy/console/models/contact.model';
 import ContactListModel from '@surefy/console/models/contactList.model';
@@ -300,11 +301,21 @@ console.log('📦 Initializing Contact Import Worker...');
 //   port: redisConfig.port
 // });
 
-export const contactImportWorker = new Worker<ContactImportJobData>(
+export const contactImportWorker = new Worker<ExcelImportJobData>(
   'contact-import',
   async (job) => {
     console.log(`🔄 Processing job ${job.id}...`);
-    return await processContactImport(job);
+    if (job.data.kind === 'fpo_leads') {
+      try {
+        return await processFpoLeadImport(job.data, progress => job.updateProgress(progress));
+      } catch (error: any) {
+        if (job.attemptsMade + 1 >= (job.opts.attempts || 1)) {
+          await failFpoLeadImport(job.data, error);
+        }
+        throw error;
+      }
+    }
+    return await processContactImport(job as Job<ContactImportJobData>);
   },
   {
     connection: redisConnection,

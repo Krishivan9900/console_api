@@ -32,6 +32,9 @@ class MessageService {
   async claimInboundMessage(wamid: string): Promise<boolean> {
     if (!wamid) return true;
 
+    // Redis entries expire; saved WAMIDs must still block late redeliveries.
+    if (await MessageModel.findByWamid(wamid)) return false;
+
     try {
       const result = await redisConnection.set(
         `wa:inbound:${wamid}`,

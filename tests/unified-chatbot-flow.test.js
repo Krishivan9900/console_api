@@ -9,6 +9,7 @@ const flow = require('../krishivan-unified.flow.json');
 const logic = require('../src/app/services/chatbot/engine/condition.logic');
 const { normalizeRegistrationPhoneNumber } = require('../src/phone');
 const { matchesTriggerKeyword } = require('../src/app/services/chatbot/trigger.logic');
+const productSearchLogic = require('../src/app/services/productSearch.logic');
 
 function loadModule(file, mocks) {
   const exports = {};
@@ -43,6 +44,18 @@ function runtime({ registered = true, override, bot = flow } = {}) {
     create: async data => { restarts++; return Object.assign(session, data); },
   };
   const user = { id: 'registered-customer', role: 'farmer', deleted_at: null };
+  const catalogProducts = [
+    { retailer_id: 'retailer-1', name: '160 GSM-18*24', description: 'Yellow Tarpaulin' },
+    { retailer_id: 'related-tarp', name: 'Heavy Duty Tarp', description: 'Waterproof tarpaulin' },
+    { retailer_id: 'unrelated-hose', name: 'Pressure Hose' },
+  ];
+  const { executeProductMessageNode } = loadModule('src/app/services/chatbot/engine/productSearch.ts', {
+    '@surefy/console/app/models/chatSession.model': model,
+    '@surefy/console/models/productGroup.model': { getCatalogGroups: async () => [] },
+    '@surefy/console/services/meta.service': { PRODUCT_LIST_MAX_ITEMS: 28,
+      getAllCatalogProducts: async () => { throw new Error('Booking should reuse the ranked API response'); } },
+    '../../productSearch.logic': productSearchLogic,
+  });
   const source = ts.createSourceFile('utils.ts', fs.readFileSync(path.join(__dirname, '../src/utils.ts'), 'utf8'), ts.ScriptTarget.Latest, true);
   const names = ['safeJSON', 'normalizeRole', 'normalizeLanguage', 'getRegistrationLocation', 'getRegistrationEmail', 'normalizeRegistrationData', 'replaceVariables', 'getNestedValue', 'replaceBodyVariables', 'buildWelcomeMessage', 'buildResponse'];
   const functions = source.statements.filter(n => ts.isFunctionDeclaration(n) && names.includes(n.name?.text))
@@ -69,7 +82,12 @@ function runtime({ registered = true, override, bot = flow } = {}) {
       else if (request.url.endsWith('/stored-chat-session')) {
         registered = true;
         data = { success: true, data: { data: request.data.session_data } };
-      } else if (request.url.endsWith('/check-category')) data = { success: true, data: ['retailer-1'] };
+      } else if (request.url.endsWith('/check-category')) {
+        const { category, catalog_id } = request.data.session_data;
+        const matches = productSearchLogic.rankProductMatches(catalogProducts, category);
+        data = { success: true, data: matches.map(m => m.product.retailer_id), search_term: category, catalog_id,
+          product_matches: matches.map(m => ({ ...m.product, match_type: m.matchType })) };
+      }
       else if (request.url.includes('/api/ai/')) data = { success: true, data: { answer: 'Example AI answer' } };
       else throw new Error(`Unexpected endpoint: ${request.url}`);
       return { status: 200, headers: {}, data };
@@ -79,6 +97,7 @@ function runtime({ registered = true, override, bot = flow } = {}) {
     '@surefy/console/app/models/contactTag.model': {}, '@surefy/console/app/models/contact.model': {},
     '@surefy/console/app/models/contactTagRelation.model': {}, '@surefy/console/app/models/column.model': {},
     './condition.logic': logic,
+    './productSearch': { executeProductMessageNode },
   });
   const { menuFlow } = loadModule('src/app/services/chatbot/flows/menu.flow.ts', {
     '@surefy/console/app/models/chatSession.model': model,
@@ -364,6 +383,20 @@ test('booking searches the existing catalog and waits for the native WhatsApp ca
     assert.equal(response.interactive.action.sections[0].product_items[0].product_retailer_id, 'retailer-1');
     assert.equal(rt.session.active, true);
     assert(!rt.requests.some(r => r.url.endsWith('/stored-chat-session')));
+  }
+});
+
+test('GSM booking offers matching names and related tarps in all languages without unrelated products', async () => {
+  for (const language of ['en', 'hi', 'te']) {
+    const rt = runtime();
+    await rt.start(); await rt.click(language); await rt.click('booking');
+    const response = await rt.answer('GSM');
+    const sections = response.interactive.action.sections;
+    assert.deepEqual(Array.from(sections, section => section.title), ['Matching products', 'Related recommendations']);
+    const ids = Array.from(sections.flatMap(section => section.product_items), item => item.product_retailer_id);
+    assert.deepEqual(ids, ['retailer-1', 'related-tarp']);
+    assert(ids.length < 30);
+    assert.equal(rt.current().data.attributes.variable, 'product_name');
   }
 });
 

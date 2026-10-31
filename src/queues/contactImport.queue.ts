@@ -3,6 +3,7 @@ import { redisConnection } from '@surefy/config/redis.config'
 
 
 export interface ContactImportJobData {
+  kind?: 'contact';
   jobId: string; // Import job ID from database
   userId:string,
   companyId:string
@@ -17,7 +18,20 @@ export interface ContactImportJobData {
   };
 }
 
-export const contactImportQueue = new Queue<ContactImportJobData>('contact-import', {
+export interface FpoLeadImportJobData {
+  kind: 'fpo_leads';
+  jobId: string;
+  phoneNumberId: string;
+  uploadingFpoPhone: string;
+  // Workers may run on another node without access to the API's upload directory.
+  fileBase64: string;
+  document?: { id: string; filename?: string; mime_type?: string };
+  expectedSession?: { id: string; current_node_id: string };
+}
+
+export type ExcelImportJobData = ContactImportJobData | FpoLeadImportJobData;
+
+export const contactImportQueue = new Queue<ExcelImportJobData>('contact-import', {
   connection: redisConnection,
   defaultJobOptions: {
     attempts: 3,

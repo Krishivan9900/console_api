@@ -7,6 +7,7 @@ import { ProductVariant } from '../interfaces/catalog.interface';
 import { productGroups } from '../interfaces/catalog.interface';
 import XLSXParserService from './xlsxParser.service';
 import type { BookType } from 'xlsx';
+import { PRODUCT_SEARCH_MAX_ITEMS } from './productSearch.logic';
 
 const MEDIA_EXTENSIONS: Record<string, string> = {
   'image/jpeg': 'jpg',
@@ -22,7 +23,7 @@ const MEDIA_EXTENSIONS: Record<string, string> = {
 };
 
 // Meta rejects product_list messages with more than 30 items / 10 sections (#131009)
-export const PRODUCT_LIST_MAX_ITEMS = 28;
+export const PRODUCT_LIST_MAX_ITEMS = PRODUCT_SEARCH_MAX_ITEMS;
 const PRODUCT_LIST_MAX_SECTIONS = 10;
 
 /**

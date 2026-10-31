@@ -29,6 +29,27 @@ class ImportJobModel extends BaseModel {
     super('import_jobs');
   }
 
+  /** A redelivered WhatsApp upload must resolve to the same database job. */
+  async createFpoImport(data: any) {
+    const [created] = await this.query().insert({
+      ...data,
+      import_options: JSON.stringify(data.import_options),
+    }).onConflict('id').ignore().returning('*');
+    return { job: created || await this.findById(data.id), created: Boolean(created) };
+  }
+
+  /** Claim before sending: retries and multiple nodes cannot repeat a notification. */
+  async claimFpoNotification(jobId: string, phase: 'summary' | 'continuation' | 'failure') {
+    const key = `${phase}_claimed`;
+    const updated = await this.query().where({ id: jobId })
+      .whereRaw("COALESCE(import_options ->> ?, 'false') <> 'true'", [key])
+      .update({
+        import_options: this.db.raw("COALESCE(import_options, '{}'::jsonb) || ?::jsonb", [JSON.stringify({ [key]: true })]),
+        updated_at: new Date(),
+      });
+    return updated > 0;
+  }
+
   async findByCompany(companyId: string, filters: any = {}) {
     let query = this.query()
       .where({ company_id: companyId })

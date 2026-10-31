@@ -7,8 +7,7 @@ import HTTP400Error from '@surefy/exceptions/HTTP400Error';
 import { v4 as uuidv4, validate as uuidValidate } from "uuid";
 import { handleIncomingMessageChatBot } from  "@surefy/console/app/services/chatbot/chatbot.service"
 import MetaService from '@surefy/console/services/meta.service';
-import AuthService from '@surefy/console/services/auth.service';
-import { resumeAfterFpoLeadImport } from '../../services/chatbot/fpoImport.flow';
+import { submitFpoLeadImport } from '../../services/fpoLeadImport.service';
 import { stringify } from 'querystring';
 
 class MessageController {
@@ -203,7 +202,7 @@ class MessageController {
             }
 
             // Handle one sender's messages in order so chatbot sessions don't race
-            MessageService.runInSenderQueue(message.from, async () => {
+            MessageService.runInSenderQueue(`${value.metadata.phone_number_id}:${message.from}`, async () => {
               if(message.type === 'order' && message.order && Array.isArray(message.order.product_items)){
                  message.productItems = message.order.product_items
                  await MessageService.processIncomingOrderMessage({ ...message, phone_number_id: value.metadata.phone_number_id })
@@ -236,49 +235,13 @@ class MessageController {
               if (isSpreadsheet) {
                 try {
                   const media = await MetaService.downloadMediaBuffer(document.id);
-                  const result = await AuthService.importFpoLeads(
-                    media.buffer,
-                    value.metadata.phone_number_id,
-                    message.from
-                  );
-
-                  const roleSummary = Object.entries(result.role_counts || {})
-                    .map(([role, count]) => {
-                      const roleName = role
-                        .replace(/_/g, ' ')
-                        .replace(/\b\w/g, (character) => character.toUpperCase());
-                      return `${count} ${roleName}`;
-                    })
-                    .join('\n');
-
-                  await MessageService.sendChatBotMessage(
-                    value.metadata.phone_number_id,
-                    message.from,
-                    {
-                      type: 'text',
-                      text: [
-                        roleSummary || 'No leads were imported.',
-                        result.failed_count > 0
-                          ? `${result.failed_count} row(s) could not be imported. Please correct the file and upload it again.`
-                          : '',
-                      ].filter(Boolean).join('\n'),
-                    }
-                  );
-
-                  // A continuation failure must not report a successful import as a failed import.
-                  try {
-                    const nextResponse = await resumeAfterFpoLeadImport({
-                      phoneNumberId: value.metadata.phone_number_id,
-                      phone: message.from,
-                      document,
-                      result,
-                    });
-                    if (nextResponse) {
-                      await MessageService.sendChatBotMessage(value.metadata.phone_number_id, message.from, nextResponse);
-                    }
-                  } catch (error: any) {
-                    console.error('FPO leads imported but chatbot continuation failed:', error?.message || error);
-                  }
+                  await submitFpoLeadImport({
+                    file: media.buffer,
+                    phoneNumberId: value.metadata.phone_number_id,
+                    uploadingFpoPhone: message.from,
+                    messageId: message.id,
+                    document,
+                  });
                 } catch (error: any) {
                   console.error('FPO lead Excel import failed:', error?.message || error);
                   await MessageService.sendChatBotMessage(

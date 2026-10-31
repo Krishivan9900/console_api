@@ -10,6 +10,7 @@ import { uploadImage } from '@surefy/config/firebase.config';
 import catalogService from '../../services/catalog.service';
 import authService from '@surefy/console/services/auth.service';
 import * as fs from 'fs';
+import { submitFpoLeadImport } from '../../services/fpoLeadImport.service';
  
 export interface JWTRequest extends Request {
   userId?: string;
@@ -229,11 +230,11 @@ class AuthController {
 
   /**
    * POST /v1/auth/fpo-leads/import
-   * Form-data fields: file (.xlsx/.xls/.csv) and phone_number_id.
+   * Form-data fields: file (.xlsx/.xls/.csv), phone_number_id and fpo_phone_number.
    */
   importFpoLeads = tryCatchAsync(async (req: Request, res: Response) => {
     const file = req.file;
-    const { phone_number_id } = req.body;
+    const { phone_number_id, fpo_phone_number } = req.body;
 
     if (!file) {
       throw new HTTP400Error({ message: 'Excel file is required' });
@@ -243,8 +244,12 @@ class AuthController {
     }
 
     try {
-      const result = await AuthService.importFpoLeads(file.path, phone_number_id);
-      return successResponse(req, res, 'FPO leads import completed', result, HttpStatusCode.CREATED);
+      if (!fpo_phone_number) throw new HTTP400Error({ message: 'fpo_phone_number is required' });
+      const result = await submitFpoLeadImport({
+        file: await fs.promises.readFile(file.path), phoneNumberId: phone_number_id, uploadingFpoPhone: fpo_phone_number,
+      });
+      return successResponse(req, res, result.queued ? 'FPO leads import queued' : 'FPO leads import completed',
+        result, result.queued ? HttpStatusCode.ACCEPTED : HttpStatusCode.CREATED);
     } finally {
       if (fs.existsSync(file.path)) {
         fs.unlinkSync(file.path);

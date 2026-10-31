@@ -1,4 +1,5 @@
 import { BaseModel } from '@surefy/models/base.model';
+import { rankProductMatches } from '../services/productSearch.logic';
 
 class productVariantModel extends BaseModel {
     constructor() {
@@ -49,21 +50,13 @@ class productVariantModel extends BaseModel {
 
 
     async findByProductName(productName: string, catalog_id: string) {
-        const keywords = productName
-            .trim()
-            .toLowerCase()
-            .split(/\s+/)
-            .filter(Boolean)
-            .slice(0, 2);
-
-        const query = this.query()
-            .where("catalog_id", catalog_id);
-
-        for (const keyword of keywords) {
-            query.whereILike("name", `%${keyword}%`);
-        }
-
-        return query;
+        if (!productName?.trim() || !catalog_id) return [];
+        const candidates = await this.query().where({ catalog_id }).whereNull('deleted_at')
+            .select('retailer_id', 'name', 'description', 'brand', 'category', 'sub_category',
+                'size', 'color', 'product_id', 'meta_status');
+        return rankProductMatches(candidates, productName).map(({ product, matchType }) => ({
+            ...product, search_match_type: matchType,
+        }));
     }
 
 }

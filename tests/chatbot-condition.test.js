@@ -35,6 +35,7 @@ function runtime() {
     '@surefy/console/app/models/contactTagRelation.model': {},
     '@surefy/console/app/models/column.model': {},
     './condition.logic': logic,
+    './productSearch': { executeProductMessageNode: async () => { throw new Error('Unexpected product node'); } },
   });
   return { executeNode, updates };
 }

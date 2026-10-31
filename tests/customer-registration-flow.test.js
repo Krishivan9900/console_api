@@ -48,6 +48,7 @@ function runtime(responses) {
     '@surefy/console/app/models/contactTagRelation.model': {},
     '@surefy/console/app/models/column.model': {},
     './condition.logic': logic,
+    './productSearch': { executeProductMessageNode: async () => { throw new Error('Unexpected product node'); } },
   });
   const { menuFlow } = loadModule('src/app/services/chatbot/flows/menu.flow.ts', {
     '@surefy/console/app/models/chatSession.model': model,
