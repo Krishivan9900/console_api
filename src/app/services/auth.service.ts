@@ -19,7 +19,7 @@ import contactModel from '../models/contact.model';
 import { PhoneNumber } from 'libphonenumber-js';
 import { getRegistrationLocation, normalizeRegistrationData, normalizeRegistrationPhoneNumber, normalizeRole } from '../../utils';
 import * as XLSX from 'xlsx';
-import { FPO_LEAD_IMPORT_COLUMNS, parseFpoLeadImport } from './fpoLeadImportFormat';
+import { FPO_LEAD_IMPORT_COLUMNS, FPO_LEAD_IMPORT_ROLES, parseFpoLeadImport } from './fpoLeadImportFormat';
 
 interface LoginCredentials {
   identifier: string; // email or phone
@@ -417,9 +417,9 @@ class AuthService {
     }
 
     const registrationPhone = normalizeRegistrationPhoneNumber(data.phone_number) || null;
-    // Only mapped farmer imports may create users without either contact field.
+    // Mapped Excel imports may create any supported role without a phone or email.
     const allowMissingContact = options.allowMissingPhone === true &&
-      normalizedRole === 'farmer' && !!mappedFpoId && !!createdById;
+      FPO_LEAD_IMPORT_ROLES.includes(normalizedRole) && !!mappedFpoId && !!createdById;
     if (!registrationPhone && !data.email && !allowMissingContact) {
       throw new HTTP400Error({ message: 'Either email or phone is required' });
     }
@@ -1134,12 +1134,20 @@ class AuthService {
           throw new Error('Name is required');
         }
 
-        const role = 'farmer';
+        const roleValue = getValue(row, 'Role');
+        if (!roleValue) throw new Error('Role is required');
+        const role = normalizeRole(roleValue);
+        if (!FPO_LEAD_IMPORT_ROLES.includes(role)) {
+          throw new Error(`Unsupported role: ${roleValue}. Use one of: ${FPO_LEAD_IMPORT_ROLES.join(', ')}`);
+        }
+
+        const state = getValue(row, 'State');
+        if (!state) throw new Error('State is required');
 
         const location = {
-          village: getValue(row, 'Village'),
-          district: getValue(row, 'District'),
-          state: getValue(row, 'State'),
+          village: getValue(row, 'Village') || null,
+          district: getValue(row, 'District') || null,
+          state,
         };
 
         const sessionData = normalizeRegistrationData({
@@ -1223,23 +1231,26 @@ class AuthService {
       {
         name: 'Ramesh Kumar',
         phone: '919876543210',
+        role: 'farmer',
         village: 'Kheda',
-        district: 'Indore',
         state: 'Madhya Pradesh',
+        district: 'Indore',
       },
       {
         name: 'Sita Devi',
-        phone: '919876543211',
+        phone: '',
+        role: 'trader',
         village: 'Rau',
-        district: 'Indore',
         state: 'Madhya Pradesh',
+        district: 'Indore',
       },
       {
         name: 'Ravi Kumar',
         phone: '',
-        village: 'Dewas',
-        district: 'Dewas',
+        role: 'vle',
+        village: '',
         state: 'Madhya Pradesh',
+        district: '',
       },
     ];
 

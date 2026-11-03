@@ -2,8 +2,14 @@ import * as XLSX from 'xlsx';
 import HTTP400Error from '@surefy/exceptions/HTTP400Error';
 
 export const FPO_LEAD_IMPORT_COLUMNS = [
-  'name', 'phone', 'village', 'district', 'state',
+  'name', 'phone', 'role', 'village', 'state', 'district',
 ] as const;
+
+export const FPO_LEAD_IMPORT_ROLES: readonly string[] = [
+  'farmer', 'trader', 'fpo', 'vle', 'agricultural_transport_service',
+  'micro_entrepreneur', 'agricultural_machinery_service_provider',
+  'agricultural_input_supplier', 'livestock_farmer',
+];
 
 export const FPO_IMPORT_FORMAT_CODE = 'FPO_IMPORT_FORMAT';
 

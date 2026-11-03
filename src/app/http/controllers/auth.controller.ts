@@ -264,7 +264,7 @@ class AuthController {
     res.setHeader('Content-Disposition', 'attachment; filename=fpo_leads_import_sample.xlsx');
     res.send(buffer);
   });
-  async storedChatSession(req:Request,res:Response){
+  storedChatSession = tryCatchAsync(async (req: Request, res: Response) => {
     console.log("Requests bodies",req.body)
     const{session_data} = req.body
     if(!session_data){
@@ -273,7 +273,7 @@ class AuthController {
     console.log("Session Data",session_data)
     const result = await AuthService.storedChatSession(session_data.phone_number,session_data)
     return res.status(200).json(result)
-  }
+  });
 
   checkExistUser = tryCatchAsync(async (req: Request, res: Response) => {
     const sessionData = req.body?.session_data;

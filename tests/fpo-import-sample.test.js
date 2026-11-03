@@ -43,8 +43,8 @@ function runtime(options = {}) {
 
 const prompt = 'Please Import excel file for onboarding fpo leads';
 
-test('all saved sample spreadsheets contain exactly name, phone, village, district and state', () => {
-  assert.deepEqual(Array.from(fpoFormat.FPO_LEAD_IMPORT_COLUMNS), ['name', 'phone', 'village', 'district', 'state']);
+test('all saved sample spreadsheets contain exactly name, phone, role, village, state and district', () => {
+  assert.deepEqual(Array.from(fpoFormat.FPO_LEAD_IMPORT_COLUMNS), ['name', 'phone', 'role', 'village', 'state', 'district']);
   for (const file of ['docs/fpo_leads_import_sample.xlsx', 'docs/samples/fpo_leads_import_sample.xlsx',
     'docs/fpo_leads_import_919372597458.xlsx']) {
     const workbook = XLSX.readFile(path.join(__dirname, '..', file));
@@ -90,8 +90,9 @@ test('onboarding prompt is followed by a real Excel sample sent to the same reci
   const workbook = XLSX.read(upload.file.buffer, { type: 'buffer' });
   const rows = XLSX.utils.sheet_to_json(workbook.Sheets['FPO Leads']);
   assert.equal(rows.length, 3);
-  assert(rows.every(row => row.name && row.village && row.district && row.state));
+  assert(rows.every(row => row.name && row.role && row.state));
   assert(rows.some(row => !row.phone), 'The sample demonstrates an optional phone number');
+  assert(rows.some(row => !row.village && !row.district), 'The sample demonstrates optional location fields');
   assert(rows.every(row => !Object.hasOwn(row, 'fpo_phone_number') && !Object.hasOwn(row, 'fpo_number')));
   const document = events.filter(event => event.kind === 'send')[1];
   assert.equal(document.phoneNumberId, 'number');

@@ -6,6 +6,72 @@ const { test } = require('node:test');
 const ts = require('typescript');
 const fpoFormat = require('./helpers/fpo-import-runtime').fpoFormat;
 
+test('the VLE database migration accepts every offered role and preserves all previously allowed roles', async () => {
+  const { moduleFrom } = require('./helpers/fpo-import-runtime');
+  const previous = moduleFrom('src/database/migrations/20261006000000_allow_registration_roles_for_users.ts', {});
+  const migration = moduleFrom('src/database/migrations/20261103000001_allow_vle_registration_role_for_users.ts', {});
+  const statements = [];
+  const database = { raw: async sql => statements.push(sql) };
+  const allowedRoles = sql => [...sql.match(/CHECK\s*\(role IN\s*\(([\s\S]*?)\)\)/i)[1].matchAll(/'([^']+)'/g)].map(match => match[1]);
+  await previous.up(database);
+  const previousRoles = allowedRoles(statements.pop());
+  await migration.up(database);
+  const sql = statements.pop();
+  const roles = allowedRoles(sql);
+  assert.deepEqual(roles.filter(role => role !== 'vle').sort(), previousRoles.sort());
+  assert(roles.includes('vle'));
+  const utils = ts.createSourceFile('utils.ts', fs.readFileSync(path.join(__dirname, '../src/utils.ts'), 'utf8'), ts.ScriptTarget.Latest, true);
+  const normalize = utils.statements.find(node => ts.isFunctionDeclaration(node) && node.name?.text === 'normalizeRole');
+  const normalizeRole = vm.runInNewContext(ts.transpileModule(normalize.getText(utils).replace(/^export /, '') + '\nnormalizeRole;', {
+    compilerOptions: { target: ts.ScriptTarget.ES2020 },
+  }).outputText);
+  for (const menu of require('../krishivan-unified.flow.json').nodes.filter(node => node.data.attributes?.variable === 'role')) {
+    for (const row of menu.data.attributes.message.interactive.action.sections.flatMap(section => section.rows)) {
+      assert(roles.includes(normalizeRole(row.title)), `Database rejects offered role: ${row.title}`);
+    }
+  }
+  assert.match(sql, /ADD CONSTRAINT users_role_check/);
+  assert(!/\b(?:UPDATE|DELETE|TRUNCATE)\b/i.test(sql));
+  await migration.down(database);
+  assert.deepEqual(allowedRoles(statements.pop()).sort(), previousRoles);
+});
+
+test('the stored registration HTTP handler forwards database failures to Express and preserves its responses', async () => {
+  const { moduleFrom } = require('./helpers/fpo-import-runtime');
+  const { tryCatchAsync } = moduleFrom('library/surefy/src/utils/Controller.ts', {
+    './HttpStatusCode': {}, './Response': {},
+  });
+  const source = ts.createSourceFile('auth.controller.ts', fs.readFileSync(path.join(__dirname, '../src/app/http/controllers/auth.controller.ts'), 'utf8'), ts.ScriptTarget.Latest, true);
+  const member = source.statements.find(ts.isClassDeclaration).members.find(node => node.name?.getText(source) === 'storedChatSession');
+  const failure = Object.assign(new Error('users_role_check'), { code: '23514' });
+  let shouldFail = true;
+  const serviceCalls = [];
+  const controller = vm.runInNewContext(ts.transpileModule(`new class { ${member.getText(source)} }`, {
+    compilerOptions: { target: ts.ScriptTarget.ES2020 },
+  }).outputText, {
+    tryCatchAsync, console: { log() {} },
+    AuthService: { storedChatSession: async (...args) => {
+      serviceCalls.push(args);
+      if (shouldFail) throw failure;
+      return { success: true };
+    } },
+  });
+  const errors = [], responses = [];
+  const response = { status(code) { assert.equal(code, 200); return this; }, json(body) { responses.push(body); } };
+  const session = { phone_number: '919372597458', role: 'vle' };
+  await controller.storedChatSession({ body: { session_data: session } }, response, error => errors.push(error));
+  assert.equal(errors.length, 1);
+  assert.equal(errors[0], failure);
+  assert.equal(responses.length, 0);
+  shouldFail = false;
+  await controller.storedChatSession({ body: { session_data: session } }, response, error => errors.push(error));
+  assert.equal(responses[0].success, true);
+  assert.deepEqual(serviceCalls[1], [session.phone_number, session]);
+  await controller.storedChatSession({ body: {} }, response, error => errors.push(error));
+  assert.equal(responses[1].success, false);
+  assert.equal(serviceCalls.length, 2);
+});
+
 function runtime(existingUser, options = {}) {
   const source = ts.createSourceFile('auth.service.ts', fs.readFileSync(path.join(__dirname, '../src/app/services/auth.service.ts'), 'utf8'), ts.ScriptTarget.Latest, true);
   const serviceClass = source.statements.find(node => ts.isClassDeclaration(node));
@@ -135,8 +201,8 @@ test('registration normalizes the role labels actually offered in the role menus
 
 test('Hindi and Telugu menu selections store English role and language codes in the registration record and user', async () => {
   const flow = require('../krishivan-unified.flow.json');
-  const expectedRoles = ['farmer', 'trader', 'agricultural_transport_service', 'micro_entrepreneur', 'fpo',
-    'agricultural_machinery_service_provider', 'agricultural_input_supplier', 'livestock_farmer', 'vle'];
+  const expectedRoles = ['farmer', 'trader', 'agricultural_transport_service', 'micro_entrepreneur', 'fpo', 'vle',
+    'agricultural_machinery_service_provider', 'agricultural_input_supplier', 'livestock_farmer'];
   const menus = flow.nodes.filter(n => n.data.attributes?.variable === 'role');
   for (const [index, language, selectedLanguage] of [[1, 'hindi', 'हिंदी'], [2, 'telugu', 'తెలుగు']]) {
     const labels = menus[index].data.attributes.message.interactive.action.sections.flatMap(section => section.rows.map(row => row.title));
@@ -215,7 +281,7 @@ function excelFile(phone = '9869650435', fields = {}) {
   const XLSX = require('xlsx');
   const workbook = XLSX.utils.book_new();
   const row = { ...Object.fromEntries(fpoFormat.FPO_LEAD_IMPORT_COLUMNS.map(column => [column, ''])),
-    phone, name: 'Parth' };
+    phone, name: 'Parth', role: 'farmer', state: 'Madhya Pradesh' };
   for (const [header, value] of Object.entries(fields)) {
     const normalize = text => text.toLowerCase().replace(/[\s_-]+/g, '');
     const canonical = fpoFormat.FPO_LEAD_IMPORT_COLUMNS.find(column => normalize(column) === normalize(header));
@@ -245,7 +311,7 @@ test('blank Excel phones create distinct farmers with null phones through the re
   const XLSX = require('xlsx');
   const workbook = XLSX.utils.book_new();
   const rows = ['', '   ', null, '919869650435'].map((phone, index) => ({
-    name: `Farmer ${index}`, phone, village: 'Example Village', district: 'Indore', state: 'Madhya Pradesh',
+    name: `Farmer ${index}`, phone, role: 'farmer', village: 'Example Village', district: 'Indore', state: 'Madhya Pradesh',
   }));
   XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(rows), 'Leads');
   const { service, calls } = runtime({ id: 'unrelated-user-with-no-phone' }, {
@@ -274,6 +340,72 @@ test('blank Excel phones create distinct farmers with null phones through the re
   assert.equal(calls.external[3].mobile_number, '9869650435');
   assert(calls.phoneLookups.every(phone => phone && String(phone).trim()));
   assert(calls.contactLookups.every(phone => phone && String(phone).trim()));
+});
+
+test('every supported Excel role is stored with blank phone, village and district using the supplied role', async () => {
+  const XLSX = require('xlsx');
+  const labels = ['Farmer', 'Trader', 'FPO', 'VLE', 'Agri-Transport', 'Micro-Entrepreneur', 'Agri-Machine', 'Agri Input Supplier', 'Livestock'];
+  const expected = ['farmer', 'trader', 'fpo', 'vle', 'agricultural_transport_service', 'micro_entrepreneur',
+    'agricultural_machinery_service_provider', 'agricultural_input_supplier', 'livestock_farmer'];
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(labels.map((role, index) => ({
+    name: 'Lead without phone', phone: ['', null, '   '][index % 3], role, village: '', state: 'Telangana', district: '',
+  }))), 'Leads');
+  const { service, calls } = runtime(undefined, {
+    realUserDetails: true,
+    mappedFpo: { id: 'parent-local-id', user_id: 'parent-external-id', phone: '919372597458' },
+  });
+  const result = await service.importFpoLeads(XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' }), 'number', '919372597458');
+  assert.equal(result.imported_count, labels.length);
+  assert.equal(result.failed_count, 0);
+  assert.equal(calls.created.length, labels.length);
+  assert.equal(new Set(result.imported.map(row => row.user_id)).size, labels.length);
+  for (const [index, role] of expected.entries()) {
+    assert.equal(calls.external[index].role, role);
+    assert.equal(calls.external[index].userType, role);
+    assert.equal(calls.external[index].mobile_number, null);
+    assert.equal(calls.external[index].createdById, 'parent-external-id');
+    assert.equal(calls.external[index].state, 'Telangana');
+    assert.equal(calls.external[index].village, null);
+    assert.equal(calls.external[index].district, null);
+    assert.equal(calls.created[index].role, role);
+    assert.equal(calls.created[index].role_type, role);
+    assert.equal(calls.created[index].phone, null);
+    assert.equal(calls.created[index].location.state, 'Telangana');
+    assert.equal(calls.stored[index].data.role, role);
+    assert.equal(calls.stored[index].phone_number, null);
+    assert.equal(calls.stored[index].data.phone_number, null);
+    assert.equal(calls.stored[index].data.location.village, null);
+    assert.equal(calls.stored[index].data.location.district, null);
+    assert.equal(result.role_counts[role], 1);
+  }
+  assert.deepEqual(calls.phoneLookups, ['919372597458']);
+  assert.equal(calls.contactLookups.length, 0);
+});
+
+test('missing name, role or state and unsupported roles are reported as row errors before registration', async () => {
+  const { service, calls } = runtime(undefined, {
+    realUserDetails: true,
+    mappedFpo: { id: 'parent-local-id', user_id: 'parent-external-id', phone: '919372597458' },
+  });
+  for (const [fields, message] of [
+    [{ name: '   ' }, /Name is required/],
+    [{ role: '' }, /Role is required/],
+    [{ role: '   ' }, /Role is required/],
+    [{ state: '' }, /State is required/],
+    [{ state: '   ' }, /State is required/],
+    [{ role: 'admin' }, /Unsupported role: admin/],
+    [{ role: 'unknown-role' }, /Unsupported role/],
+  ]) {
+    const result = await service.importFpoLeads(excelFile('', fields), 'number', '919372597458');
+    assert.equal(result.imported_count, 0);
+    assert.equal(result.failed_count, 1);
+    assert.equal(result.failed[0].row, 2);
+    assert.match(result.failed[0].error, message);
+  }
+  assert.equal(calls.external.length, 0);
+  assert.equal(calls.created.length, 0);
+  assert.equal(calls.stored.length, 0);
 });
 
 test('nonblank invalid Excel phones still fail while blank phones are imported', async () => {
@@ -371,14 +503,14 @@ test('the actual generated lowercase Excel template imports all rows and preserv
   assert.equal(result.imported_count, 3);
   assert.equal(result.failed_count, 0);
   assert.equal(calls.external.length, 3);
-  for (const [index, expected] of ['Kheda', 'Rau', 'Dewas'].entries()) {
+  for (const [index, expected] of ['Kheda', 'Rau', null].entries()) {
     assert.equal(calls.external[index].village, expected);
     assert.equal(calls.stored[index].data.location.village, expected);
     assert(calls.created[index].location.state);
-    assert(calls.created[index].location.district);
-    assert(calls.created[index].location.village);
+    assert.equal(calls.created[index].location.district, index === 2 ? null : 'Indore');
+    assert.equal(calls.created[index].location.village, expected);
     assert.equal(calls.created[index].location.pincode, null);
-    assert.equal(calls.created[index].role, 'farmer');
+    assert.equal(calls.created[index].role, ['farmer', 'trader', 'vle'][index]);
   }
   assert.equal(calls.created[0].email, null);
   assert.equal(calls.created[0].native_language, null);
@@ -513,7 +645,7 @@ test('chatbot registration sends and stores national numbers and preserves 10-di
   }
 });
 
-test('Excel import accepts national and 91-prefixed mobile numbers and defaults leads to farmer', async () => {
+test('Excel import accepts national and 91-prefixed mobile numbers and preserves the supplied role', async () => {
   for (const [phone, expected] of [
     ['9869650435', '9869650435'],
     ['919869650435', '9869650435'],
@@ -523,11 +655,11 @@ test('Excel import accepts national and 91-prefixed mobile numbers and defaults 
     const { service, calls } = runtime(undefined, { mappedFpo: {
       id: 'fpo-local-id', user_id: 'fpo-external-user-id', phone: '919372597458',
     } });
-    const result = await service.importFpoLeads(excelFile(phone), 'receiving-number', '919372597458');
+    const result = await service.importFpoLeads(excelFile(phone, { role: 'Trader' }), 'receiving-number', '919372597458');
     assert.equal(result.imported_count, 1);
     assert.equal(result.failed_count, 0);
     assert.equal(calls.external[0].mobile_number, expected);
-    assert.equal(calls.external[0].role, 'farmer');
+    assert.equal(calls.external[0].role, 'trader');
     assert.equal(calls.external[0].createdById, 'fpo-external-user-id');
     assert.equal(calls.stored[0].data.phone_number, expected);
   }

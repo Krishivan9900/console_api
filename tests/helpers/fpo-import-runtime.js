@@ -28,6 +28,7 @@ function excelFile(count, options = {}) {
   XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(Array.from({ length: count }, (_, i) => ({
     ...Object.fromEntries(fpoFormat.FPO_LEAD_IMPORT_COLUMNS.map(column => [column, ''])),
     phone: options.missingPhoneRows?.includes(i) ? '' : `98765${String(i).padStart(5, '0')}`, name: `Farmer ${i}`,
+    role: options.roles?.[i] || 'farmer', state: 'Madhya Pradesh',
   }))), 'Farmers');
   return XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
 }

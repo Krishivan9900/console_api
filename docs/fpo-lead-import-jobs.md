@@ -3,7 +3,7 @@
 Files with **1–10 rows** finish immediately. Files with **more than 10 rows** run
 as `fpo_leads_import` jobs on the existing BullMQ `contact-import` queue. Both
 paths appear in the existing import job list, with row counts, progress, failed
-rows and the final result. Before deploying optional farmer phones, run
+rows and the final result. Before deploying optional lead phones, run
 `npm run migrate:latest` to make `stored_session_data.phone_number` nullable.
 `users.phone` already accepts null and retains its uniqueness for supplied numbers.
 
@@ -16,11 +16,12 @@ is imported, matching the existing FPO importer.
 Every upload must contain exactly the sample's column headings:
 
 ```text
-name, phone, village, district, state
+name, phone, role, village, state, district
 ```
 
-Keep all five headings even when phone or location values are blank. Name is
-required; phone is optional. A nonblank phone must still be valid. Column order, capitalization, spaces,
+Keep all six headings. **Name, role and state are required** for each row.
+**Phone, village and district are optional** and their cells may be blank.
+A nonblank phone must still be valid. Column order, capitalization, spaces,
 underscores and hyphens may vary;
 the column names must otherwise match the sample. Alternate names such as
 `Mobile Number`, extra FPO-number columns, duplicate headings, unnamed columns
@@ -28,7 +29,13 @@ with data and missing columns are rejected. Use `phone` for the farmer's
 number; `phone_number` is no longer a spreadsheet heading. The parent FPO or
 VLE comes from the WhatsApp sender.
 
-Every row registers as `farmer`, the existing default when no role is supplied.
+Every row registers with its supplied role; there is no default for a blank role.
+Supported role codes are `farmer`, `trader`, `fpo`, `vle`,
+`agricultural_transport_service`, `micro_entrepreneur`,
+`agricultural_machinery_service_provider`, `agricultural_input_supplier` and
+`livestock_farmer`. Existing menu labels such as `Trader`, `VLE` and `Agri-Transport`
+are also normalized to those codes. Missing required values, unsupported roles
+and nonblank invalid phones are reported as failed rows with their row numbers.
 The payload maps `phone` to `phone_number` (and the external API's
 `mobile_number`), keeps `name`, and stores the supplied village, district and
 state in the registration record, local user location and external registration
@@ -37,9 +44,12 @@ API. Email and language are optional and are not requested by the spreadsheet.
 A blank phone cell is saved as `null` in `users.phone`,
 `stored_session_data.phone_number`, and `stored_session_data.data.phone_number`.
 The existing MongoDB registration API receives `mobile_number: null`. Each
-farmer keeps its own user IDs and the uploader mapping; no placeholder phone or
+lead keeps its own user IDs and the uploader mapping; no placeholder phone or
 uploader phone is substituted, and blank phones are never used for user/contact
-lookup. The sample includes one example without a phone. The external API must
+lookup. This applies to every supported Excel role, including trader, FPO and
+VLE, and does not skip rows because their phone is blank. Blank village and
+district values are stored as null. The sample includes multiple roles and
+examples without a phone, village or district. The external API must
 accept missing mobile numbers and return a `user_id`; its implementation is
 outside this repository. API errors are reported as failed rows, never as
 successful MongoDB writes. Ordinary registration still requires a phone or email.

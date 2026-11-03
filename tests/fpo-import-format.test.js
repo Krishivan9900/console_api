@@ -10,7 +10,7 @@ function spreadsheet(headers, values = []) {
   return XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
 }
 
-const farmer = columns.map(column => ({ phone: '9876543210', name: 'Test Farmer' }[column] || ''));
+const farmer = columns.map(column => ({ phone: '9876543210', name: 'Test Farmer', role: 'farmer', state: 'Madhya Pradesh' }[column] || ''));
 
 test('sample headers are required even when optional values are blank; casing and column order are accepted', () => {
   assert.equal(parseFpoLeadImport(excelFile(100)).rows.length, 100);
@@ -28,7 +28,7 @@ test('missing, unexpected, duplicate and unnamed columns reject the whole file',
     { headers: [...columns, ''], values: [...farmer, 'Unnamed value'], pattern: /Unexpected columns: \(blank column\)/ },
     { headers: ['phone_number', 'name', 'role'], values: ['9876543210', 'Test Farmer', 'farmer'], pattern: /Missing columns/ },
     { headers: [...columns].map(column => column === 'phone' ? 'Phone Number' : column), values: farmer, pattern: /Missing columns: phone/ },
-    { headers: [...columns, 'role'], values: [...farmer, 'trader'], pattern: /Unexpected columns: role/ },
+    { headers: Array.from(columns).filter(column => column !== 'role'), values: farmer.filter((_, index) => columns[index] !== 'role'), pattern: /Missing columns: role/ },
   ];
   for (const { headers, values, pattern } of cases) {
     assert.throws(() => parseFpoLeadImport(spreadsheet(headers, [values])), error => {

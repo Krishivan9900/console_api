@@ -776,6 +776,11 @@
                         "description": ""
                       },
                       {
+                        "id": "registration/5817dfdc-a3a4-4c47-a54c-75992a15bab6/vle",
+                        "title": "VLE",
+                        "description": ""
+                      },
+                      {
                         "id": "row_1781057843393_r8kw0e",
                         "title": "Agri-Machine",
                         "description": ""
@@ -788,11 +793,6 @@
                       {
                         "id": "row_1781057859601_o83ht8",
                         "title": "Livestock",
-                        "description": ""
-                      },
-                      {
-                        "id": "registration/5817dfdc-a3a4-4c47-a54c-75992a15bab6/vle",
-                        "title": "VLE",
                         "description": ""
                       }
                     ]
@@ -911,6 +911,11 @@
                         "description": ""
                       },
                       {
+                        "id": "registration/7f9f7ba0-faad-4533-965b-0c74e89be60c/vle",
+                        "title": "VLE",
+                        "description": ""
+                      },
+                      {
                         "id": "row_1781058103209_1lr71m",
                         "title": "कृषि मशीन सेवा प्रदाता",
                         "description": ""
@@ -923,11 +928,6 @@
                       {
                         "id": "row_1781058103209_nb3jli",
                         "title": "पशुपालक",
-                        "description": ""
-                      },
-                      {
-                        "id": "registration/7f9f7ba0-faad-4533-965b-0c74e89be60c/vle",
-                        "title": "VLE",
                         "description": ""
                       }
                     ]
@@ -1399,6 +1399,11 @@
                         "description": ""
                       },
                       {
+                        "id": "registration/9e37d9ba-3ff5-410b-a281-4e7cf3330096/vle",
+                        "title": "VLE",
+                        "description": ""
+                      },
+                      {
                         "id": "row_1781085839615_r01efw",
                         "title": "వ్యవసాయ యంత్రాలు",
                         "description": ""
@@ -1411,11 +1416,6 @@
                       {
                         "id": "row_1781085839615_ez89gq",
                         "title": "పశుపాలకుడు",
-                        "description": ""
-                      },
-                      {
-                        "id": "registration/9e37d9ba-3ff5-410b-a281-4e7cf3330096/vle",
-                        "title": "VLE",
                         "description": ""
                       }
                     ]

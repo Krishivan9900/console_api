@@ -2,9 +2,11 @@ const assert = require('node:assert/strict');
 const { test } = require('node:test');
 const { runtime, excelFile } = require('./helpers/fpo-import-runtime');
 
-test('queued imports retain farmers without phones across a checkpoint and worker retry', async () => {
+test('queued imports retain different roles without phones across a checkpoint and worker retry', async () => {
   const rt = runtime();
-  await rt.submit(11, { file: excelFile(11, { missingPhoneRows: [0, 3, 4] }) });
+  await rt.submit(11, { file: excelFile(11, {
+    missingPhoneRows: [0, 3, 4], roles: ['vle', 'farmer', 'farmer', 'trader', 'livestock_farmer'],
+  }) });
   const data = rt.calls.queued[0][1];
   await assert.rejects(rt.service.processFpoLeadImport(data, async percentage => {
     if (percentage >= 18) throw new Error('Worker interrupted');
@@ -14,7 +16,10 @@ test('queued imports retain farmers without phones across a checkpoint and worke
   const result = rt.records.get(data.jobId).result;
   assert.equal(result.imported_count, 11);
   assert.equal(result.failed_count, 0);
-  assert.equal(result.role_counts.farmer, 11);
+  assert.equal(result.role_counts.farmer, 8);
+  assert.equal(result.role_counts.vle, 1);
+  assert.equal(result.role_counts.trader, 1);
+  assert.equal(result.role_counts.livestock_farmer, 1);
   assert.equal(rt.calls.rows.length, 11);
   assert.equal(rt.calls.rows.filter(row => row.phone_number === null && row.data.phone_number === null).length, 3);
   assert.equal(new Set(result.imported.map(row => row.user_id)).size, 11);

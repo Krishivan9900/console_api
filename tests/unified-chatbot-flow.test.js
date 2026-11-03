@@ -257,7 +257,7 @@ test('registered users skip registration and reach every language service menu',
 test('all nine roles register once in each language; FPO and VLE complete Excel onboarding before services', async () => {
   for (const [languageIndex, language] of [[0, 'hi'], [1, 'en'], [2, 'te']]) {
     for (let roleIndex = 0; roleIndex < 9; roleIndex++) {
-      const gstRole = roleIndex === 4 || roleIndex === 8;
+      const gstRole = roleIndex === 4 || roleIndex === 5;
       const rt = runtime({ registered: false });
       await rt.start();
       assert.equal(rt.current().id, '3f7e0e2e-1ff7-4f43-8508-54747fbecb5d');
@@ -290,8 +290,8 @@ test('all nine roles register once in each language; FPO and VLE complete Excel 
       assert.equal(saves[0].data.session_data.email, gstRole ? undefined : 'customer@example.test');
       assert.equal(saves[0].data.session_data.native_language, { hi: 'hindi', en: 'english', te: 'telugu' }[language]);
       assert.equal(saves[0].data.session_data.role, ['farmer', 'trader', 'agricultural_transport_service', 'micro_entrepreneur',
-        'fpo', 'agricultural_machinery_service_provider', 'agricultural_input_supplier', 'livestock_farmer', 'vle'][roleIndex]);
-      if (roleIndex === 8) assert(messages(response).some(m => m?.text?.includes('VLE')));
+        'fpo', 'vle', 'agricultural_machinery_service_provider', 'agricultural_input_supplier', 'livestock_farmer'][roleIndex]);
+      if (roleIndex === 5) assert(messages(response).some(m => m?.text?.includes('VLE')));
       const confirmation = { en: 'created successfully', hi: 'आपका खाता सफलतापूर्वक बन गया है', te: 'మీ ఖాతా విజయవంతంగా సృష్టించబడింది' }[language];
       assert(messages(response).some(m => m?.text?.includes(confirmation)));
       assert.equal(rt.session.active, true);
@@ -301,7 +301,7 @@ test('all nine roles register once in each language; FPO and VLE complete Excel 
 
 test('FPO and VLE retry invalid GST in every language and register once with corrected GST', async () => {
   for (const [languageIndex, language] of [[0, 'hi'], [1, 'en'], [2, 'te']]) {
-    for (const roleIndex of [4, 8]) {
+    for (const roleIndex of [4, 5]) {
       let gstChecks = 0;
       const rt = runtime({ registered: false, override: r => {
         if (r.url.endsWith('/verify-gstin') && ++gstChecks === 1) {
@@ -319,7 +319,7 @@ test('FPO and VLE retry invalid GST in every language and register once with cor
       assert.equal(rt.current().data.title, `Services (${language})`);
       const saves = rt.requests.filter(r => r.url.endsWith('/stored-chat-session'));
       assert.equal(saves.length, 1);
-      assert.equal(saves[0].data.session_data.role, roleIndex === 8 ? 'vle' : 'fpo');
+      assert.equal(saves[0].data.session_data.role, roleIndex === 5 ? 'vle' : 'fpo');
       assert.equal(saves[0].data.session_data.gstin, '36AAICK0914G1ZQ');
     }
   }

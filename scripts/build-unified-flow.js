@@ -86,7 +86,9 @@ function buildUnifiedFlow({
     const fpoSelection = flow.edges.find(e => e.source === menu.id &&
       rows.some(row => row.id === e.sourceHandle) && node(e.target)?.data.attributes?.variable === 'gstin');
     const vleId = `registration/${menu.id}/vle`;
-    sections[0].rows.push({ id: vleId, title: 'VLE', description: '' });
+    const fpoSection = sections.find(section => section.rows.some(row => row.id === fpoSelection.sourceHandle));
+    const fpoIndex = fpoSection.rows.findIndex(row => row.id === fpoSelection.sourceHandle);
+    fpoSection.rows.splice(fpoIndex + 1, 0, { id: vleId, title: 'VLE', description: '' });
     edge(menu.id, fpoSelection.target, vleId);
   }
 
