@@ -10,7 +10,10 @@ export function getInteractiveReplyEdge(bot: any, incomingId: string, currentNod
     const data = parse(edge.data);
     if (![data.button_id, data.sourceHandle, edge.sourceHandle].includes(incomingId)) return false;
     const source = bot.nodes?.find((node: any) => node.id === edge.source);
-    return ['@whatsapp/send-button-message', '@whatsapp/send-list-message'].includes(parse(source?.data).key);
+    const sourceData = parse(source?.data);
+    return ['@whatsapp/send-button-message', '@whatsapp/send-list-message'].includes(sourceData.key) ||
+      (sourceData.key === '@whatsapp/ask-question' && data.action === 'skip-question' &&
+        sourceData.attributes?.skipButton?.id === incomingId);
   });
   return matches.find((edge: any) => edge.source === currentNodeId) || matches[0];
 }

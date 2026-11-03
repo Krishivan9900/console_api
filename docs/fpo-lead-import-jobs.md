@@ -54,6 +54,16 @@ accept missing mobile numbers and return a `user_id`; its implementation is
 outside this repository. API errors are reported as failed rows, never as
 successful MongoDB writes. Ordinary registration still requires a phone or email.
 
+If all rows without a phone fail with HTTP 400 while other rows succeed, check
+`import_jobs.result.failed` for the registration service's rejection. New failures
+include `code: "REGISTRATION_API_ERROR"`, `http_status`, `phone_missing`, and the
+API's validation message. The final WhatsApp summary shows up to four rejected row
+numbers and reasons, rather than telling users to correct otherwise valid rows.
+PostgreSQL accepting null phones does not change the remote API's required-field
+validation or MongoDB indexes. That endpoint must support accounts identified by
+their user ID without requiring a mobile number. Once it does, retry only the
+failed rows to avoid reimporting successful accounts.
+
 Validation runs before a job is created or any farmer is registered, and again
 inside the worker. WhatsApp responds with “Please upload the Excel file in the
 sample format” and the column issues; direct API uploads return HTTP 400.

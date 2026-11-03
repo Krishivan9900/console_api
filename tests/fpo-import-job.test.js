@@ -2,6 +2,44 @@ const assert = require('node:assert/strict');
 const { test } = require('node:test');
 const { runtime, excelFile } = require('./helpers/fpo-import-runtime');
 
+test('the 20-row sample imports all roles without phones when registration accepts them', async () => {
+  const rt = runtime();
+  const roles = Array.from({ length: 20 }, (_, index) => ['farmer', 'trader', 'vle'][index % 3]);
+  await rt.submit(20, { file: excelFile(20, { roles, missingPhoneRows: [2, 7, 14, 18] }) });
+  await rt.service.processFpoLeadImport(rt.calls.queued[0][1]);
+  const result = [...rt.records.values()][0].result;
+  assert.equal(result.imported_count, 20);
+  assert.equal(result.failed_count, 0);
+  assert.equal(result.role_counts.farmer, 7);
+  assert.equal(result.role_counts.trader, 7);
+  assert.equal(result.role_counts.vle, 6);
+  assert.equal(rt.calls.rows.filter(row => row.phone_number === null).length, 4);
+});
+
+test('external phone validation errors retain the reason and row numbers instead of telling users to correct valid rows', async () => {
+  const rt = runtime({ registrationError: {
+    message: 'Request failed with status code 400',
+    response: { status: 400, data: { message: 'mobile_number is required' } },
+  } });
+  const roles = Array.from({ length: 20 }, (_, index) => ['farmer', 'trader', 'vle'][index % 3]);
+  await rt.submit(20, { file: excelFile(20, { roles, missingPhoneRows: [2, 7, 14, 18] }) });
+  await rt.service.processFpoLeadImport(rt.calls.queued[0][1]);
+  const result = [...rt.records.values()][0].result;
+  assert.equal(result.imported_count, 16);
+  assert.equal(result.failed_count, 4);
+  assert.equal(result.role_counts.farmer, 6);
+  assert.equal(result.role_counts.trader, 6);
+  assert.equal(result.role_counts.vle, 4);
+  assert.deepEqual(Array.from(result.failed, row => row.row), [4, 9, 16, 20]);
+  assert(result.failed.every(row => row.code === 'REGISTRATION_API_ERROR' && row.http_status === 400 && row.phone_missing));
+  assert(result.failed.every(row => row.error === 'mobile_number is required'));
+  const final = rt.calls.sent.at(-1).text;
+  assert.match(final, /registration service rejected/i);
+  for (const row of [4, 9, 16, 20]) assert(final.includes(`Row ${row} (no phone): mobile_number is required`));
+  assert(!final.includes('Please correct the file'));
+  assert(final.length < 4096);
+});
+
 test('queued imports retain different roles without phones across a checkpoint and worker retry', async () => {
   const rt = runtime();
   await rt.submit(11, { file: excelFile(11, {

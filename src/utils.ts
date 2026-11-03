@@ -339,6 +339,7 @@ export function getRegistrationLocation(...records: any[]): Record<string, any> 
 
 /** Prefer a supplied email, then a usable contact email returned with GST company details. */
 export function getRegistrationEmail(...records: any[]): string | null {
+  if (records.some(data => data?.skipped_fields?.email === true)) return null;
   for (const data of records) {
     if (!data || typeof data !== 'object') continue;
     const sources = [data, data.details, data.company_details, data.details?.company_details, data.data?.company_details,
@@ -367,6 +368,8 @@ export function normalizeRegistrationData(data: any): any {
   if (language) normalized.native_language = normalizeLanguage(language);
   const email = getRegistrationEmail(data);
   if (email) normalized.email = email;
+  if (data.skipped_fields?.email === true) normalized.email = null;
+  if (data.skipped_fields?.photo === true) normalized.photo = null;
   const location = getRegistrationLocation(data);
   if (Object.values(location).some(value => value !== null)) {
     normalized.location = { ...(typeof data.location === 'object' ? data.location : {}), ...location };
@@ -375,6 +378,8 @@ export function normalizeRegistrationData(data: any): any {
     normalized.details = { ...data.details };
     if (data.details.role) normalized.details.role = normalized.role || normalizeRole(data.details.role);
     if (data.details.native_language) normalized.details.native_language = normalized.native_language;
+    if (data.skipped_fields?.email === true) normalized.details.email = null;
+    if (data.skipped_fields?.photo === true) normalized.details.photo = null;
   }
   return normalized;
 }
@@ -406,6 +411,7 @@ export function replaceVariables(
         role: variables.role || variables.details?.role,
         email: getRegistrationEmail(variables) ?? variables.email,
         photo: variables.photo,
+        ...(variables.skipped_fields ? { skipped_fields: variables.skipped_fields } : {}),
         chat: variables.chat,
         image_url: variables.image_url,
         voice: variables.voice,
@@ -931,12 +937,24 @@ export async function buildResponse(node: any, session?: any, bot?: any) {
   console.log("Data flow", data, key)
 
   if (key === "@whatsapp/ask-question") {
+    const prompt = replaceBodyVariables(
+      data?.attributes?.message?.text?.body || "Please enter value",
+      session?.variables || {}
+    );
+    const skip = data?.attributes?.skipButton;
+    if (skip?.id && skip?.title) {
+      return {
+        type: 'interactive',
+        interactive: {
+          type: 'button',
+          body: { text: prompt },
+          action: { buttons: [{ type: 'reply', reply: { id: skip.id, title: skip.title } }] },
+        },
+      };
+    }
     return {
       type: "text",
-      text: replaceBodyVariables(
-        data?.attributes?.message?.text?.body || "Please enter value",
-        session?.variables || {}
-      )
+      text: prompt,
     };
   }
 

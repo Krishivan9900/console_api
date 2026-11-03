@@ -58,7 +58,19 @@ export const menuFlow = async ({
 
       const sourceNode = bot.nodes.find((node: any) => node.id === globalEdge.source);
 
-      if ([
+      if (globalEdge.data?.action === 'skip-question') {
+        variable = sourceNode?.data?.attributes?.variable;
+        if (sourceNode?.id !== currentNodeId || sourceNode?.data?.key !== '@whatsapp/ask-question' ||
+            !['email', 'photo'].includes(variable) || sourceNode.data.attributes.skipButton?.id !== incomingId) {
+          return { ignoreMessage: true };
+        }
+        updatedVariables = {
+          ...(session.variables || {}),
+          [variable]: null,
+          details: { ...session.variables?.details, [variable]: null },
+          skipped_fields: { ...session.variables?.skipped_fields, [variable]: true },
+        };
+      } else if ([
         "@whatsapp/send-list-message",
         "@whatsapp/send-button-message"
       ].includes(sourceNode?.data?.key)) {
@@ -213,6 +225,9 @@ export const menuFlow = async ({
       ...existingVariables,
       [variable]: answer,
       ...(variable === 'role' ? { details: { ...existingVariables.details, role: answer } } : {}),
+      ...(['email', 'photo'].includes(variable) && existingVariables.skipped_fields ? {
+        skipped_fields: { ...existingVariables.skipped_fields, [variable]: false },
+      } : {}),
     };
 
     console.log("🧠 Variables:", updatedVariables);

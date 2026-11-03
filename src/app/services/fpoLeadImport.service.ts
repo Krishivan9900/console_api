@@ -145,11 +145,16 @@ async function notifyFpoImportComplete(data: FpoLeadImportJobData, result: any) 
   if (!await ImportJobModel.claimFpoNotification(data.jobId, 'summary')) return;
   {
     const roles = formatImportedRoles(result);
+    const registrationFailures = (result.failed || []).filter((entry: any) => entry.code === 'REGISTRATION_API_ERROR');
     const sent = await MessageService.sendChatBotMessage(data.phoneNumberId, data.uploadingFpoPhone, {
       type: 'text', text: [
         result.failed_count ? 'Contact import finished: 100% processed, with errors.' : 'Contact import complete: 100%.',
         roles || 'No leads were imported.',
-        result.failed_count ? `${result.failed_count} row(s) could not be imported. Please correct the file and upload it again.` : '',
+        result.failed_count ? `${result.failed_count} row(s) could not be imported. ${registrationFailures.length
+          ? 'The registration service rejected some rows. Check the import job details before uploading again.'
+          : 'Please correct the file and upload it again.'}` : '',
+        ...registrationFailures.slice(0, 4).map((entry: any) =>
+          `Row ${entry.row}${entry.phone_missing ? ' (no phone)' : ''}: ${String(entry.error).replace(/\s+/g, ' ').slice(0, 160)}`),
       ].filter(Boolean).join('\n'),
     });
     if (!sent) {

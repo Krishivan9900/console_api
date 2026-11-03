@@ -47,6 +47,19 @@ English, Hindi, and Telugu registration offer nine roles, including **VLE**. FPO
 
 The exact English upload prompt is retained for all three FPO paths because the existing message sender recognizes it and attaches the sample. The English path reuses the original upload-question node. Order/booking, AI menus, catalog search, and cart processing retain their previous behavior.
 
+All seven roles other than FPO and VLE can skip email and profile photo. Their
+email and photo questions include a localized **Skip** reply button (`Skip`,
+`छोड़ें`, or `దాటవేయి`). Users can still type an email or upload an image normally.
+Email → Skip continues to the location question. Photo → Skip submits the
+registration using the WhatsApp sender's phone, then shows the localized welcome
+and services menu only after a successful save. Skipped email/photo values are
+saved as null in the registration data and `users.email`/`users.image_url`; the
+external registration request uses `photo: null`. The button title is never
+stored as an email or photo, and a button from an earlier question is ignored.
+Skipping does not change the role, name, phone or location. Deploy the backend
+and save the regenerated `krishivan-unified.flow.json` in the existing bot to
+enable these buttons. This optional email/photo change needs no database migration.
+
 FPO and VLE registration in English, Hindi, and Telugu ask for the GST number immediately after role selection. They do not ask for email. Registration uses the sender's phone number, and the welcome omits the email line when no email was supplied. Selecting VLE sends `role: "vle"` in `/v1/auth/stored-chat-session`; the backend saves `vle` in `stored_session_data.data.role`, `users.role`, and `users.role_type`, and sends both `role: "vle"` and `userType: "vle"` to the same external registration API used for FPO. Its generated role ID starts with `VLE`. Invalid GST retries the GST question without registering. Other roles retain their existing registration questions. Run `npm run migrate:latest -- --env production` against the deployed database before enabling VLE, then deploy the backend and save the regenerated JSON into the existing chatbot. The new `20261103000001_allow_vle_registration_role_for_users.ts` migration adds `vle` to PostgreSQL's `users_role_check`, retaining every previously allowed role. Without it, VLE registration fails with PostgreSQL error `23514`. Registration route errors now go through Express error middleware instead of becoming unhandled promise rejections.
 
 When GST verification returns a usable company contact email, the flow includes it as `session_data.email` in the request to the Render API's `/v1/auth/stored-chat-session`. It is saved in `stored_session_data.data.email` and `users.email` and shown in the welcome. A valid user- or Excel-supplied email takes priority over GST email. GST `email`, `email_address`, and `email_id` fields are supported, including company details and the verification response's data object. Missing, blank, and masked GST emails do not add an email question or generate a substitute email. This fallback requires the backend update; it does not backfill existing registrations.

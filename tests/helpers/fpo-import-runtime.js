@@ -98,6 +98,7 @@ function runtime(options = {}) {
     normalizeRole: role => role.toLowerCase(), normalizeRegistrationData: data => data,
   });
   auth.registerUser = async (_number, data) => {
+    if (options.registrationError && data.phone_number === null) throw options.registrationError;
     if (options.rowError || options.failRows?.includes(data.phone_number)) throw new Error('Invalid row');
     return { id: data.phone_number || `farmer-without-phone-${calls.rows.length + 1}` };
   };

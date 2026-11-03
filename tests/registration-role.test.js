@@ -591,6 +591,30 @@ test('an explicitly supplied email takes priority over the GST company email', a
   assert.equal(calls.created[0].email, 'selected@example.test');
 });
 
+test('skipped email and photo save as null in registration records, users and the external photo payload', async () => {
+  for (const role of ['farmer', 'trader', 'agricultural_transport_service', 'micro_entrepreneur',
+    'agricultural_machinery_service_provider', 'agricultural_input_supplier', 'livestock_farmer']) {
+    const { service, calls, replaceVariables } = runtime(undefined, { realUserDetails: true });
+    const body = replaceVariables({ session_data: '{{data}}' }, {
+      role, name: 'Test Customer', phone_number: '919876543210',
+      email: 'stale@example.test', photo: 'https://example.test/old.jpg',
+      skipped_fields: { email: true, photo: true },
+      details: { email: 'stale@example.test', photo: 'https://example.test/old.jpg' },
+    });
+    assert.equal(body.session_data.email, null);
+    assert.equal(body.session_data.photo, null);
+    await service.storedChatSession('919876543210', body.session_data);
+    assert.equal(calls.stored[0].data.email, null);
+    assert.equal(calls.stored[0].data.photo, null);
+    assert.equal(calls.created[0].email, null);
+    assert.equal(calls.created[0].image_url, null);
+    assert.equal(calls.created[0].phone, '9876543210');
+    assert.equal(calls.created[0].role, role);
+    assert.equal(calls.external[0].photo, null);
+    assert.equal(calls.external[0].mobile_number, '9876543210');
+  }
+});
+
 test('missing, blank or masked GST emails remain optional instead of becoming a stored contact email', async () => {
   for (const email of [undefined, null, '', '   ', 'N/A', 'pa***@example.test']) {
     const { service, calls, replaceVariables } = runtime();

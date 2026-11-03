@@ -28,10 +28,12 @@ function buildUnifiedFlow({
   };
   const edge = (source, target, handle = 'default', branch) => {
     const sourceHandle = branch === undefined ? handle : `condition-${branch}-${source}`;
-    flow.edges.push({
+    const connection = {
       id: id(`edge/${source}/${sourceHandle}/${target}`), source, target, sourceHandle, targetHandle: 'in',
       data: { sourceHandle, targetHandle: 'in', ...(branch === undefined ? {} : { condition: branch, branch }) },
-    });
+    };
+    flow.edges.push(connection);
+    return connection;
   };
   const redirect = (source, target) => {
     flow.edges = flow.edges.filter(e => e.source !== source);
@@ -90,6 +92,20 @@ function buildUnifiedFlow({
     const fpoIndex = fpoSection.rows.findIndex(row => row.id === fpoSelection.sourceHandle);
     fpoSection.rows.splice(fpoIndex + 1, 0, { id: vleId, title: 'VLE', description: '' });
     edge(menu.id, fpoSelection.target, vleId);
+  }
+
+  // Retain free-form answers and add a separate Skip reply to optional questions.
+  for (const question of flow.nodes.filter(n => n.data.key === '@whatsapp/ask-question' &&
+    ['email', 'photo'].includes(n.data.attributes?.variable))) {
+    const attrs = question.data.attributes;
+    const prompt = attrs.message.text.body;
+    const title = /[\u0900-\u097f]/.test(prompt) ? 'छोड़ें'
+      : /[\u0c00-\u0c7f]/.test(prompt) ? 'దాటవేయి' : 'Skip';
+    attrs.skipButton = { id: `registration/${question.id}/skip`, title };
+    const next = flow.edges.find(e => e.source === question.id && e.sourceHandle === 'default');
+    const skip = edge(question.id, next.target, attrs.skipButton.id);
+    skip.data.action = 'skip-question';
+    skip.data.button_id = attrs.skipButton.id;
   }
 
   // Check the local users database, the same database used by registration and orders.

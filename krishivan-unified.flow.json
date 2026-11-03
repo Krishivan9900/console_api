@@ -92,7 +92,11 @@
             "value": 60,
             "continueOnTimeout": false
           },
-          "variable": "email"
+          "variable": "email",
+          "skipButton": {
+            "id": "registration/0aecac62-f31e-4627-a008-11b8246d7802/skip",
+            "title": "Skip"
+          }
         }
       },
       "selected": false,
@@ -288,7 +292,11 @@
             "value": 60,
             "continueOnTimeout": false
           },
-          "variable": "photo"
+          "variable": "photo",
+          "skipButton": {
+            "id": "registration/78f6c0bb-9352-4a92-9d8e-10b5a72760e5/skip",
+            "title": "Skip"
+          }
         }
       },
       "selected": false,
@@ -450,7 +458,11 @@
             "value": 60,
             "continueOnTimeout": false
           },
-          "variable": "email"
+          "variable": "email",
+          "skipButton": {
+            "id": "registration/8664d337-aaa7-4eba-a6df-236bf9f13392/skip",
+            "title": "छोड़ें"
+          }
         }
       },
       "selected": false,
@@ -567,7 +579,11 @@
             "value": 60,
             "continueOnTimeout": false
           },
-          "variable": "photo"
+          "variable": "photo",
+          "skipButton": {
+            "id": "registration/578428f7-2115-4bd5-a7c2-9b870e0b81bc/skip",
+            "title": "छोड़ें"
+          }
         }
       },
       "selected": false,
@@ -1518,7 +1534,11 @@
             "value": 60,
             "continueOnTimeout": false
           },
-          "variable": "email"
+          "variable": "email",
+          "skipButton": {
+            "id": "registration/42ad0767-42ec-4748-9f2f-0edfe0c7dd09/skip",
+            "title": "దాటవేయి"
+          }
         }
       },
       "selected": false,
@@ -1597,7 +1617,11 @@
             "value": 60,
             "continueOnTimeout": false
           },
-          "variable": "photo"
+          "variable": "photo",
+          "skipButton": {
+            "id": "registration/0296b4bc-2eb7-4113-9d25-372a7fb8225a/skip",
+            "title": "దాటవేయి"
+          }
         }
       },
       "selected": false,
@@ -6681,6 +6705,84 @@
         "sourceHandle": "registration/9e37d9ba-3ff5-410b-a281-4e7cf3330096/vle",
         "targetHandle": "in",
         "button_id": "registration/9e37d9ba-3ff5-410b-a281-4e7cf3330096/vle"
+      }
+    },
+    {
+      "id": "3c2cdae5-6949-50dc-aa4d-7ed78f66c70f",
+      "source": "0aecac62-f31e-4627-a008-11b8246d7802",
+      "target": "d6e80a73-e3a1-46bc-99ab-18c0b49cc44f",
+      "sourceHandle": "registration/0aecac62-f31e-4627-a008-11b8246d7802/skip",
+      "targetHandle": "in",
+      "data": {
+        "sourceHandle": "registration/0aecac62-f31e-4627-a008-11b8246d7802/skip",
+        "targetHandle": "in",
+        "action": "skip-question",
+        "button_id": "registration/0aecac62-f31e-4627-a008-11b8246d7802/skip"
+      }
+    },
+    {
+      "id": "4f8c725b-3858-54cf-a007-6bcc720ae406",
+      "source": "78f6c0bb-9352-4a92-9d8e-10b5a72760e5",
+      "target": "b1219880-2028-494f-9081-338e72050013",
+      "sourceHandle": "registration/78f6c0bb-9352-4a92-9d8e-10b5a72760e5/skip",
+      "targetHandle": "in",
+      "data": {
+        "sourceHandle": "registration/78f6c0bb-9352-4a92-9d8e-10b5a72760e5/skip",
+        "targetHandle": "in",
+        "action": "skip-question",
+        "button_id": "registration/78f6c0bb-9352-4a92-9d8e-10b5a72760e5/skip"
+      }
+    },
+    {
+      "id": "9e8e3ed1-651c-50ee-87aa-fef584e4ca55",
+      "source": "8664d337-aaa7-4eba-a6df-236bf9f13392",
+      "target": "f0c25770-08e9-47d4-bea2-fbfb1b7acb7d",
+      "sourceHandle": "registration/8664d337-aaa7-4eba-a6df-236bf9f13392/skip",
+      "targetHandle": "in",
+      "data": {
+        "sourceHandle": "registration/8664d337-aaa7-4eba-a6df-236bf9f13392/skip",
+        "targetHandle": "in",
+        "action": "skip-question",
+        "button_id": "registration/8664d337-aaa7-4eba-a6df-236bf9f13392/skip"
+      }
+    },
+    {
+      "id": "2457a9b8-bcbe-58c7-b3b7-de394b2152b5",
+      "source": "578428f7-2115-4bd5-a7c2-9b870e0b81bc",
+      "target": "6326b206-f038-476c-b0f3-1fe2022f5c06",
+      "sourceHandle": "registration/578428f7-2115-4bd5-a7c2-9b870e0b81bc/skip",
+      "targetHandle": "in",
+      "data": {
+        "sourceHandle": "registration/578428f7-2115-4bd5-a7c2-9b870e0b81bc/skip",
+        "targetHandle": "in",
+        "action": "skip-question",
+        "button_id": "registration/578428f7-2115-4bd5-a7c2-9b870e0b81bc/skip"
+      }
+    },
+    {
+      "id": "2a3d9754-1cff-52c7-829b-5cb4fb89bf37",
+      "source": "42ad0767-42ec-4748-9f2f-0edfe0c7dd09",
+      "target": "4a4ba9d5-9c8b-4bf0-9b22-5e508e0e1703",
+      "sourceHandle": "registration/42ad0767-42ec-4748-9f2f-0edfe0c7dd09/skip",
+      "targetHandle": "in",
+      "data": {
+        "sourceHandle": "registration/42ad0767-42ec-4748-9f2f-0edfe0c7dd09/skip",
+        "targetHandle": "in",
+        "action": "skip-question",
+        "button_id": "registration/42ad0767-42ec-4748-9f2f-0edfe0c7dd09/skip"
+      }
+    },
+    {
+      "id": "cb48ee20-ab5d-5ca2-acaf-5dbdaa16e29f",
+      "source": "0296b4bc-2eb7-4113-9d25-372a7fb8225a",
+      "target": "e8b30e00-5c76-4bb5-82cc-a81be57ad0eb",
+      "sourceHandle": "registration/0296b4bc-2eb7-4113-9d25-372a7fb8225a/skip",
+      "targetHandle": "in",
+      "data": {
+        "sourceHandle": "registration/0296b4bc-2eb7-4113-9d25-372a7fb8225a/skip",
+        "targetHandle": "in",
+        "action": "skip-question",
+        "button_id": "registration/0296b4bc-2eb7-4113-9d25-372a7fb8225a/skip"
       }
     },
     {

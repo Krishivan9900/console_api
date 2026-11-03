@@ -1202,10 +1202,24 @@ class AuthService {
 
         role_counts[role] = (role_counts[role] || 0) + 1;
       } catch (error: any) {
-        failed.push({
+        const response = error?.response;
+        const apiMessage = [
+          response?.data?.message, response?.data?.error?.message,
+          response?.data?.error, response?.data?.data?.message,
+          typeof response?.data === 'string' ? response.data : undefined,
+        ].find(message => typeof message === 'string' && message.trim());
+        const failure = {
           row: rowNumber,
-          error: error?.message || 'Unable to import lead',
-        });
+          error: String(apiMessage || error?.message || 'Unable to import lead').slice(0, 500),
+          ...(typeof response?.status === 'number' ? {
+            code: 'REGISTRATION_API_ERROR',
+            http_status: response.status,
+            phone_missing: !getValue(row, 'Phone'),
+          } : {}),
+        };
+        failed.push(failure);
+        // Keep the service's validation reason, without logging Axios headers or payloads.
+        console.error('FPO lead import row failed:', failure);
       }
       // Persist outside the row catch: a checkpoint failure must stop the job,
       // rather than turn a successfully registered farmer into a failed row.

@@ -152,6 +152,14 @@ function runtime({ registered = true, override, bot = flow } = {}) {
       return executeNode({ bot, session, currentNode: bot.nodes.find(n => n.id === bot.edges.find(e => e.source === trigger.id).target) });
     },
     answer: value => reply(value),
+    skip: () => {
+      const skip = current().data.attributes.skipButton;
+      assert(skip, `Missing Skip button on ${current().data.attributes.variable}`);
+      return handleIncomingMessageChatBot(session.phoneNumberId, {
+        from: session.variables.phone_number,
+        type: 'interactive', interactive: { button_reply: skip },
+      }, 'Customer');
+    },
     image: () => reply('', null, { from: session.variables.phone_number, type: 'image', image: { id: 'uploaded-image' } }),
     location: () => reply('', null, { from: session.variables.phone_number, type: 'location', location: { latitude: 17.48, longitude: 78.53 } }),
     completeImport: (result = { success: true, imported_count: 3, failed_count: 0, role_counts: { farmer: 3 } }) =>
@@ -234,6 +242,7 @@ test('stored flow is reproducible, uses one number, and has complete branch and 
     const interactive = a.message?.interactive;
     const options = interactive?.action?.buttons?.map(b => ({ ...b.reply, limit: 20 })) ||
       interactive?.action?.sections?.flatMap(s => s.rows.map(r => ({ ...r, limit: 24 }))) || [];
+    if (a.skipButton) options.push({ ...a.skipButton, limit: 20 });
     for (const option of options) {
       assert(option.title.length <= option.limit, `Long label ${option.title}`);
       assert.equal(outgoing.filter(e => e.data?.button_id === option.id).length, 1, `Missing or duplicate reply route ${option.id}`);
@@ -297,6 +306,95 @@ test('all nine roles register once in each language; FPO and VLE complete Excel 
       assert.equal(rt.session.active, true);
     }
   }
+});
+
+test('all other roles can skip email and photo in every language and register before receiving the welcome', async () => {
+  for (const [languageIndex, language] of [[0, 'hi'], [1, 'en'], [2, 'te']]) {
+    for (const roleIndex of [0, 1, 2, 3, 6, 7, 8]) {
+      const rt = runtime({ registered: false });
+      await rt.start(); await rt.click(languageIndex); await rt.click(roleIndex);
+      const emailQuestion = await rt.answer('Test Customer');
+      assert.equal(rt.current().data.attributes.variable, 'email');
+      assert.equal(emailQuestion.interactive.type, 'button');
+      assert.equal(emailQuestion.interactive.action.buttons[0].reply.title, { en: 'Skip', hi: 'छोड़ें', te: 'దాటవేయి' }[language]);
+      await rt.skip();
+      assert.equal(rt.current().data.attributes.variable, 'location');
+      const photoQuestion = await rt.location();
+      assert.equal(rt.current().data.attributes.variable, 'photo');
+      assert.equal(photoQuestion.interactive.type, 'button');
+      assert(!rt.requests.some(request => request.url.endsWith('/stored-chat-session')));
+      const response = await rt.skip();
+      const saves = rt.requests.filter(request => request.url.endsWith('/stored-chat-session'));
+      assert.equal(saves.length, 1);
+      assert.equal(saves[0].data.session_data.name, 'test customer');
+      assert.equal(saves[0].data.session_data.phone_number, '919372597458');
+      assert.equal(saves[0].data.session_data.email, null);
+      assert.equal(saves[0].data.session_data.photo, null);
+      assert.equal(saves[0].data.session_data.skipped_fields.email, true);
+      assert.equal(saves[0].data.session_data.skipped_fields.photo, true);
+      assert.equal(rt.current().data.title, `Services (${language})`);
+      assert.equal(rt.restarts(), 0);
+      assert.equal(rt.downloads.length, 0);
+      assert.equal(messages(response)[0].type, 'text');
+      assert(messages(response)[0].text.includes('test customer'));
+      assert(!messages(response)[0].text.includes('*Email:*'));
+      assert(!messages(response)[0].text.includes('Please Import excel'));
+    }
+  }
+});
+
+test('email and photo can each be supplied or skipped independently', async () => {
+  for (const [languageIndex, language] of [[0, 'hi'], [1, 'en'], [2, 'te']]) {
+    for (const skipEmail of [true, false]) {
+      const rt = runtime({ registered: false });
+      await rt.start(); await rt.click(languageIndex); await rt.click(0); await rt.answer('Test Customer');
+      if (skipEmail) await rt.skip();
+      else await rt.answer('customer@example.test');
+      await rt.location();
+      if (skipEmail) await rt.image();
+      else await rt.skip();
+      const save = rt.requests.find(request => request.url.endsWith('/stored-chat-session'));
+      assert.equal(save.data.session_data.email, skipEmail ? null : 'customer@example.test');
+      assert.equal(save.data.session_data.photo, skipEmail ? 'https://example.test/upload.jpg' : null);
+      assert.equal(rt.downloads.length, skipEmail ? 1 : 0);
+      assert.equal(rt.current().data.title, `Services (${language})`);
+    }
+  }
+});
+
+test('Skip clears old optional values and old Skip buttons cannot advance later questions or register again', async () => {
+  const rt = runtime({ registered: false });
+  await rt.start(); await rt.click(1); await rt.click(0); await rt.answer('Test Customer');
+  const emailSkip = rt.current().data.attributes.skipButton;
+  Object.assign(rt.session.variables, { email: 'old@example.test', photo: 'https://example.test/old.jpg' });
+  rt.session.variables.details = { ...rt.session.variables.details, email: 'old@example.test', photo: 'https://example.test/old.jpg' };
+  await rt.skip(); await rt.location();
+  const photoNode = rt.current().id;
+  const ignored = await rt.receive({ type: 'interactive', interactive: { button_reply: emailSkip } });
+  assert.equal(ignored, null);
+  assert.equal(rt.current().id, photoNode);
+  const photoSkip = rt.current().data.attributes.skipButton;
+  await rt.skip();
+  const save = rt.requests.find(request => request.url.endsWith('/stored-chat-session'));
+  assert.equal(save.data.session_data.email, null);
+  assert.equal(save.data.session_data.photo, null);
+  assert.equal(rt.session.variables.details.email, null);
+  assert.equal(rt.session.variables.details.photo, null);
+  const repeated = await rt.receive({ type: 'interactive', interactive: { button_reply: photoSkip } });
+  assert.equal(repeated, null);
+  assert.equal(rt.current().data.title, 'Services (en)');
+  assert.equal(rt.requests.filter(request => request.url.endsWith('/stored-chat-session')).length, 1);
+});
+
+test('skipping the photo never sends a welcome when registration fails', async () => {
+  const rt = runtime({ registered: false, override: request => request.url.endsWith('/stored-chat-session')
+    ? { status: 200, data: { success: false, message: 'Registration unavailable' } } : undefined });
+  await rt.start(); await rt.click(1); await rt.click(0); await rt.answer('Test Customer');
+  await rt.skip(); await rt.location();
+  const response = await rt.skip();
+  assert.match(response.text, /Registration could not be completed/);
+  assert.equal(rt.session.active, false);
+  assert(!messages(response).some(message => message?.text?.includes('created successfully')));
 });
 
 test('FPO and VLE retry invalid GST in every language and register once with corrected GST', async () => {
@@ -518,4 +616,21 @@ test('button routing still works after node IDs are remapped and edge handles ar
   await rt.start(); await rt.click('en'); await rt.click('booking');
   assert.equal(rt.current().data.attributes.variable, 'product_name');
   assert.equal(rt.requests.length, 2);
+});
+
+test('Skip buttons still register successfully after saved node IDs are remapped', async () => {
+  const saved = JSON.parse(JSON.stringify(flow));
+  for (const node of saved.nodes) node.id = `saved-${node.id}`;
+  for (const edge of saved.edges) {
+    edge.source = `saved-${edge.source}`; edge.target = `saved-${edge.target}`;
+    delete edge.sourceHandle; delete edge.targetHandle;
+  }
+  const rt = runtime({ registered: false, bot: saved });
+  await rt.start(); await rt.click(1); await rt.click(0); await rt.answer('Test Customer');
+  await rt.skip(); await rt.location(); await rt.skip();
+  const save = rt.requests.find(request => request.url.endsWith('/stored-chat-session'));
+  assert.equal(save.data.session_data.email, null);
+  assert.equal(save.data.session_data.photo, null);
+  assert.equal(rt.current().data.title, 'Services (en)');
+  assert.equal(rt.restarts(), 0);
 });
