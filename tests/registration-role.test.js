@@ -9,7 +9,7 @@ const fpoFormat = require('./helpers/fpo-import-runtime').fpoFormat;
 function runtime(existingUser, options = {}) {
   const source = ts.createSourceFile('auth.service.ts', fs.readFileSync(path.join(__dirname, '../src/app/services/auth.service.ts'), 'utf8'), ts.ScriptTarget.Latest, true);
   const serviceClass = source.statements.find(node => ts.isClassDeclaration(node));
-  const methods = serviceClass.members.filter(member => ['registerUser', 'registerkrishivanUser', 'importFpoLeads', 'storedChatSession', 'generateFpoLeadsTemplate'].includes(member.name?.getText(source)));
+  const methods = serviceClass.members.filter(member => ['registerUser', 'registerUserDetails', 'registerkrishivanUser', 'importFpoLeads', 'storedChatSession', 'generateFpoLeadsTemplate'].includes(member.name?.getText(source)));
   const utils = ts.createSourceFile('utils.ts', fs.readFileSync(path.join(__dirname, '../src/utils.ts'), 'utf8'), ts.ScriptTarget.Latest, true);
   const normalizer = utils.statements.find(node => ts.isFunctionDeclaration(node) && node.name?.text === 'normalizeRole');
   const languageNormalizer = utils.statements.find(node => ts.isFunctionDeclaration(node) && node.name?.text === 'normalizeLanguage');
@@ -19,7 +19,17 @@ function runtime(existingUser, options = {}) {
   const replacer = utils.statements.find(node => ts.isFunctionDeclaration(node) && node.name?.text === 'replaceVariables');
   const functions = [normalizer, languageNormalizer, locationReader, emailReader, registrationNormalizer, replacer].map(node => node.getText(utils).replace(/^export /, '')).join('\n');
   const sourceText = `${functions}\nclass AuthService { ${methods.map(method => method.getText(source)).join('\n')} }\n({ service: new AuthService(), replaceVariables });`;
-  const calls = { external: [], lookups: [], created: [], updated: [], parentLookups: [], stored: [], contactUpdates: [] };
+  const calls = { external: [], lookups: [], created: [], updated: [], parentLookups: [], stored: [], contactUpdates: [], phoneLookups: [], contactLookups: [] };
+  const users = {
+    findByPhone: async phone => {
+      calls.phoneLookups.push(phone);
+      return phone === options.mappedFpo?.phone ? options.mappedFpo : existingUser;
+    },
+    findByEmail: async () => null,
+    findById: async id => { calls.parentLookups.push(id); return options.mappedFpo; },
+    update: async (id, data) => { calls.updated.push({ id, data }); return data; },
+    create: async data => { calls.created.push(data); return { ...data, id: `new-user-${calls.created.length}` }; },
+  };
   class BadRequest extends Error { constructor({ message }) { super(message); } }
   const { service, replaceVariables } = vm.runInNewContext(ts.transpileModule(sourceText, { compilerOptions: { target: ts.ScriptTarget.ES2020 } }).outputText, {
     console: { log() {}, error() {} },
@@ -31,7 +41,7 @@ function runtime(existingUser, options = {}) {
       }
       calls.external.push(data);
       if (options.apiError) throw options.apiError;
-      return { data: options.apiResponse ?? { user_id: 'external-user' } };
+      return { data: options.apiResponse ?? { user_id: options.realUserDetails ? `external-user-${calls.external.length}` : 'external-user' } };
     } },
     HTTP400Error: BadRequest,
     normalizeRegistrationPhoneNumber: require('../src/phone').normalizeRegistrationPhoneNumber,
@@ -40,26 +50,23 @@ function runtime(existingUser, options = {}) {
     chatSessionModel: { findByPhoneNumber: async () => ({ id: 'chat-session', phoneNumberId: '760184003848443' }) },
     storesSessionModel: { create: async data => { calls.stored.push(data); return { id: 'stored-session' }; } },
     contactModel: {
-      findByUserPhoneNumber: async () => options.contact,
+      findByUserPhoneNumber: async phone => { calls.contactLookups.push(phone); return options.contact; },
       update: async (id, data) => calls.contactUpdates.push({ id, data }),
     },
-    userModel: {
-      findByPhone: async phone => phone === options.mappedFpo?.phone ? options.mappedFpo : existingUser,
-      findById: async id => { calls.parentLookups.push(id); return options.mappedFpo; },
-      update: async (id, data) => { calls.updated.push({ id, data }); return data; },
-    },
+    userModel: users, UserModel: users,
   });
-  service.registerUserDetails = async data => { calls.created.push(data); return { ...data, id: 'new-user' }; };
+  if (!options.realUserDetails) service.registerUserDetails = async data => { calls.created.push(data); return { ...data, id: 'new-user' }; };
+  service.hashPassword = async () => 'hashed-password';
   return { service, calls, replaceVariables };
 }
 
 test('selected registration roles reach the external service and saved user on creation and update', async () => {
-  const roles = ['fpo', 'farmer', 'trader', 'agricultural transport service', 'micro entrepreneur', 'agricultural machinery service provider', 'agricultural input supplier', 'livestock farmer'];
+  const roles = ['fpo', 'vle', 'VLE', 'farmer', 'trader', 'agricultural transport service', 'micro entrepreneur', 'agricultural machinery service provider', 'agricultural input supplier', 'livestock farmer'];
   for (const existingUser of [undefined, { id: 'existing-user' }]) {
     for (const role of [...roles, ...roles.map(value => value.replaceAll(' ', '_'))]) {
       const { service, calls } = runtime(existingUser);
       const user = await service.registerUser({ company_id: 'company' }, { role, name: 'Test', phone_number: '919876543210' });
-      const expected = role.replaceAll(' ', '_');
+      const expected = role.toLowerCase().replaceAll(' ', '_');
       assert.equal(calls.external[0].role, expected);
       assert.equal(calls.external[0].userType, expected);
       assert.equal(calls.external[0].mobile_number, '9876543210');
@@ -88,6 +95,7 @@ test('chatbot registration payload preserves the selected role from session vari
   for (const alias of ['data', 'variable']) {
     for (const [variables, expected] of [
       [{ role: 'FPO' }, 'fpo'],
+      [{ role: 'VLE', details: { role: 'fpo' } }, 'vle'],
       [{ details: { role: 'FPO' } }, 'fpo'],
       [{ role: 'trader', details: { role: 'fpo' } }, 'trader'],
     ]) {
@@ -128,7 +136,7 @@ test('registration normalizes the role labels actually offered in the role menus
 test('Hindi and Telugu menu selections store English role and language codes in the registration record and user', async () => {
   const flow = require('../krishivan-unified.flow.json');
   const expectedRoles = ['farmer', 'trader', 'agricultural_transport_service', 'micro_entrepreneur', 'fpo',
-    'agricultural_machinery_service_provider', 'agricultural_input_supplier', 'livestock_farmer'];
+    'agricultural_machinery_service_provider', 'agricultural_input_supplier', 'livestock_farmer', 'vle'];
   const menus = flow.nodes.filter(n => n.data.attributes?.variable === 'role');
   for (const [index, language, selectedLanguage] of [[1, 'hindi', 'हिंदी'], [2, 'telugu', 'తెలుగు']]) {
     const labels = menus[index].data.attributes.message.interactive.action.sections.flatMap(section => section.rows.map(row => row.title));
@@ -203,11 +211,11 @@ test('older registration payloads resolve the creator from the mapped FPO user_i
   }
 });
 
-function excelFile(phone = '9869650435', role = 'Trader', fields = {}) {
+function excelFile(phone = '9869650435', fields = {}) {
   const XLSX = require('xlsx');
   const workbook = XLSX.utils.book_new();
   const row = { ...Object.fromEntries(fpoFormat.FPO_LEAD_IMPORT_COLUMNS.map(column => [column, ''])),
-    phone_number: phone, name: 'Parth', role };
+    phone, name: 'Parth' };
   for (const [header, value] of Object.entries(fields)) {
     const normalize = text => text.toLowerCase().replace(/[\s_-]+/g, '');
     const canonical = fpoFormat.FPO_LEAD_IMPORT_COLUMNS.find(column => normalize(column) === normalize(header));
@@ -225,7 +233,7 @@ test('Excel import registers leads with the mapped FPO external creator ID and l
   assert.equal(result.imported_count, 1);
   assert.equal(result.failed_count, 0);
   assert.equal(calls.external[0].createdById, 'fpo-external-user-id');
-  assert.equal(calls.external[0].role, 'trader');
+  assert.equal(calls.external[0].role, 'farmer');
   assert.equal(calls.created[0].parent_user_id, 'fpo-local-id');
   assert.equal(calls.stored[0].data.fpo_id, 'fpo-external-user-id');
   assert.equal(calls.stored[0].data.parent_user_id, 'fpo-local-id');
@@ -233,11 +241,89 @@ test('Excel import registers leads with the mapped FPO external creator ID and l
   assert.equal(calls.parentLookups.length, 0);
 });
 
+test('blank Excel phones create distinct farmers with null phones through the real registration and local save methods', async () => {
+  const XLSX = require('xlsx');
+  const workbook = XLSX.utils.book_new();
+  const rows = ['', '   ', null, '919869650435'].map((phone, index) => ({
+    name: `Farmer ${index}`, phone, village: 'Example Village', district: 'Indore', state: 'Madhya Pradesh',
+  }));
+  XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(rows), 'Leads');
+  const { service, calls } = runtime({ id: 'unrelated-user-with-no-phone' }, {
+    realUserDetails: true,
+    mappedFpo: { id: 'parent-local-id', user_id: 'parent-external-id', phone: '919372597458' },
+  });
+  const result = await service.importFpoLeads(XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' }), 'number', '919372597458');
+  assert.equal(result.failed_count, 0);
+  assert.equal(result.imported_count, 4);
+  // The last row follows the existing phone lookup/update path.
+  assert.equal(calls.created.length, 3);
+  assert.equal(new Set(result.imported.slice(0, 3).map(row => row.user_id)).size, 3);
+  for (let index = 0; index < 3; index++) {
+    assert.equal(calls.external[index].mobile_number, null);
+    assert.equal(calls.external[index].createdById, 'parent-external-id');
+    assert.equal(calls.created[index].phone, null);
+    assert.equal(calls.created[index].user_id, `external-user-${index + 1}`);
+    assert.equal(calls.created[index].parent_user_id, 'parent-local-id');
+    assert.equal(calls.created[index].name, rows[index].name);
+    assert.equal(calls.created[index].location.village, rows[index].village);
+    assert.equal(calls.created[index].password, 'hashed-password');
+    assert.equal(calls.stored[index].phone_number, null);
+    assert.equal(calls.stored[index].data.phone_number, null);
+    assert.equal(result.imported[index].phone_number, null);
+  }
+  assert.equal(calls.external[3].mobile_number, '9869650435');
+  assert(calls.phoneLookups.every(phone => phone && String(phone).trim()));
+  assert(calls.contactLookups.every(phone => phone && String(phone).trim()));
+});
+
+test('nonblank invalid Excel phones still fail while blank phones are imported', async () => {
+  const { service, calls } = runtime(undefined, {
+    realUserDetails: true,
+    mappedFpo: { id: 'parent-local-id', user_id: 'parent-external-id', phone: '919372597458' },
+  });
+  for (const phone of ['not a phone', '123', '+91', '123456789012345']) {
+    const result = await service.importFpoLeads(excelFile(phone), 'number', '919372597458');
+    assert.equal(result.imported_count, 0);
+    assert.equal(result.failed_count, 1);
+    assert.match(result.failed[0].error, /Invalid mobile number/);
+  }
+  assert.equal(calls.external.length, 0);
+  assert.equal(calls.created.length, 0);
+  assert.equal(calls.stored.length, 0);
+});
+
+test('ordinary registrations still require a contact and cannot opt into anonymous farmers through payload fields', async () => {
+  const { service, calls } = runtime(undefined, { realUserDetails: true });
+  await assert.rejects(service.registerUser({ company_id: 'company' }, {
+    role: 'farmer', name: 'Farmer', phone_number: null, allowMissingPhone: true,
+  }), /Either email or phone is required/);
+  await assert.rejects(service.registerUserDetails({
+    name: 'Farmer', role: 'farmer', password: 'password',
+  }), /Either email or phone is required/);
+  assert.equal(calls.external.length, 0);
+  assert.equal(calls.created.length, 0);
+});
+
+test('external errors for a farmer without a phone never trigger an empty phone lookup or claim an import succeeded', async () => {
+  for (const apiError of [new Error('External API requires a phone'), { response: { status: 409, data: { message: 'Duplicate' } } }]) {
+    const { service, calls } = runtime(undefined, {
+      realUserDetails: true, apiError,
+      mappedFpo: { id: 'parent-local-id', user_id: 'parent-external-id', phone: '919372597458' },
+    });
+    const result = await service.importFpoLeads(excelFile(''), 'number', '919372597458');
+    assert.equal(result.imported_count, 0);
+    assert.equal(result.failed_count, 1);
+    assert.equal(calls.lookups.length, 0);
+    assert.equal(calls.created.length, 0);
+    assert.equal(calls.stored.length, 0);
+  }
+});
+
 test('unexpected FPO columns are rejected before an older spreadsheet can override the uploader parent', async () => {
   const { service, calls } = runtime(undefined, { mappedFpo: {
     id: 'actual-fpo-local-id', user_id: 'actual-fpo-external-id', phone: '919372597458',
   } });
-  await assert.rejects(service.importFpoLeads(excelFile('9869650435', 'Farmer', {
+  await assert.rejects(service.importFpoLeads(excelFile('9869650435', {
     fpo_phone_number: '919999999999', fpo_number: '918888888888', fpo_id: 'wrong-fpo-id',
   }), 'receiving-number', '919372597458'), /sample format.*Unexpected columns/);
   assert.equal(calls.external.length, 0);
@@ -249,9 +335,8 @@ test('Excel location values reach the registration API and both PostgreSQL recor
     const { service, calls } = runtime(existingUser, { mappedFpo: {
       id: 'fpo-local-id', user_id: 'fpo-external-user-id', phone: '919372597458',
     } });
-    const result = await service.importFpoLeads(excelFile('9869650435', 'Farmer', {
-      State: 'Madhya Pradesh', District: 'Indore', 'Sub District': 'Rau', Village: 'Example Village',
-      Pincode: 453331, Address: '12 Market Road', Latitude: 22.68, Longitude: 75.87,
+    const result = await service.importFpoLeads(excelFile('9869650435', {
+      State: 'Madhya Pradesh', District: 'Indore', Village: 'Example Village',
     }), 'receiving-number', '919372597458');
     assert.equal(result.imported_count, 1);
     assert.equal(result.failed_count, 0);
@@ -260,20 +345,20 @@ test('Excel location values reach the registration API and both PostgreSQL recor
     const local = existingUser ? calls.updated.find(call => call.data.role).data : calls.created[0];
     const stored = calls.stored[0].data;
     for (const [key, value] of Object.entries({
-      state: 'Madhya Pradesh', district: 'Indore', village: 'Example Village', pincode: '453331', full_address: '12 Market Road',
+      state: 'Madhya Pradesh', district: 'Indore', village: 'Example Village',
     })) {
       assert.equal(api[key], value);
       assert.equal(api.kyc_data.address[key], value);
       assert.equal(local.location[key], value);
       assert.equal(stored.location[key], value);
     }
-    assert.equal(api.sub_distric, 'Rau');
-    assert.equal(api.kyc_data.address.sub_distric, 'Rau');
-    assert.equal(local.location.subdistrict, 'Rau');
-    assert.equal(stored.location.subdistrict, 'Rau');
+    assert.equal(api.sub_distric, null);
+    assert.equal(api.kyc_data.address.sub_distric, null);
+    assert.equal(local.location.subdistrict, null);
+    assert.equal(stored.location.subdistrict, null);
     assert.equal(local.state, 'Madhya Pradesh');
-    assert.equal(api.coordinates.coordinates[0], 75.87);
-    assert.equal(api.coordinates.coordinates[1], 22.68);
+    assert.equal(api.coordinates.coordinates[0], null);
+    assert.equal(api.coordinates.coordinates[1], null);
   }
 });
 
@@ -286,16 +371,17 @@ test('the actual generated lowercase Excel template imports all rows and preserv
   assert.equal(result.imported_count, 3);
   assert.equal(result.failed_count, 0);
   assert.equal(calls.external.length, 3);
-  for (const [index, expected] of ['Indore', 'Rau', 'Dewas'].entries()) {
-    assert.equal(calls.external[index].sub_distric, expected);
-    assert.equal(calls.stored[index].data.location.subdistrict, expected);
+  for (const [index, expected] of ['Kheda', 'Rau', 'Dewas'].entries()) {
+    assert.equal(calls.external[index].village, expected);
+    assert.equal(calls.stored[index].data.location.village, expected);
     assert(calls.created[index].location.state);
     assert(calls.created[index].location.district);
     assert(calls.created[index].location.village);
-    assert(calls.created[index].location.pincode);
+    assert.equal(calls.created[index].location.pincode, null);
+    assert.equal(calls.created[index].role, 'farmer');
   }
-  assert.equal(calls.created[0].email, 'ramesh@example.com');
-  assert.equal(calls.created[0].native_language, 'hindi');
+  assert.equal(calls.created[0].email, null);
+  assert.equal(calls.created[0].native_language, null);
 });
 
 test('registration preserves supplied address fields through payload substitution, storage and the API', async () => {
@@ -427,26 +513,23 @@ test('chatbot registration sends and stores national numbers and preserves 10-di
   }
 });
 
-test('Excel import accepts national and 91-prefixed mobile numbers for every registration role', async () => {
-  const roles = ['farmer', 'trader', 'fpo', 'agricultural_transport_service', 'micro_entrepreneur', 'agricultural_machinery_service_provider', 'agricultural_input_supplier', 'livestock_farmer'];
-  for (const role of roles) {
-    for (const [phone, expected] of [
-      ['9869650435', '9869650435'],
-      ['919869650435', '9869650435'],
-      ['+91 98696 50435', '9869650435'],
-      ['9123456789', '9123456789'],
-    ]) {
-      const { service, calls } = runtime(undefined, { mappedFpo: {
-        id: 'fpo-local-id', user_id: 'fpo-external-user-id', phone: '919372597458',
-      } });
-      const result = await service.importFpoLeads(excelFile(phone, role), 'receiving-number', '919372597458');
-      assert.equal(result.imported_count, 1);
-      assert.equal(result.failed_count, 0);
-      assert.equal(calls.external[0].mobile_number, expected);
-      assert.equal(calls.external[0].role, role);
-      assert.equal(calls.external[0].createdById, 'fpo-external-user-id');
-      assert.equal(calls.stored[0].data.phone_number, expected);
-    }
+test('Excel import accepts national and 91-prefixed mobile numbers and defaults leads to farmer', async () => {
+  for (const [phone, expected] of [
+    ['9869650435', '9869650435'],
+    ['919869650435', '9869650435'],
+    ['+91 98696 50435', '9869650435'],
+    ['9123456789', '9123456789'],
+  ]) {
+    const { service, calls } = runtime(undefined, { mappedFpo: {
+      id: 'fpo-local-id', user_id: 'fpo-external-user-id', phone: '919372597458',
+    } });
+    const result = await service.importFpoLeads(excelFile(phone), 'receiving-number', '919372597458');
+    assert.equal(result.imported_count, 1);
+    assert.equal(result.failed_count, 0);
+    assert.equal(calls.external[0].mobile_number, expected);
+    assert.equal(calls.external[0].role, 'farmer');
+    assert.equal(calls.external[0].createdById, 'fpo-external-user-id');
+    assert.equal(calls.stored[0].data.phone_number, expected);
   }
 });
 

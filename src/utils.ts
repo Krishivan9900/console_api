@@ -218,6 +218,7 @@ export function normalizeRole(role: string): string {
 
     // FPO
     "fpo": "fpo",
+    "vle": "vle",
     "రైతు ఉత్పత్తిదారుల సంస్థ": "fpo",
     "किसान उत्पादक(fpo)": "fpo",
     "రైతు ఉత్పత్తిదారు(fpo)": "fpo",
@@ -845,12 +846,14 @@ function buildWelcomeMessage(variables: any): string {
   };
   const roleNames: Record<string, Record<string, string>> = {
     hindi: {
+      vle: 'VLE',
       farmer: 'किसान', trader: 'व्यापारी', fpo: 'किसान उत्पादक संगठन (FPO)',
       agricultural_transport_service: 'कृषि परिवहन सेवा', micro_entrepreneur: 'सूक्ष्म उद्यमी',
       agricultural_machinery_service_provider: 'कृषि मशीन सेवा प्रदाता',
       agricultural_input_supplier: 'कृषि इनपुट आपूर्तिकर्ता', livestock_farmer: 'पशुपालक',
     },
     telugu: {
+      vle: 'VLE',
       farmer: 'రైతు', trader: 'వ్యాపారి', fpo: 'రైతు ఉత్పత్తిదారుల సంస్థ (FPO)',
       agricultural_transport_service: 'వ్యవసాయ రవాణా సేవలు', micro_entrepreneur: 'సూక్ష్మ వ్యాపారవేత్త',
       agricultural_machinery_service_provider: 'వ్యవసాయ యంత్ర సేవా ప్రదాత',

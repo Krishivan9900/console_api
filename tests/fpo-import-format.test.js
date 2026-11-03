@@ -10,7 +10,7 @@ function spreadsheet(headers, values = []) {
   return XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
 }
 
-const farmer = columns.map(column => ({ phone_number: '9876543210', name: 'Test Farmer', role: 'farmer' }[column] || ''));
+const farmer = columns.map(column => ({ phone: '9876543210', name: 'Test Farmer' }[column] || ''));
 
 test('sample headers are required even when optional values are blank; casing and column order are accepted', () => {
   assert.equal(parseFpoLeadImport(excelFile(100)).rows.length, 100);
@@ -22,12 +22,13 @@ test('sample headers are required even when optional values are blank; casing an
 
 test('missing, unexpected, duplicate and unnamed columns reject the whole file', () => {
   const cases = [
-    { headers: Array.from(columns).filter(column => column !== 'email'), values: farmer.filter((_, index) => columns[index] !== 'email'), pattern: /Missing columns: email/ },
+    { headers: Array.from(columns).filter(column => column !== 'village'), values: farmer.filter((_, index) => columns[index] !== 'village'), pattern: /Missing columns: village/ },
     { headers: [...columns, 'fpo_phone_number'], values: [...farmer, '919999999999'], pattern: /Unexpected columns: fpo_phone_number/ },
     { headers: [...columns, 'Name'], values: [...farmer, 'Duplicate name'], pattern: /Duplicate columns: name/ },
     { headers: [...columns, ''], values: [...farmer, 'Unnamed value'], pattern: /Unexpected columns: \(blank column\)/ },
     { headers: ['phone_number', 'name', 'role'], values: ['9876543210', 'Test Farmer', 'farmer'], pattern: /Missing columns/ },
-    { headers: [...columns].map(column => column === 'phone_number' ? 'Mobile Number' : column), values: farmer, pattern: /Missing columns: phone_number/ },
+    { headers: [...columns].map(column => column === 'phone' ? 'Phone Number' : column), values: farmer, pattern: /Missing columns: phone/ },
+    { headers: [...columns, 'role'], values: [...farmer, 'trader'], pattern: /Unexpected columns: role/ },
   ];
   for (const { headers, values, pattern } of cases) {
     assert.throws(() => parseFpoLeadImport(spreadsheet(headers, [values])), error => {

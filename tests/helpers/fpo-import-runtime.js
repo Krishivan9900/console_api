@@ -23,11 +23,11 @@ const fpoFormat = moduleFrom('src/app/services/fpoLeadImportFormat.ts', {
   },
 });
 
-function excelFile(count) {
+function excelFile(count, options = {}) {
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(Array.from({ length: count }, (_, i) => ({
     ...Object.fromEntries(fpoFormat.FPO_LEAD_IMPORT_COLUMNS.map(column => [column, ''])),
-    phone_number: `98765${String(i).padStart(5, '0')}`, name: `Farmer ${i}`, role: 'farmer',
+    phone: options.missingPhoneRows?.includes(i) ? '' : `98765${String(i).padStart(5, '0')}`, name: `Farmer ${i}`,
   }))), 'Farmers');
   return XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
 }
@@ -98,7 +98,7 @@ function runtime(options = {}) {
   });
   auth.registerUser = async (_number, data) => {
     if (options.rowError || options.failRows?.includes(data.phone_number)) throw new Error('Invalid row');
-    return { id: data.phone_number };
+    return { id: data.phone_number || `farmer-without-phone-${calls.rows.length + 1}` };
   };
   const actualImport = auth.importFpoLeads.bind(auth);
   auth.importFpoLeads = async (...args) => {

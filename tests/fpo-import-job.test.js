@@ -1,6 +1,24 @@
 const assert = require('node:assert/strict');
 const { test } = require('node:test');
-const { runtime } = require('./helpers/fpo-import-runtime');
+const { runtime, excelFile } = require('./helpers/fpo-import-runtime');
+
+test('queued imports retain farmers without phones across a checkpoint and worker retry', async () => {
+  const rt = runtime();
+  await rt.submit(11, { file: excelFile(11, { missingPhoneRows: [0, 3, 4] }) });
+  const data = rt.calls.queued[0][1];
+  await assert.rejects(rt.service.processFpoLeadImport(data, async percentage => {
+    if (percentage >= 18) throw new Error('Worker interrupted');
+  }), /Worker interrupted/);
+  assert.equal(rt.calls.rows.length, 2);
+  await rt.service.processFpoLeadImport(data);
+  const result = rt.records.get(data.jobId).result;
+  assert.equal(result.imported_count, 11);
+  assert.equal(result.failed_count, 0);
+  assert.equal(result.role_counts.farmer, 11);
+  assert.equal(rt.calls.rows.length, 11);
+  assert.equal(rt.calls.rows.filter(row => row.phone_number === null && row.data.phone_number === null).length, 3);
+  assert.equal(new Set(result.imported.map(row => row.user_id)).size, 11);
+});
 
 test('10 rows import immediately; 11 rows use the Excel queue with two progress updates and one completion', async () => {
   const small = runtime();

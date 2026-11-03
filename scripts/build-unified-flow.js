@@ -72,7 +72,7 @@ function buildUnifiedFlow({
   registrationLanguage.data.attributes.variable = 'native_language';
   registrationLanguage.data.attributes.message.interactive.action.buttons[2].reply.title = 'తెలుగు';
 
-  // FPO selections go straight to GST; the other roles retain their existing questions.
+  // FPO and VLE share GST verification and onboarding, retaining the selected role.
   for (const menu of flow.nodes.filter(n => n.data.attributes?.variable === 'role')) {
     for (const selection of flow.edges.filter(e => e.source === menu.id)) {
       const emailQuestion = node(selection.target);
@@ -81,6 +81,13 @@ function buildUnifiedFlow({
         .map(e => node(e.target)).find(n => n?.data.attributes?.variable === 'gstin');
       if (gstQuestion) selection.target = gstQuestion.id;
     }
+    const sections = menu.data.attributes.message.interactive.action.sections;
+    const rows = sections.flatMap(section => section.rows);
+    const fpoSelection = flow.edges.find(e => e.source === menu.id &&
+      rows.some(row => row.id === e.sourceHandle) && node(e.target)?.data.attributes?.variable === 'gstin');
+    const vleId = `registration/${menu.id}/vle`;
+    sections[0].rows.push({ id: vleId, title: 'VLE', description: '' });
+    edge(menu.id, fpoSelection.target, vleId);
   }
 
   // Check the local users database, the same database used by registration and orders.

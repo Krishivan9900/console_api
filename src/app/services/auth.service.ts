@@ -179,7 +179,7 @@ class AuthService {
     const hasAddress = Object.values(address).some(value => value !== null);
     const payload = {
       ...data,
-      mobile_number: normalizeRegistrationPhoneNumber(data.mobile_number),
+      mobile_number: normalizeRegistrationPhoneNumber(data.mobile_number) || null,
       ...(hasAddress ? address : {}),
       ...(hasAddress && data.kyc_data && typeof data.kyc_data === 'object' ? {
         kyc_data: { ...data.kyc_data, address: { ...data.kyc_data.address, ...address } },
@@ -212,7 +212,7 @@ class AuthService {
 
       return response.data;
     } catch (error: any) {
-      if (error.response?.status === 409) {
+      if (error.response?.status === 409 && payload.mobile_number) {
         const existingResponse = await axios.post(
           'https://l07yapr0ub.execute-api.ap-south-1.amazonaws.com/prod/farmer-function/check-user',
           { mobile_number: payload.mobile_number },
@@ -373,7 +373,8 @@ class AuthService {
   async registerUser(
     companyDetails: any,
     data: any,
-    parent_user_id?: any
+    parent_user_id?: any,
+    options: { allowMissingPhone?: boolean } = {}
   ) {
     data = normalizeRegistrationData(data);
     // const isFPO = !!data.company_details;
@@ -413,6 +414,14 @@ class AuthService {
     }
     if (mappedFpoId && !createdById) {
       throw new HTTP400Error({ message: 'Mapped FPO is missing its Krishivan user_id' });
+    }
+
+    const registrationPhone = normalizeRegistrationPhoneNumber(data.phone_number) || null;
+    // Only mapped farmer imports may create users without either contact field.
+    const allowMissingContact = options.allowMissingPhone === true &&
+      normalizedRole === 'farmer' && !!mappedFpoId && !!createdById;
+    if (!registrationPhone && !data.email && !allowMissingContact) {
+      throw new HTTP400Error({ message: 'Either email or phone is required' });
     }
 
     const payload = {
@@ -478,8 +487,7 @@ class AuthService {
         company.trade_name ||
         company.legal_name,
 
-      mobile_number:
-        normalizeRegistrationPhoneNumber(data.phone_number),
+      mobile_number: registrationPhone,
 
       user_id:
         parent_user_id || null,
@@ -499,9 +507,7 @@ class AuthService {
       throw new HTTP400Error({ message: 'Krishivan registration did not return a user_id' });
     }
 
-    let user = await userModel.findByPhone(
-      data.phone_number
-    );
+    const user = registrationPhone ? await userModel.findByPhone(data.phone_number) : null;
 
     const userPayload = {
       company_id: companyDetails.company_id,
@@ -515,7 +521,7 @@ class AuthService {
 
       email: data.email || null,
 
-      phone: normalizeRegistrationPhoneNumber(data.phone_number),
+      phone: registrationPhone,
 
       password: "123456",
 
@@ -563,7 +569,7 @@ class AuthService {
     // );
 
 
-    return await this.registerUserDetails(userPayload)
+    return await this.registerUserDetails(userPayload, { allowMissingContact });
   }
 
   async sendOtp(email: string, otp: string) {
@@ -689,7 +695,7 @@ class AuthService {
 
     name: string;
     email?: string;
-    phone?: string;
+    phone?: string | null;
     password: string;
 
     role: string;
@@ -710,7 +716,7 @@ class AuthService {
     user_id?: string;
 
     user_role?: any;
-  }) {
+  }, options: { allowMissingContact?: boolean } = {}) {
     const {
       company_id,
       name,
@@ -733,7 +739,7 @@ class AuthService {
     console.log("Registering user with data:", data);
 
     // Validate
-    if (!email && !phone) {
+    if (!email && !phone && !options.allowMissingContact) {
       throw new HTTP400Error({
         message: "Either email or phone is required",
       });
@@ -795,7 +801,7 @@ class AuthService {
       status: "active",
     });
 
-    const existingContact = await contactModel.findByUserPhoneNumber(phone)
+    const existingContact = phone ? await contactModel.findByUserPhoneNumber(phone) : null;
 
     if(existingContact){
       await contactModel.update(existingContact.id,{
@@ -1115,11 +1121,10 @@ class AuthService {
       if (processedRows.has(rowNumber)) continue;
 
       try {
-        const leadPhone = normalizeRegistrationPhoneNumber(
-          getValue(row, 'Mobile Number', 'Phone Number', 'Mobile', 'Phone')
-        );
+        const phoneValue = getValue(row, 'Phone');
+        const leadPhone = phoneValue ? normalizeRegistrationPhoneNumber(phoneValue) : null;
 
-        if (!leadPhone || leadPhone.length !== 10) {
+        if (phoneValue && (!leadPhone || leadPhone.length !== 10)) {
           throw new Error('Invalid mobile number');
         }
 
@@ -1129,37 +1134,20 @@ class AuthService {
           throw new Error('Name is required');
         }
 
-        const role = normalizeRole(
-          getValue(row, 'Role') || 'farmer'
-        );
-
-        const parseCoordinate = (column: string) => {
-          const value = getValue(row, column);
-
-          if (!value) return null;
-
-          const num = Number(value);
-
-          return Number.isFinite(num) ? num : null;
-        };
+        const role = 'farmer';
 
         const location = {
-          full_address: getValue(row, 'Address', 'Full Address'),
           village: getValue(row, 'Village'),
           district: getValue(row, 'District'),
-          subdistrict: getValue(row, 'Sub District', 'Sub Distric', 'Taluk', 'Tehsil', 'Mandal'),
           state: getValue(row, 'State'),
-          pincode: getValue(row, 'Pincode', 'Postal Code', 'Postcode'),
-          latitude: parseCoordinate('Latitude'),
-          longitude: parseCoordinate('Longitude'),
         };
 
         const sessionData = normalizeRegistrationData({
           phone_number: leadPhone,
           name,
           role,
-          email: getValue(row, 'Email') || null,
-          native_language: getValue(row, 'Native Language', 'Language') || null,
+          email: null,
+          native_language: null,
 
           location,
 
@@ -1167,10 +1155,6 @@ class AuthService {
             village: location.village,
             district: location.district,
             state: location.state,
-            pincode: location.pincode,
-            sub_district: location.subdistrict,
-            total_land: getValue(row, 'Total Land'),
-            gender: getValue(row, 'Gender'),
           },
 
           // Parent FPO Mapping
@@ -1183,7 +1167,9 @@ class AuthService {
 
         const registeredUser = await this.registerUser(
           phoneNumber,
-          sessionData
+          sessionData,
+          undefined,
+          { allowMissingPhone: true }
         );
 
         // Ensure imported user has parent FPO
@@ -1235,49 +1221,25 @@ class AuthService {
   generateFpoLeadsTemplate(): Buffer {
     const rows = [
       {
-        phone_number: '919876543210',
         name: 'Ramesh Kumar',
-        email: 'ramesh@example.com',
-        role: 'farmer',
-        native_language: 'hindi',
-        address: '12 Market Road',
+        phone: '919876543210',
         village: 'Kheda',
-        subdistrict: 'Indore',
         district: 'Indore',
         state: 'Madhya Pradesh',
-        pincode: '452001',
-        latitude: '22.7196',
-        longitude: '75.8577',
       },
       {
-        phone_number: '919876543211',
-        name: 'Sita Traders',
-        email: 'sita.traders@example.com',
-        role: 'trader',
-        native_language: 'english',
-        address: '45 Grain Market',
+        name: 'Sita Devi',
+        phone: '919876543211',
         village: 'Rau',
-        subdistrict: 'Rau',
         district: 'Indore',
         state: 'Madhya Pradesh',
-        pincode: '453331',
-        latitude: '22.6840',
-        longitude: '75.8730',
       },
       {
-        phone_number: '919876543212',
-        name: 'Green Transport',
-        email: 'green.transport@example.com',
-        role: 'agricultural transport service',
-        native_language: 'telugu',
-        address: '8 Farm Link Road',
+        name: 'Ravi Kumar',
+        phone: '',
         village: 'Dewas',
-        subdistrict: 'Dewas',
         district: 'Dewas',
         state: 'Madhya Pradesh',
-        pincode: '455001',
-        latitude: '22.9676',
-        longitude: '76.0534',
       },
     ];
 

@@ -3,8 +3,9 @@
 Files with **1–10 rows** finish immediately. Files with **more than 10 rows** run
 as `fpo_leads_import` jobs on the existing BullMQ `contact-import` queue. Both
 paths appear in the existing import job list, with row counts, progress, failed
-rows and the final result. No database migration is needed if `import_jobs`
-already exists.
+rows and the final result. Before deploying optional farmer phones, run
+`npm run migrate:latest` to make `stored_session_data.phone_number` nullable.
+`users.phone` already accepts null and retains its uniqueness for supplied numbers.
 
 The file travels in the job as base64, so API nodes and workers can run on
 different machines without sharing an upload folder. Only the first worksheet
@@ -15,16 +16,33 @@ is imported, matching the existing FPO importer.
 Every upload must contain exactly the sample's column headings:
 
 ```text
-phone_number, name, email, role, native_language, address, village,
-subdistrict, district, state, pincode, latitude, longitude
+name, phone, village, district, state
 ```
 
-Keep all headings even when optional values such as email or coordinates are
-blank. Column order, capitalization, spaces, underscores and hyphens may vary;
+Keep all five headings even when phone or location values are blank. Name is
+required; phone is optional. A nonblank phone must still be valid. Column order, capitalization, spaces,
+underscores and hyphens may vary;
 the column names must otherwise match the sample. Alternate names such as
 `Mobile Number`, extra FPO-number columns, duplicate headings, unnamed columns
-with data and missing columns are rejected. Use `phone_number` for the farmer's
-number; the parent FPO still comes from the WhatsApp sender.
+with data and missing columns are rejected. Use `phone` for the farmer's
+number; `phone_number` is no longer a spreadsheet heading. The parent FPO or
+VLE comes from the WhatsApp sender.
+
+Every row registers as `farmer`, the existing default when no role is supplied.
+The payload maps `phone` to `phone_number` (and the external API's
+`mobile_number`), keeps `name`, and stores the supplied village, district and
+state in the registration record, local user location and external registration
+API. Email and language are optional and are not requested by the spreadsheet.
+
+A blank phone cell is saved as `null` in `users.phone`,
+`stored_session_data.phone_number`, and `stored_session_data.data.phone_number`.
+The existing MongoDB registration API receives `mobile_number: null`. Each
+farmer keeps its own user IDs and the uploader mapping; no placeholder phone or
+uploader phone is substituted, and blank phones are never used for user/contact
+lookup. The sample includes one example without a phone. The external API must
+accept missing mobile numbers and return a `user_id`; its implementation is
+outside this repository. API errors are reported as failed rows, never as
+successful MongoDB writes. Ordinary registration still requires a phone or email.
 
 Validation runs before a job is created or any farmer is registered, and again
 inside the worker. WhatsApp responds with “Please upload the Excel file in the

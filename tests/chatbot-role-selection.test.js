@@ -25,7 +25,7 @@ function runtime() {
 
 test('role replies save the actual title in both role fields, including global replies to an earlier menu', async () => {
   for (const currentNodeId of ['role-menu', 'name-question']) {
-    for (const role of ['Trader', 'Farmer', 'FPO']) {
+    for (const role of ['Trader', 'Farmer', 'FPO', 'VLE']) {
       const { menuFlow, updates } = runtime();
       const variables = await menuFlow({
         bot: {
