@@ -592,7 +592,7 @@ test('an explicitly supplied email takes priority over the GST company email', a
 });
 
 test('skipped email and photo save as null in registration records, users and the external photo payload', async () => {
-  for (const role of ['farmer', 'trader', 'agricultural_transport_service', 'micro_entrepreneur',
+  for (const role of ['vle', 'farmer', 'trader', 'agricultural_transport_service', 'micro_entrepreneur',
     'agricultural_machinery_service_provider', 'agricultural_input_supplier', 'livestock_farmer']) {
     const { service, calls, replaceVariables } = runtime(undefined, { realUserDetails: true });
     const body = replaceVariables({ session_data: '{{data}}' }, {

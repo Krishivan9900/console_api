@@ -8,7 +8,7 @@ flowchart TD
   B -->|Registered| C[Choose service language]
   B -->|Confirmed missing| D[Choose registration language and role]
   B -->|Lookup failed| E[Show lookup error]
-  D --> F[Collect details and verify GST for FPO or VLE]
+  D --> F[Collect registration details; verify GST only for FPO]
   F -->|Invalid GST| F
   F --> G[Save registration on Render]
   G -->|FPO or VLE saved| U[Welcome, Excel upload prompt and sample file]
@@ -43,16 +43,18 @@ An arbitrary first message containing a phone number is not treated as an FPO
 referral; the existing keyword-based referral messages retain that behavior.
 This change requires the updated API, with no flow reimport or database migration.
 
-English, Hindi, and Telugu registration offer nine roles, including **VLE**. FPO and VLE share GST verification and registration. After either role registers, the original welcome is followed by **"Please Import excel file for onboarding fpo leads"** and the real **`fpo_leads_import_sample.xlsx`** attachment. The flow waits for the completed spreadsheet. After a fully successful import, the role summary is followed by the same services menu in the selected language. Failed or partial imports remain at the upload step. Other roles continue directly from their welcome to services. Existing users choose a service language. GST validation still uses the supplied AWS GST verification endpoint; registration, local user lookup, and catalog search use `https://console-api-z4hc.onrender.com`.
+English, Hindi, and Telugu registration offer nine roles, including **VLE**. FPO verifies GST. VLE asks for name, optional email, location and optional photo, with no GST question or verification. Its account uses the entered name and location along with the WhatsApp sender's phone number. After either FPO or VLE registers, the welcome is followed by **"Please Import excel file for onboarding fpo leads"** and the real **`fpo_leads_import_sample.xlsx`** attachment. The flow waits for the completed spreadsheet. After a fully successful import, the role summary is followed by the same services menu in the selected language. Failed or partial imports remain at the upload step. Other roles continue directly from their welcome to services. Existing users choose a service language. GST validation still uses the supplied AWS GST verification endpoint; registration, local user lookup, and catalog search use `https://console-api-z4hc.onrender.com`.
 
 The exact English upload prompt is retained for all three FPO paths because the existing message sender recognizes it and attaches the sample. The English path reuses the original upload-question node. Order/booking, AI menus, catalog search, and cart processing retain their previous behavior.
 
-All seven roles other than FPO and VLE can skip email and profile photo. Their
+All eight roles other than FPO can skip email and profile photo. Their
 email and photo questions include a localized **Skip** reply button (`Skip`,
 `छोड़ें`, or `దాటవేయి`). Users can still type an email or upload an image normally.
-Email → Skip continues to the location question. Photo → Skip submits the
+For VLE and the other roles, Email → Skip continues to the location question.
+Photo → Skip submits the
 registration using the WhatsApp sender's phone, then shows the localized welcome
-and services menu only after a successful save. Skipped email/photo values are
+only after a successful save, followed by Excel onboarding for VLE or the
+services menu for the other roles. Skipped email/photo values are
 saved as null in the registration data and `users.email`/`users.image_url`; the
 external registration request uses `photo: null`. The button title is never
 stored as an email or photo, and a button from an earlier question is ignored.
@@ -60,7 +62,7 @@ Skipping does not change the role, name, phone or location. Deploy the backend
 and save the regenerated `krishivan-unified.flow.json` in the existing bot to
 enable these buttons. This optional email/photo change needs no database migration.
 
-FPO and VLE registration in English, Hindi, and Telugu ask for the GST number immediately after role selection. They do not ask for email. Registration uses the sender's phone number, and the welcome omits the email line when no email was supplied. Selecting VLE sends `role: "vle"` in `/v1/auth/stored-chat-session`; the backend saves `vle` in `stored_session_data.data.role`, `users.role`, and `users.role_type`, and sends both `role: "vle"` and `userType: "vle"` to the same external registration API used for FPO. Its generated role ID starts with `VLE`. Invalid GST retries the GST question without registering. Other roles retain their existing registration questions. Run `npm run migrate:latest -- --env production` against the deployed database before enabling VLE, then deploy the backend and save the regenerated JSON into the existing chatbot. The new `20261103000001_allow_vle_registration_role_for_users.ts` migration adds `vle` to PostgreSQL's `users_role_check`, retaining every previously allowed role. Without it, VLE registration fails with PostgreSQL error `23514`. Registration route errors now go through Express error middleware instead of becoming unhandled promise rejections.
+FPO registration in English, Hindi, and Telugu asks for the GST number immediately after role selection and does not ask for email. VLE does not call GST verification; it uses the name → email (Skip available) → location → photo (Skip available) path. Both use the sender's phone number, and the welcome omits the email line when no email was supplied. Selecting VLE sends `role: "vle"` in `/v1/auth/stored-chat-session`; the backend saves `vle` in `stored_session_data.data.role`, `users.role`, and `users.role_type`, and sends both `role: "vle"` and `userType: "vle"` to the same external registration API used for FPO. Its generated role ID starts with `VLE`. Invalid FPO GST retries the GST question without registering. Other roles retain their existing registration questions. Run `npm run migrate:latest -- --env production` against the deployed database before enabling VLE, then deploy the backend and save the regenerated JSON into the existing chatbot. The existing `20261103000001_allow_vle_registration_role_for_users.ts` migration adds `vle` to PostgreSQL's `users_role_check`, retaining every previously allowed role. Without it, VLE registration fails with PostgreSQL error `23514`. Registration route errors go through Express error middleware instead of becoming unhandled promise rejections. Removing GST from VLE adds no further database migration.
 
 When GST verification returns a usable company contact email, the flow includes it as `session_data.email` in the request to the Render API's `/v1/auth/stored-chat-session`. It is saved in `stored_session_data.data.email` and `users.email` and shown in the welcome. A valid user- or Excel-supplied email takes priority over GST email. GST `email`, `email_address`, and `email_id` fields are supported, including company details and the verification response's data object. Missing, blank, and masked GST emails do not add an email question or generate a substitute email. This fallback requires the backend update; it does not backfill existing registrations.
 

@@ -5364,6 +5364,93 @@
           "operator": "or"
         }
       }
+    },
+    {
+      "id": "9a8bb4d4-8f56-57c1-b2b7-f29eeaefcba6",
+      "type": "action",
+      "position": {
+        "x": 7400,
+        "y": 9300
+      },
+      "data": {
+        "key": "@condition/condition-action",
+        "title": "VLE registration needs Excel upload?",
+        "type": "action",
+        "nextHandle": false,
+        "attributes": {
+          "conditions": [
+            {
+              "field": "{{role}}",
+              "comparator": "equals",
+              "value": "vle"
+            },
+            {
+              "field": "{{role}}",
+              "comparator": "equals",
+              "value": "VLE"
+            }
+          ],
+          "operator": "or"
+        }
+      }
+    },
+    {
+      "id": "e09e6fc2-1cd3-5e13-829d-b2698d40a695",
+      "type": "action",
+      "position": {
+        "x": 7900,
+        "y": 9300
+      },
+      "data": {
+        "key": "@condition/condition-action",
+        "title": "VLE registration needs Excel upload?",
+        "type": "action",
+        "nextHandle": false,
+        "attributes": {
+          "conditions": [
+            {
+              "field": "{{role}}",
+              "comparator": "equals",
+              "value": "vle"
+            },
+            {
+              "field": "{{role}}",
+              "comparator": "equals",
+              "value": "VLE"
+            }
+          ],
+          "operator": "or"
+        }
+      }
+    },
+    {
+      "id": "5826bd9c-a303-51e7-a962-450506d7226f",
+      "type": "action",
+      "position": {
+        "x": 8400,
+        "y": 9300
+      },
+      "data": {
+        "key": "@condition/condition-action",
+        "title": "VLE registration needs Excel upload?",
+        "type": "action",
+        "nextHandle": false,
+        "attributes": {
+          "conditions": [
+            {
+              "field": "{{role}}",
+              "comparator": "equals",
+              "value": "vle"
+            },
+            {
+              "field": "{{role}}",
+              "comparator": "equals",
+              "value": "VLE"
+            }
+          ],
+          "operator": "or"
+        }
+      }
     }
   ],
   "edges": [
@@ -6672,9 +6759,9 @@
       }
     },
     {
-      "id": "fed5f0c1-a1e7-5c48-9b5a-6918b477a2ff",
+      "id": "ded894f7-f8a4-5925-ae49-6e08b590e2a0",
       "source": "5817dfdc-a3a4-4c47-a54c-75992a15bab6",
-      "target": "c3b12aaa-4501-40a8-ab1c-ffee06005b55",
+      "target": "07fbf2c9-daaf-496a-b79c-86db7be6ad08",
       "sourceHandle": "registration/5817dfdc-a3a4-4c47-a54c-75992a15bab6/vle",
       "targetHandle": "in",
       "data": {
@@ -6684,9 +6771,9 @@
       }
     },
     {
-      "id": "6d191d73-ce09-5775-bf73-4087f948601b",
+      "id": "65e7f3cc-7ea8-5cf1-976d-010511170a2d",
       "source": "7f9f7ba0-faad-4533-965b-0c74e89be60c",
-      "target": "76889aef-7f81-490a-bf09-0655322dc26c",
+      "target": "b433a6a7-caff-42bb-8a00-77ea0608fce8",
       "sourceHandle": "registration/7f9f7ba0-faad-4533-965b-0c74e89be60c/vle",
       "targetHandle": "in",
       "data": {
@@ -6696,9 +6783,9 @@
       }
     },
     {
-      "id": "dc02e201-a6f7-5bd0-8bcf-37bb3ccc148a",
+      "id": "6c74357b-82f6-59f7-afff-756184759f70",
       "source": "9e37d9ba-3ff5-410b-a281-4e7cf3330096",
-      "target": "cfad3308-3128-440a-914d-bd1869cbfa5f",
+      "target": "87deafe4-12f4-412c-9f30-3d90060245bb",
       "sourceHandle": "registration/9e37d9ba-3ff5-410b-a281-4e7cf3330096/vle",
       "targetHandle": "in",
       "data": {
@@ -8235,9 +8322,9 @@
       }
     },
     {
-      "id": "4355eac7-636a-5a8e-85e3-290d00917b8f",
+      "id": "9aaa620d-5e06-5aa2-ab1f-41dd9fe3531c",
       "source": "fee66286-c634-40af-8625-b88d3a7dc5b3",
-      "target": "087158f9-e69d-58e4-a1be-d6f25019c958",
+      "target": "9a8bb4d4-8f56-57c1-b2b7-f29eeaefcba6",
       "sourceHandle": "default",
       "targetHandle": "in",
       "data": {
@@ -8246,9 +8333,35 @@
       }
     },
     {
-      "id": "4f1d2712-75f5-548f-a9b3-b8e1ce9acfa0",
+      "id": "968940b8-b649-532a-9b76-cf090b51b2fb",
+      "source": "9a8bb4d4-8f56-57c1-b2b7-f29eeaefcba6",
+      "target": "d9dd4067-8559-4f77-9988-9940228a534a",
+      "sourceHandle": "condition-true-9a8bb4d4-8f56-57c1-b2b7-f29eeaefcba6",
+      "targetHandle": "in",
+      "data": {
+        "sourceHandle": "condition-true-9a8bb4d4-8f56-57c1-b2b7-f29eeaefcba6",
+        "targetHandle": "in",
+        "condition": true,
+        "branch": true
+      }
+    },
+    {
+      "id": "550c3ea1-04d7-549d-8a8b-b8763e677f39",
+      "source": "9a8bb4d4-8f56-57c1-b2b7-f29eeaefcba6",
+      "target": "087158f9-e69d-58e4-a1be-d6f25019c958",
+      "sourceHandle": "condition-false-9a8bb4d4-8f56-57c1-b2b7-f29eeaefcba6",
+      "targetHandle": "in",
+      "data": {
+        "sourceHandle": "condition-false-9a8bb4d4-8f56-57c1-b2b7-f29eeaefcba6",
+        "targetHandle": "in",
+        "condition": false,
+        "branch": false
+      }
+    },
+    {
+      "id": "b6526a32-ce65-5555-b9de-ccaa9d00c739",
       "source": "c49d7141-f97c-4926-bdb6-5c6c0ecc294f",
-      "target": "087158f9-e69d-58e4-a1be-d6f25019c958",
+      "target": "e09e6fc2-1cd3-5e13-829d-b2698d40a695",
       "sourceHandle": "default",
       "targetHandle": "in",
       "data": {
@@ -8257,14 +8370,66 @@
       }
     },
     {
-      "id": "c321041e-b1ac-5092-8134-74601b45734f",
-      "source": "8f9e27b2-83d3-42ff-9f05-c84921ec42de",
+      "id": "886a4194-232c-5965-b900-1e0ce4254f09",
+      "source": "e09e6fc2-1cd3-5e13-829d-b2698d40a695",
+      "target": "07a9405a-0f49-5adc-b3fc-e8dc1b067a03",
+      "sourceHandle": "condition-true-e09e6fc2-1cd3-5e13-829d-b2698d40a695",
+      "targetHandle": "in",
+      "data": {
+        "sourceHandle": "condition-true-e09e6fc2-1cd3-5e13-829d-b2698d40a695",
+        "targetHandle": "in",
+        "condition": true,
+        "branch": true
+      }
+    },
+    {
+      "id": "a930e393-82f1-5e6f-ae37-01483efc8fb0",
+      "source": "e09e6fc2-1cd3-5e13-829d-b2698d40a695",
       "target": "087158f9-e69d-58e4-a1be-d6f25019c958",
+      "sourceHandle": "condition-false-e09e6fc2-1cd3-5e13-829d-b2698d40a695",
+      "targetHandle": "in",
+      "data": {
+        "sourceHandle": "condition-false-e09e6fc2-1cd3-5e13-829d-b2698d40a695",
+        "targetHandle": "in",
+        "condition": false,
+        "branch": false
+      }
+    },
+    {
+      "id": "69f7bc57-a5f3-54d7-bc35-654529ac933f",
+      "source": "8f9e27b2-83d3-42ff-9f05-c84921ec42de",
+      "target": "5826bd9c-a303-51e7-a962-450506d7226f",
       "sourceHandle": "default",
       "targetHandle": "in",
       "data": {
         "sourceHandle": "default",
         "targetHandle": "in"
+      }
+    },
+    {
+      "id": "b60be882-5165-50b3-a5a8-32a5e41afae5",
+      "source": "5826bd9c-a303-51e7-a962-450506d7226f",
+      "target": "59f58ec6-313d-5fec-b73b-e5ffd580364a",
+      "sourceHandle": "condition-true-5826bd9c-a303-51e7-a962-450506d7226f",
+      "targetHandle": "in",
+      "data": {
+        "sourceHandle": "condition-true-5826bd9c-a303-51e7-a962-450506d7226f",
+        "targetHandle": "in",
+        "condition": true,
+        "branch": true
+      }
+    },
+    {
+      "id": "81c1d862-d745-5eb9-b9d7-41ae46314027",
+      "source": "5826bd9c-a303-51e7-a962-450506d7226f",
+      "target": "087158f9-e69d-58e4-a1be-d6f25019c958",
+      "sourceHandle": "condition-false-5826bd9c-a303-51e7-a962-450506d7226f",
+      "targetHandle": "in",
+      "data": {
+        "sourceHandle": "condition-false-5826bd9c-a303-51e7-a962-450506d7226f",
+        "targetHandle": "in",
+        "condition": false,
+        "branch": false
       }
     },
     {

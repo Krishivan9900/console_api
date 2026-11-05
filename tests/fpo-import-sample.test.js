@@ -57,11 +57,15 @@ test('all saved sample spreadsheets contain exactly name, phone, role, village, 
   }
 });
 
-test('every FPO registration path in the updated flow sends welcome, upload prompt and Excel sample in order', async () => {
+test('every FPO and VLE registration path sends welcome, upload prompt and Excel sample in order', async () => {
   const flow = require('../krishivan-unified.flow.json');
   for (const welcomeId of ['19b0b848-0763-40b8-94f4-5e1360f40434',
-    '20804977-a74d-4e8c-bd50-64d3b1064ee2', 'dd6c1d42-01f1-43fd-a630-4a9e3b89ec36']) {
-    const nextId = flow.edges.find(e => e.source === welcomeId).target;
+    '20804977-a74d-4e8c-bd50-64d3b1064ee2', 'dd6c1d42-01f1-43fd-a630-4a9e3b89ec36',
+    'fee66286-c634-40af-8625-b88d3a7dc5b3', 'c49d7141-f97c-4926-bdb6-5c6c0ecc294f', '8f9e27b2-83d3-42ff-9f05-c84921ec42de']) {
+    let nextId = flow.edges.find(e => e.source === welcomeId).target;
+    if (flow.nodes.find(node => node.id === nextId).data.key === '@condition/condition-action') {
+      nextId = flow.edges.find(edge => edge.source === nextId && edge.data.condition === true).target;
+    }
     const upload = flow.nodes.find(n => n.id === nextId);
     assert.equal(upload.data.key, '@whatsapp/ask-question');
     assert.equal(upload.data.attributes.variable, 'excel_file');

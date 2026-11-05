@@ -266,7 +266,8 @@ test('registered users skip registration and reach every language service menu',
 test('all nine roles register once in each language; FPO and VLE complete Excel onboarding before services', async () => {
   for (const [languageIndex, language] of [[0, 'hi'], [1, 'en'], [2, 'te']]) {
     for (let roleIndex = 0; roleIndex < 9; roleIndex++) {
-      const gstRole = roleIndex === 4 || roleIndex === 5;
+      const gstRole = roleIndex === 4;
+      const onboardingRole = roleIndex === 4 || roleIndex === 5;
       const rt = runtime({ registered: false });
       await rt.start();
       assert.equal(rt.current().id, '3f7e0e2e-1ff7-4f43-8508-54747fbecb5d');
@@ -286,11 +287,11 @@ test('all nine roles register once in each language; FPO and VLE complete Excel 
         else if (variable === 'location') response = await rt.location();
         else response = await rt.answer({ name: 'Test Customer', email: 'customer@example.test', gstin: '36AAICK0914G1ZQ' }[variable] || 'test');
       }
-      if (gstRole) {
+      if (onboardingRole) {
         assert.equal(rt.current().data.attributes.variable, 'excel_file');
         assert.equal(messages(response).at(-1).text, 'Please Import excel file for onboarding fpo leads');
         assert(!messages(response).some(m => m?.type === 'interactive'));
-        assert.equal(rt.session.variables.email, undefined);
+        if (gstRole) assert.equal(rt.session.variables.email, undefined);
         await rt.completeImport();
       }
       assert.equal(rt.current().data.title, `Services (${language})`);
@@ -300,7 +301,11 @@ test('all nine roles register once in each language; FPO and VLE complete Excel 
       assert.equal(saves[0].data.session_data.native_language, { hi: 'hindi', en: 'english', te: 'telugu' }[language]);
       assert.equal(saves[0].data.session_data.role, ['farmer', 'trader', 'agricultural_transport_service', 'micro_entrepreneur',
         'fpo', 'vle', 'agricultural_machinery_service_provider', 'agricultural_input_supplier', 'livestock_farmer'][roleIndex]);
-      if (roleIndex === 5) assert(messages(response).some(m => m?.text?.includes('VLE')));
+      if (roleIndex === 5) {
+        assert(messages(response).some(m => m?.text?.includes('VLE')));
+        assert.equal(rt.requests.filter(request => request.url.endsWith('/verify-gstin')).length, 0);
+        assert.equal(saves[0].data.session_data.gstin, undefined);
+      }
       const confirmation = { en: 'created successfully', hi: 'आपका खाता सफलतापूर्वक बन गया है', te: 'మీ ఖాతా విజయవంతంగా సృష్టించబడింది' }[language];
       assert(messages(response).some(m => m?.text?.includes(confirmation)));
       assert.equal(rt.session.active, true);
@@ -397,9 +402,65 @@ test('skipping the photo never sends a welcome when registration fails', async (
   assert(!messages(response).some(message => message?.text?.includes('created successfully')));
 });
 
-test('FPO and VLE retry invalid GST in every language and register once with corrected GST', async () => {
+test('VLE collects name and location with optional email and photo, then sends the upload prompt in every language', async () => {
   for (const [languageIndex, language] of [[0, 'hi'], [1, 'en'], [2, 'te']]) {
-    for (const roleIndex of [4, 5]) {
+    for (const skipEmail of [true, false]) {
+      for (const skipPhoto of [true, false]) {
+        const rt = runtime({ registered: false });
+        await rt.start(); await rt.click(languageIndex);
+        const vle = rt.current().data.attributes.message.interactive.action.sections.flatMap(section => section.rows)
+          .find(row => row.title === 'VLE');
+        await rt.receive({ type: 'interactive', interactive: { list_reply: vle } });
+        assert.equal(rt.current().data.attributes.variable, 'name');
+        const email = await rt.answer('VLE Member');
+        assert.equal(rt.current().data.attributes.variable, 'email');
+        assert.equal(email.interactive.action.buttons[0].reply.title, { en: 'Skip', hi: 'छोड़ें', te: 'దాటవేయి' }[language]);
+        if (skipEmail) await rt.skip();
+        else await rt.answer('vle@example.test');
+        assert.equal(rt.current().data.attributes.variable, 'location');
+        await rt.location();
+        assert.equal(rt.current().data.attributes.variable, 'photo');
+        assert(rt.current().data.attributes.skipButton);
+        assert.equal(rt.requests.filter(request => request.url.endsWith('/stored-chat-session')).length, 0);
+        const result = skipPhoto ? await rt.skip() : await rt.image();
+        const saves = rt.requests.filter(request => request.url.endsWith('/stored-chat-session'));
+        assert.equal(saves.length, 1);
+        assert.equal(saves[0].data.session_data.role, 'vle');
+        assert.equal(saves[0].data.session_data.name, 'vle member');
+        assert.equal(saves[0].data.session_data.location.latitude, 17.48);
+        assert.equal(saves[0].data.session_data.location.longitude, 78.53);
+        assert.equal(saves[0].data.session_data.phone_number, '919372597458');
+        assert.equal(saves[0].data.session_data.email, skipEmail ? null : 'vle@example.test');
+        assert.equal(saves[0].data.session_data.photo, skipPhoto ? null : 'https://example.test/upload.jpg');
+        assert.equal(saves[0].data.session_data.gstin, undefined);
+        assert.equal(rt.requests.filter(request => request.url.endsWith('/verify-gstin')).length, 0);
+        assert.equal(rt.current().data.attributes.variable, 'excel_file');
+        assert.equal(messages(result).at(-1).text, 'Please Import excel file for onboarding fpo leads');
+        assert(messages(result)[0].text.includes('VLE'));
+        assert(messages(result)[0].text.includes('vle member'));
+        assert.equal(rt.downloads.length, skipPhoto ? 0 : 1);
+        await rt.completeImport();
+        assert.equal(rt.current().data.title, `Services (${language})`);
+      }
+    }
+  }
+});
+
+test('VLE photo Skip shows a registration error without a welcome or sample prompt when saving fails', async () => {
+  const rt = runtime({ registered: false, override: request => request.url.endsWith('/stored-chat-session')
+    ? { status: 200, data: { success: false, message: 'Registration unavailable' } } : undefined });
+  await rt.start(); await rt.click(1); await rt.click(5); await rt.answer('VLE Member');
+  await rt.skip(); await rt.location();
+  const result = await rt.skip();
+  assert.match(result.text, /Registration could not be completed/);
+  assert.equal(rt.session.active, false);
+  assert(!messages(result).some(message => message?.text?.includes('Please Import excel')));
+  assert(!messages(result).some(message => message?.text?.includes('created successfully')));
+});
+
+test('FPO retries invalid GST in every language and registers once with corrected GST', async () => {
+  for (const [languageIndex, language] of [[0, 'hi'], [1, 'en'], [2, 'te']]) {
+    for (const roleIndex of [4]) {
       let gstChecks = 0;
       const rt = runtime({ registered: false, override: r => {
         if (r.url.endsWith('/verify-gstin') && ++gstChecks === 1) {
@@ -417,7 +478,7 @@ test('FPO and VLE retry invalid GST in every language and register once with cor
       assert.equal(rt.current().data.title, `Services (${language})`);
       const saves = rt.requests.filter(r => r.url.endsWith('/stored-chat-session'));
       assert.equal(saves.length, 1);
-      assert.equal(saves[0].data.session_data.role, roleIndex === 5 ? 'vle' : 'fpo');
+      assert.equal(saves[0].data.session_data.role, 'fpo');
       assert.equal(saves[0].data.session_data.gstin, '36AAICK0914G1ZQ');
     }
   }

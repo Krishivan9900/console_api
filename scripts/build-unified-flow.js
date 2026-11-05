@@ -74,7 +74,7 @@ function buildUnifiedFlow({
   registrationLanguage.data.attributes.variable = 'native_language';
   registrationLanguage.data.attributes.message.interactive.action.buttons[2].reply.title = 'తెలుగు';
 
-  // FPO and VLE share GST verification and onboarding, retaining the selected role.
+  // FPO verifies GST; VLE collects name, optional email, location and optional photo.
   for (const menu of flow.nodes.filter(n => n.data.attributes?.variable === 'role')) {
     for (const selection of flow.edges.filter(e => e.source === menu.id)) {
       const emailQuestion = node(selection.target);
@@ -91,7 +91,9 @@ function buildUnifiedFlow({
     const fpoSection = sections.find(section => section.rows.some(row => row.id === fpoSelection.sourceHandle));
     const fpoIndex = fpoSection.rows.findIndex(row => row.id === fpoSelection.sourceHandle);
     fpoSection.rows.splice(fpoIndex + 1, 0, { id: vleId, title: 'VLE', description: '' });
-    edge(menu.id, fpoSelection.target, vleId);
+    const regularStart = flow.edges.filter(e => e.source === menu.id)
+      .map(e => node(e.target)).find(n => n?.data.attributes?.variable === 'name');
+    edge(menu.id, regularStart.id, vleId);
   }
 
   // Retain free-form answers and add a separate Skip reply to optional questions.
@@ -242,7 +244,7 @@ function buildUnifiedFlow({
     redirect(importPrompt, menu.nodeId);
   }
 
-  // FPO registration retains the original upload step; other roles continue to services.
+  // FPO and VLE receive the upload prompt after a successful registration welcome.
   const hindi = condition('registration-services/hindi', 'Continue registration in Hindi?', [
     equals('native_language', 'हिंदी'), equals('native_language', 'hindi'),
   ], 'or');
@@ -258,10 +260,25 @@ function buildUnifiedFlow({
     '20804977-a74d-4e8c-bd50-64d3b1064ee2': 'hi',
     'dd6c1d42-01f1-43fd-a630-4a9e3b89ec36': 'te',
   };
+  const regularWelcomeLanguages = {
+    'fee66286-c634-40af-8625-b88d3a7dc5b3': 'en',
+    'c49d7141-f97c-4926-bdb6-5c6c0ecc294f': 'hi',
+    '8f9e27b2-83d3-42ff-9f05-c84921ec42de': 'te',
+  };
   for (const n of flow.nodes) {
     if (n.data.attributes?.message?.text?.body === '{{registration_welcome}}') {
       const fpoLanguage = fpoWelcomeLanguages[n.id];
-      redirect(n.id, fpoLanguage ? importPrompts[fpoLanguage] : hindi);
+      if (fpoLanguage) {
+        redirect(n.id, importPrompts[fpoLanguage]);
+      } else {
+        const language = regularWelcomeLanguages[n.id];
+        const vle = condition(`registration/vle/${language}/import`, 'VLE registration needs Excel upload?', [
+          equals('role', 'vle'), equals('role', 'VLE'),
+        ], 'or');
+        redirect(n.id, vle);
+        edge(vle, importPrompts[language], undefined, true);
+        edge(vle, hindi, undefined, false);
+      }
     }
   }
   // Existing users never finish at an "already exists" dead end.
