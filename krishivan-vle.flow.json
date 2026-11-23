@@ -2210,7 +2210,7 @@
       "data": {
         "key": "@whatsapp/ask-question",
         "type": "action",
-        "title": "Lead upload (en)",
+        "title": "FPO / VLE lead upload (en)",
         "dataOut": {},
         "attributes": {
           "format": {
@@ -2218,7 +2218,7 @@
           },
           "message": {
             "text": {
-              "body": "Please Import excel file for onboarding fpo leads",
+              "body": "Please Import excel file for onboarding {{lead_import_role}} leads",
               "preview_url": false
             },
             "type": "text"
@@ -4319,14 +4319,14 @@
       "data": {
         "key": "@whatsapp/ask-question",
         "type": "action",
-        "title": "Lead upload (hi)",
+        "title": "FPO / VLE lead upload (hi)",
         "attributes": {
           "format": {
             "type": "document"
           },
           "message": {
             "text": {
-              "body": "Please Import excel file for onboarding fpo leads",
+              "body": "Please Import excel file for onboarding {{lead_import_role}} leads",
               "preview_url": false
             },
             "type": "text"
@@ -5222,14 +5222,14 @@
       "data": {
         "key": "@whatsapp/ask-question",
         "type": "action",
-        "title": "Lead upload (te)",
+        "title": "FPO / VLE lead upload (te)",
         "attributes": {
           "format": {
             "type": "document"
           },
           "message": {
             "text": {
-              "body": "Please Import excel file for onboarding fpo leads",
+              "body": "Please Import excel file for onboarding {{lead_import_role}} leads",
               "preview_url": false
             },
             "type": "text"

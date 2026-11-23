@@ -234,13 +234,14 @@ function buildUnifiedFlow({
       edge(success, unavailable, undefined, false);
       edge(answer, menu.nodeId);
     }
-    // This exact prompt also makes the existing sender attach the generated Excel sample.
+    // The selected role controls both the rendered prompt and attached sample name.
     const importPrompt = language === 'en'
       ? 'd9dd4067-8559-4f77-9988-9940228a534a'
       : question(`import/${language}/upload`, `FPO lead upload (${language})`,
-        'Please Import excel file for onboarding fpo leads', 'excel_file', 'document');
+        'Please Import excel file for onboarding {{lead_import_role}} leads', 'excel_file', 'document');
     const promptNode = node(importPrompt);
-    promptNode.data.title = `FPO lead upload (${language})`;
+    promptNode.data.title = `FPO / VLE lead upload (${language})`;
+    promptNode.data.attributes.message.text.body = 'Please Import excel file for onboarding {{lead_import_role}} leads';
     promptNode.data.attributes.resumeOnFpoImport = true;
     importPrompts[language] = importPrompt;
     menu.connect('import', gate(`import/${language}`, importPrompt));

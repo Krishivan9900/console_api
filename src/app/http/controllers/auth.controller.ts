@@ -258,10 +258,11 @@ class AuthController {
   });
 
   /** GET /v1/auth/fpo-leads/import/sample */
-  downloadFpoLeadsTemplate = tryCatchAsync(async (_req: Request, res: Response) => {
-    const buffer = AuthService.generateFpoLeadsTemplate();
+  downloadFpoLeadsTemplate = tryCatchAsync(async (req: Request, res: Response) => {
+    const role = String(req.query.role || '').trim().toLowerCase() === 'vle' ? 'vle' : 'fpo';
+    const buffer = AuthService.generateFpoLeadsTemplate(role);
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    res.setHeader('Content-Disposition', 'attachment; filename=fpo_leads_import_sample.xlsx');
+    res.setHeader('Content-Disposition', `attachment; filename=${role}_leads_import_sample.xlsx`);
     res.send(buffer);
   });
   storedChatSession = tryCatchAsync(async (req: Request, res: Response) => {

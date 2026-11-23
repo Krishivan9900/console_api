@@ -609,17 +609,18 @@ class MessageService {
         }
 
         const body = response.type === 'text' ? metaPayload.text.body : '';
-        const isFpoImportPrompt = body.trim().replace(/\s+/g, ' ').toLowerCase().replace(/[.!]+$/, '') ===
-          'please import excel file for onboarding fpo leads';
-        if (isFpoImportPrompt && metaResponse?.messages?.[0]?.id) {
+        const importPrompt = body.trim().replace(/\s+/g, ' ').toLowerCase().replace(/[.!]+$/, '')
+          .match(/^please import excel file for onboarding (fpo|vle) leads$/);
+        if (importPrompt && metaResponse?.messages?.[0]?.id) {
+          const role = importPrompt[1] as 'fpo' | 'vle';
           const mimetype = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
-          const filename = 'fpo_leads_import_sample.xlsx';
+          const filename = `${role}_leads_import_sample.xlsx`;
           const media = await MetaService.uploadMedia(phoneNumberId, {
-            buffer: AuthService.generateFpoLeadsTemplate(),
+            buffer: AuthService.generateFpoLeadsTemplate(role),
             originalname: filename,
             mimetype,
           }, mimetype);
-          if (!media?.id) throw new Error('FPO sample upload did not return a media ID');
+          if (!media?.id) throw new Error(`${role.toUpperCase()} sample upload did not return a media ID`);
 
           const sampleResponse = await this.sendChatBotMessage(phoneNumberId, to, {
             type: 'document',

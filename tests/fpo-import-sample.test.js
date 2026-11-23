@@ -46,7 +46,7 @@ const prompt = 'Please Import excel file for onboarding fpo leads';
 test('all saved sample spreadsheets contain exactly name, phone, role, village, state and district', () => {
   assert.deepEqual(Array.from(fpoFormat.FPO_LEAD_IMPORT_COLUMNS), ['name', 'phone', 'role', 'village', 'state', 'district']);
   for (const file of ['docs/fpo_leads_import_sample.xlsx', 'docs/samples/fpo_leads_import_sample.xlsx',
-    'docs/fpo_leads_import_919372597458.xlsx']) {
+    'docs/fpo_leads_import_919372597458.xlsx', 'docs/samples/vle_leads_import_sample.xlsx']) {
     const workbook = XLSX.readFile(path.join(__dirname, '..', file));
     for (const sheet of Object.values(workbook.Sheets)) {
       const headers = XLSX.utils.sheet_to_json(sheet, { header: 1 })[0];
@@ -71,15 +71,38 @@ test('every FPO and VLE registration path sends welcome, upload prompt and Excel
     assert.equal(upload.data.attributes.variable, 'excel_file');
     assert.equal(upload.data.attributes.resumeOnFpoImport, true);
     const { sender, events } = runtime();
+    const role = ['19b0b848-0763-40b8-94f4-5e1360f40434',
+      '20804977-a74d-4e8c-bd50-64d3b1064ee2', 'dd6c1d42-01f1-43fd-a630-4a9e3b89ec36'].includes(welcomeId) ? 'fpo' : 'vle';
+    const expectedPrompt = `Please Import excel file for onboarding ${role} leads`;
+    assert.equal(upload.data.attributes.message.text.body, 'Please Import excel file for onboarding {{lead_import_role}} leads');
     await sender.sendChatBotMessage('760184003848443', 'recipient', { messages: [
       { type: 'text', text: 'Your account has been created successfully.' },
-      { type: 'text', text: upload.data.attributes.message.text.body },
+      { type: 'text', text: upload.data.attributes.message.text.body.replace('{{lead_import_role}}', role) },
     ] });
     const sent = events.filter(e => e.kind === 'send');
     assert.deepEqual(sent.map(e => e.payload.type), ['text', 'text', 'document']);
-    assert.equal(sent[1].payload.text.body, prompt);
-    assert.equal(sent[2].payload.document.filename, 'fpo_leads_import_sample.xlsx');
+    assert.equal(sent[1].payload.text.body, expectedPrompt);
+    assert.equal(sent[2].payload.document.filename, `${role}_leads_import_sample.xlsx`);
+    const workbook = XLSX.read(events.find(event => event.kind === 'upload').file.buffer, { type: 'buffer' });
+    assert.equal(workbook.SheetNames[0], `${role.toUpperCase()} Leads`);
     assert(sent.every(e => e.phoneNumberId === '760184003848443'));
+  }
+});
+
+test('VLE prompts attach a VLE workbook with a VLE example and the shared import columns', async () => {
+  for (const text of ['Please Import excel file for onboarding vle leads',
+    { body: '  PLEASE IMPORT EXCEL\n FILE FOR ONBOARDING VLE LEADS.  ' }]) {
+    const { sender, events } = runtime();
+    await sender.sendChatBotMessage('number', 'recipient', { type: 'text', text });
+    assert.deepEqual(events.filter(event => event.kind === 'send').map(event => event.payload.type), ['text', 'document']);
+    const upload = events.find(event => event.kind === 'upload');
+    assert.equal(upload.file.originalname, 'vle_leads_import_sample.xlsx');
+    const workbook = XLSX.read(upload.file.buffer, { type: 'buffer' });
+    assert.deepEqual(workbook.SheetNames, ['VLE Leads']);
+    const sheet = workbook.Sheets['VLE Leads'];
+    assert.deepEqual(XLSX.utils.sheet_to_json(sheet, { header: 1 })[0], Array.from(fpoFormat.FPO_LEAD_IMPORT_COLUMNS));
+    assert(XLSX.utils.sheet_to_json(sheet).some(row => row.role === 'vle'));
+    assert.equal(events.at(-1).data.content.document.filename, 'vle_leads_import_sample.xlsx');
   }
 });
 

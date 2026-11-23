@@ -1227,7 +1227,7 @@ class AuthService {
     };
   }
 
-  generateFpoLeadsTemplate(): Buffer {
+  generateFpoLeadsTemplate(role: 'fpo' | 'vle' = 'fpo'): Buffer {
     const rows = [
       {
         name: 'Ramesh Kumar',
@@ -1258,7 +1258,7 @@ class AuthService {
     const worksheet = XLSX.utils.json_to_sheet(rows, { header: [...FPO_LEAD_IMPORT_COLUMNS] });
     worksheet['!cols'] = Object.keys(rows[0]).map((key) => ({ wch: Math.max(key.length + 2, 18) }));
     const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'FPO Leads');
+    XLSX.utils.book_append_sheet(workbook, worksheet, `${role.toUpperCase()} Leads`);
     return XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
   }
   async checkExistUser(phone_number: any) {

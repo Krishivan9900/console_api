@@ -192,7 +192,7 @@ test('successful FPO registration sends the full welcome details before the Exce
     const messages = texts(await rt.run(node));
     const welcome = messages[0];
     for (const value of [
-      '🌱 *Welcome to Krishivan!*',
+      '🌱 *Welcome to Krishivan, FPO!*',
       'Hello there,',
       'Your account has been created successfully. 🎉',
       '*Company:* KRISHIVAN TECHNOLOGIES PRIVATE LIMITED',

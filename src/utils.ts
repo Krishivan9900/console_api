@@ -791,6 +791,11 @@ function replaceBodyVariables(text: string, variables: any): string {
   return text.replace(/\{\{([^}]+)\}\}/g, (_, path) => {
     // Registration success nodes can request the full account summary explicitly.
     if (path.trim() === 'registration_welcome') return buildWelcomeMessage(variables);
+    if (path.trim() === 'lead_import_role') {
+      const role = variables?.role || variables?.details?.role || variables?.http_response?.user?.role ||
+        variables?.http_response?.data?.data?.role || variables?.http_response?.data?.role;
+      return normalizeRole(String(role || '')) === 'vle' ? 'vle' : 'fpo';
+    }
     const value = getNestedValue(variables, path.trim());
     return value === undefined || value === null ? "" : String(value);
   });
@@ -886,8 +891,12 @@ function buildWelcomeMessage(variables: any): string {
     location.pincode && `*${copy.pincode}:* ${location.pincode}`,
   ].filter(Boolean);
 
+  const onboardingRole = normalizeRole(String(role || ''));
+  const heading = ['fpo', 'vle'].includes(onboardingRole)
+    ? copy.heading.replace(/!\*$/, `, ${onboardingRole.toUpperCase()}!*`)
+    : copy.heading;
   return [
-    copy.heading,
+    heading,
     "",
     copy.greeting(name),
     copy.created,

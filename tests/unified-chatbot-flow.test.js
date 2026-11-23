@@ -289,7 +289,7 @@ test('all nine roles register once in each language; FPO and VLE complete Excel 
       }
       if (onboardingRole) {
         assert.equal(rt.current().data.attributes.variable, 'excel_file');
-        assert.equal(messages(response).at(-1).text, 'Please Import excel file for onboarding fpo leads');
+        assert.equal(messages(response).at(-1).text, `Please Import excel file for onboarding ${gstRole ? 'fpo' : 'vle'} leads`);
         assert(!messages(response).some(m => m?.type === 'interactive'));
         if (gstRole) assert.equal(rt.session.variables.email, undefined);
         await rt.completeImport();
@@ -435,8 +435,9 @@ test('VLE collects name and location with optional email and photo, then sends t
         assert.equal(saves[0].data.session_data.gstin, undefined);
         assert.equal(rt.requests.filter(request => request.url.endsWith('/verify-gstin')).length, 0);
         assert.equal(rt.current().data.attributes.variable, 'excel_file');
-        assert.equal(messages(result).at(-1).text, 'Please Import excel file for onboarding fpo leads');
+        assert.equal(messages(result).at(-1).text, 'Please Import excel file for onboarding vle leads');
         assert(messages(result)[0].text.includes('VLE'));
+        assert(messages(result)[0].text.includes(', VLE!*'));
         assert(messages(result)[0].text.includes('vle member'));
         assert.equal(rt.downloads.length, skipPhoto ? 0 : 1);
         await rt.completeImport();
