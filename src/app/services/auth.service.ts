@@ -194,6 +194,7 @@ class AuthService {
       createdById: payload.createdById,
     });
     const requestConfig = {
+      timeout: 10000,
       headers: {
         'X-Internal-Api-Key': 'krishiwhatsappskjf4543k',
         'Content-Type': 'application/json'
@@ -549,9 +550,11 @@ class AuthService {
     };
 
     if (user) {
+      // Registration retries must preserve the existing password hash.
+      const { password: _, ...updatePayload } = userPayload;
       const updatedUser = await userModel.update(
         user.id,
-        userPayload
+        updatePayload
       );
       const existingContact = await contactModel.findByUserPhoneNumber(userPayload.phone);
       if (existingContact) {
@@ -987,33 +990,14 @@ class AuthService {
 
   async storedChatSession(phone_number: any, data: any) {
     try {
+      if (typeof phone_number !== 'string' || !phone_number.trim()) {
+        throw new HTTP400Error({ message: 'A registration phone number is required' });
+      }
       data = normalizeRegistrationData(data);
-      console.log('details', phone_number, data)
       const existingSession = await chatSessionModel.findByPhoneNumber(phone_number);
-
-      // if (!existingSession) {
-      //   return {
-      //     success: false,
-      //     message: "No active session found"
-      //   };
-      // }
-
-      // // Deactivate session immediately on API call
-      // await chatSessionModel.update(existingSession.id, {
-      //   active: false
-      // });
-
-      console.log(`Session ${existingSession.id} deactivated`);
-
-      // const existingStoredSession =
-      //   await storesSessionModel.findByPhoneNumber(phone_number);
-
-      // if (existingStoredSession) {
-      //   return {
-      //     success: false,
-      //     data: existingStoredSession.data
-      //   };
-      // }
+      if (!existingSession?.phoneNumberId) {
+        throw new HTTP400Error({ message: 'No active registration session found. Send menu to restart registration.' });
+      }
 
       const companyDetails =
         await phoneNumberModel.findByPhoneNumberId(
@@ -1038,12 +1022,15 @@ class AuthService {
         companyDetails,
         data
       );
+      if (!userRegistration?.id) {
+        throw new HTTP400Error({ message: 'Registration did not return a saved user' });
+      }
+      const { password: _, ...user } = userRegistration;
 
       return {
         success: true,
         data: storedSession,
-        created: userRegistration.created,
-        user: userRegistration.user
+        user,
       };
     } catch (error) {
       console.error("storedChatSession Error:", error);

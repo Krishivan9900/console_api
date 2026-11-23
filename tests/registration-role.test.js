@@ -85,7 +85,7 @@ function runtime(existingUser, options = {}) {
   const replacer = utils.statements.find(node => ts.isFunctionDeclaration(node) && node.name?.text === 'replaceVariables');
   const functions = [normalizer, languageNormalizer, locationReader, emailReader, registrationNormalizer, replacer].map(node => node.getText(utils).replace(/^export /, '')).join('\n');
   const sourceText = `${functions}\nclass AuthService { ${methods.map(method => method.getText(source)).join('\n')} }\n({ service: new AuthService(), replaceVariables });`;
-  const calls = { external: [], lookups: [], created: [], updated: [], parentLookups: [], stored: [], contactUpdates: [], phoneLookups: [], contactLookups: [] };
+  const calls = { external: [], lookups: [], requestConfigs: [], created: [], updated: [], parentLookups: [], stored: [], contactUpdates: [], phoneLookups: [], contactLookups: [] };
   const users = {
     findByPhone: async phone => {
       calls.phoneLookups.push(phone);
@@ -93,13 +93,14 @@ function runtime(existingUser, options = {}) {
     },
     findByEmail: async () => null,
     findById: async id => { calls.parentLookups.push(id); return options.mappedFpo; },
-    update: async (id, data) => { calls.updated.push({ id, data }); return data; },
+    update: async (id, data) => { calls.updated.push({ id, data }); return { ...existingUser, id, ...data }; },
     create: async data => { calls.created.push(data); return { ...data, id: `new-user-${calls.created.length}` }; },
   };
   class BadRequest extends Error { constructor({ message }) { super(message); } }
   const { service, replaceVariables } = vm.runInNewContext(ts.transpileModule(sourceText, { compilerOptions: { target: ts.ScriptTarget.ES2020 } }).outputText, {
     console: { log() {}, error() {} },
-    axios: { post: async (url, data) => {
+    axios: { post: async (url, data, config) => {
+      calls.requestConfigs.push(config);
       if (url.endsWith('/check-user')) {
         calls.lookups.push(data);
         if (options.lookupError) throw options.lookupError;
@@ -113,7 +114,7 @@ function runtime(existingUser, options = {}) {
     normalizeRegistrationPhoneNumber: require('../src/phone').normalizeRegistrationPhoneNumber,
     XLSX: require('xlsx'), Buffer, ...fpoFormat,
     phoneNumberModel: { findByPhoneNumberId: async () => ({ company_id: 'company', user_id: 'bot-owner' }) },
-    chatSessionModel: { findByPhoneNumber: async () => ({ id: 'chat-session', phoneNumberId: '760184003848443' }) },
+    chatSessionModel: { findByPhoneNumber: async () => options.noActiveSession ? null : ({ id: 'chat-session', phoneNumberId: '760184003848443' }) },
     storesSessionModel: { create: async data => { calls.stored.push(data); return { id: 'stored-session' }; } },
     contactModel: {
       findByUserPhoneNumber: async phone => { calls.contactLookups.push(phone); return options.contact; },
@@ -125,6 +126,39 @@ function runtime(existingUser, options = {}) {
   service.hashPassword = async () => 'hashed-password';
   return { service, calls, replaceVariables };
 }
+
+test('stored registration returns the saved VLE user after success and excludes password hashes', async () => {
+  for (const existing of [undefined, { id: 'existing', password: 'existing-hash' }]) {
+    const { service, calls } = runtime(existing);
+    const result = await service.storedChatSession('919876543210', {
+      phone_number: '919876543210', name: 'VLE Member', role: 'VLE',
+    });
+    assert.equal(result.success, true);
+    assert(result.user.id);
+    assert.equal(result.user.role, 'vle');
+    assert.equal(result.user.role_type, 'vle');
+    assert.equal(result.user.user_id, 'external-user');
+    assert.equal(result.user.password, undefined);
+    assert.equal(result.data.id, 'stored-session');
+    if (existing) {
+      assert.equal(Object.hasOwn(calls.updated[0].data, 'password'), false);
+      assert.equal(existing.password, 'existing-hash');
+    }
+  }
+});
+
+test('missing registration session or phone returns a handled validation error before any write or external call', async () => {
+  for (const [phone, options, message] of [
+    ['919876543210', { noActiveSession: true }, /No active registration session/],
+    [undefined, {}, /registration phone number/],
+  ]) {
+    const { service, calls } = runtime(undefined, options);
+    await assert.rejects(service.storedChatSession(phone, { role: 'VLE', name: 'Member' }), message);
+    assert.equal(calls.stored.length, 0);
+    assert.equal(calls.external.length, 0);
+    assert.equal(calls.created.length, 0);
+  }
+});
 
 test('selected registration roles reach the external service and saved user on creation and update', async () => {
   const roles = ['fpo', 'vle', 'VLE', 'farmer', 'trader', 'agricultural transport service', 'micro entrepreneur', 'agricultural machinery service provider', 'agricultural input supplier', 'livestock farmer'];
@@ -727,11 +761,13 @@ test('AWS registration request keeps the flat address schema and GeoJSON coordin
 
 test('register-user HTTP boundary still handles duplicate registration responses and propagates other failures', async () => {
   const duplicate = { response: { status: 409, data: { message: 'Mobile number already registered' } } };
-  const { service } = runtime(undefined, { apiError: duplicate });
+  const { service, calls } = runtime(undefined, { apiError: duplicate });
   const result = await service.registerkrishivanUser({ mobile_number: '919372597458' });
   assert.equal(result.alreadyRegistered, true);
   assert.equal(result.data.user_id, 'existing-external-user');
   assert.equal(result.message, duplicate.response.data.message);
+  assert.equal(calls.requestConfigs.length, 2);
+  assert(calls.requestConfigs.every(config => config.timeout === 10000));
   const failure = new Error('Service unavailable');
   const failing = runtime(undefined, { apiError: failure });
   await assert.rejects(failing.service.registerkrishivanUser({ mobile_number: '919372597458' }), error => error === failure);
