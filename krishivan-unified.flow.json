@@ -6767,7 +6767,8 @@
       "data": {
         "sourceHandle": "registration/5817dfdc-a3a4-4c47-a54c-75992a15bab6/vle",
         "targetHandle": "in",
-        "button_id": "registration/5817dfdc-a3a4-4c47-a54c-75992a15bab6/vle"
+        "button_id": "registration/5817dfdc-a3a4-4c47-a54c-75992a15bab6/vle",
+        "row_id": "registration/5817dfdc-a3a4-4c47-a54c-75992a15bab6/vle"
       }
     },
     {
@@ -6779,7 +6780,8 @@
       "data": {
         "sourceHandle": "registration/7f9f7ba0-faad-4533-965b-0c74e89be60c/vle",
         "targetHandle": "in",
-        "button_id": "registration/7f9f7ba0-faad-4533-965b-0c74e89be60c/vle"
+        "button_id": "registration/7f9f7ba0-faad-4533-965b-0c74e89be60c/vle",
+        "row_id": "registration/7f9f7ba0-faad-4533-965b-0c74e89be60c/vle"
       }
     },
     {
@@ -6791,7 +6793,8 @@
       "data": {
         "sourceHandle": "registration/9e37d9ba-3ff5-410b-a281-4e7cf3330096/vle",
         "targetHandle": "in",
-        "button_id": "registration/9e37d9ba-3ff5-410b-a281-4e7cf3330096/vle"
+        "button_id": "registration/9e37d9ba-3ff5-410b-a281-4e7cf3330096/vle",
+        "row_id": "registration/9e37d9ba-3ff5-410b-a281-4e7cf3330096/vle"
       }
     },
     {

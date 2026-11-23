@@ -2,6 +2,12 @@
 
 Import or save [`krishivan-unified.flow.json`](../krishivan-unified.flow.json) into the existing **Krishivan service chatbot**, ID `407fe203-a3a8-49bf-85d7-ea5e675b76d9`. The file uses only phone number ID **760184003848443** (`+91 83411 02043`).
 
+The standalone [`customer-registration.fixed.json`](../customer-registration.fixed.json) also offers **VLE** immediately after FPO in English, Hindi, and Telugu, using the name → email → location → photo registration path without GST verification. It retains its existing receiving number and registration behavior. The combined-flow generator reuses this selection and its connection, so VLE appears once in each menu. An already saved chatbot must have its flow updated before WhatsApp shows the new role; use the combined JSON for the registration-and-services chatbot above.
+
+The VLE update applied to the published chatbot on November 23, 2026 is exported as [`krishivan-vle.flow.json`](../krishivan-vle.flow.json), with a [save/read request](../krishivan-vle.flow.http). This snapshot preserves the existing 159 node IDs and 13 trigger assignments, adds VLE in all three menus, and gives VLE its name → optional email → location → optional photo → registration → Excel upload route. Other saved registration and service paths retain their existing behavior. The update was backed up and saved in one database transaction without resetting chat sessions. Offline checks exercised VLE registration and import continuation in all three languages, and a database read verified the saved selections; an actual WhatsApp acceptance test remains outstanding.
+
+If saving to `/chatbot/flow/407fe203-a3a8-49bf-85d7-ea5e675b76d9` returns "Some trigger keywords are already assigned to another chatbot", check the receiving number in the payload. The standalone file's `758960730637985` belongs to the published **Test chatbot**, which owns `hi`, `hii`, and `hello` on that number. This service chatbot uses **760184003848443** in both `phoneNumberIds` and the trigger's `receiverIds`; the VLE snapshot and combined JSON use that number. Its existing VLE migration was verified as applied. Keep the other chatbot's keyword assignments intact.
+
 ```mermaid
 flowchart TD
   A[Any first text / saved restart keywords] --> B[Check sender in the users database]

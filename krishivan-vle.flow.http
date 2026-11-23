@@ -1,0 +1,14 @@
+@prod_url = https://console-api-z4hc.onrender.com/v1/admin
+@chatBotId = 407fe203-a3a8-49bf-85d7-ea5e675b76d9
+@adminToken = REPLACE_WITH_YOUR_ADMIN_JWT
+
+### Read the saved chatbot.
+GET {{prod_url}}/chatbot/{{chatBotId}}
+Authorization: Bearer {{adminToken}}
+
+### Reapply the VLE flow snapshot if needed. This replaces the published flow.
+POST {{prod_url}}/chatbot/flow/{{chatBotId}}
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+< ./krishivan-vle.flow.json

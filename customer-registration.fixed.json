@@ -767,6 +767,11 @@
                         "description": ""
                       },
                       {
+                        "id": "registration/5817dfdc-a3a4-4c47-a54c-75992a15bab6/vle",
+                        "title": "VLE",
+                        "description": ""
+                      },
+                      {
                         "id": "row_1781057843393_r8kw0e",
                         "title": "Agri-Machine",
                         "description": ""
@@ -894,6 +899,11 @@
                       {
                         "id": "row_1781058103209_rqr59d",
                         "title": "किसान उत्पादक(FPO)",
+                        "description": ""
+                      },
+                      {
+                        "id": "registration/7f9f7ba0-faad-4533-965b-0c74e89be60c/vle",
+                        "title": "VLE",
                         "description": ""
                       },
                       {
@@ -1374,6 +1384,11 @@
                       {
                         "id": "row_1781085839615_70fclc",
                         "title": "రైతు ఉత్పత్తిదారుల సంస్థ",
+                        "description": ""
+                      },
+                      {
+                        "id": "registration/9e37d9ba-3ff5-410b-a281-4e7cf3330096/vle",
+                        "title": "VLE",
                         "description": ""
                       },
                       {
@@ -4414,6 +4429,45 @@
         "targetHandle": "in",
         "condition": "false",
         "branch": "false"
+      }
+    },
+    {
+      "id": "ded894f7-f8a4-5925-ae49-6e08b590e2a0",
+      "source": "5817dfdc-a3a4-4c47-a54c-75992a15bab6",
+      "target": "07fbf2c9-daaf-496a-b79c-86db7be6ad08",
+      "sourceHandle": "registration/5817dfdc-a3a4-4c47-a54c-75992a15bab6/vle",
+      "targetHandle": "in",
+      "data": {
+        "sourceHandle": "registration/5817dfdc-a3a4-4c47-a54c-75992a15bab6/vle",
+        "targetHandle": "in",
+        "button_id": "registration/5817dfdc-a3a4-4c47-a54c-75992a15bab6/vle",
+        "row_id": "registration/5817dfdc-a3a4-4c47-a54c-75992a15bab6/vle"
+      }
+    },
+    {
+      "id": "65e7f3cc-7ea8-5cf1-976d-010511170a2d",
+      "source": "7f9f7ba0-faad-4533-965b-0c74e89be60c",
+      "target": "b433a6a7-caff-42bb-8a00-77ea0608fce8",
+      "sourceHandle": "registration/7f9f7ba0-faad-4533-965b-0c74e89be60c/vle",
+      "targetHandle": "in",
+      "data": {
+        "sourceHandle": "registration/7f9f7ba0-faad-4533-965b-0c74e89be60c/vle",
+        "targetHandle": "in",
+        "button_id": "registration/7f9f7ba0-faad-4533-965b-0c74e89be60c/vle",
+        "row_id": "registration/7f9f7ba0-faad-4533-965b-0c74e89be60c/vle"
+      }
+    },
+    {
+      "id": "6c74357b-82f6-59f7-afff-756184759f70",
+      "source": "9e37d9ba-3ff5-410b-a281-4e7cf3330096",
+      "target": "87deafe4-12f4-412c-9f30-3d90060245bb",
+      "sourceHandle": "registration/9e37d9ba-3ff5-410b-a281-4e7cf3330096/vle",
+      "targetHandle": "in",
+      "data": {
+        "sourceHandle": "registration/9e37d9ba-3ff5-410b-a281-4e7cf3330096/vle",
+        "targetHandle": "in",
+        "button_id": "registration/9e37d9ba-3ff5-410b-a281-4e7cf3330096/vle",
+        "row_id": "registration/9e37d9ba-3ff5-410b-a281-4e7cf3330096/vle"
       }
     }
   ]

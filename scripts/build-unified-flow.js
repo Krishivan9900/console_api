@@ -87,13 +87,16 @@ function buildUnifiedFlow({
     const rows = sections.flatMap(section => section.rows);
     const fpoSelection = flow.edges.find(e => e.source === menu.id &&
       rows.some(row => row.id === e.sourceHandle) && node(e.target)?.data.attributes?.variable === 'gstin');
-    const vleId = `registration/${menu.id}/vle`;
+    const existingVle = rows.find(row => row.title === 'VLE');
+    const vleId = existingVle?.id || `registration/${menu.id}/vle`;
     const fpoSection = sections.find(section => section.rows.some(row => row.id === fpoSelection.sourceHandle));
     const fpoIndex = fpoSection.rows.findIndex(row => row.id === fpoSelection.sourceHandle);
-    fpoSection.rows.splice(fpoIndex + 1, 0, { id: vleId, title: 'VLE', description: '' });
+    if (!existingVle) fpoSection.rows.splice(fpoIndex + 1, 0, { id: vleId, title: 'VLE', description: '' });
     const regularStart = flow.edges.filter(e => e.source === menu.id)
       .map(e => node(e.target)).find(n => n?.data.attributes?.variable === 'name');
-    edge(menu.id, regularStart.id, vleId);
+    if (!flow.edges.some(e => e.source === menu.id && e.sourceHandle === vleId)) {
+      edge(menu.id, regularStart.id, vleId);
+    }
   }
 
   // Retain free-form answers and add a separate Skip reply to optional questions.

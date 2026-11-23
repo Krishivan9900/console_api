@@ -53,18 +53,54 @@ function runtime(responses) {
   const { menuFlow } = loadModule('src/app/services/chatbot/flows/menu.flow.ts', {
     '@surefy/console/app/models/chatSession.model': model,
     '@surefy/console/services/chatbot/engine/executeNode': { executeNode },
-    '@surefy/console/utils': {},
+    '@surefy/console/utils': { downloadImage: async () => ({ firebaseUrl: 'https://example.test/profile.jpg' }) },
     '../trigger.logic': require('../src/app/services/chatbot/trigger.logic'),
   });
   return {
     requests, session,
     run: node => executeNode({ bot: flow, session, currentNode: node }),
     answer: text => menuFlow({ bot: flow, session, incomingText: text, message: { type: 'text', text: { body: text } } }),
+    receive: message => menuFlow({ bot: flow, session,
+      incomingId: message.interactive?.list_reply?.id,
+      incomingText: message.interactive?.list_reply?.title?.toLowerCase() || '', message }),
   };
 }
 
 const nodes = suffix => flow.nodes.filter(node => node.data.attributes?.url?.endsWith(suffix));
 const texts = response => response?.messages ? response.messages.flatMap(texts) : [response?.text || ''];
+
+test('standalone registration offers VLE in every language and saves it without GST verification', async () => {
+  for (const menu of flow.nodes.filter(node => node.data.attributes?.variable === 'role')) {
+    const rows = menu.data.attributes.message.interactive.action.sections.flatMap(section => section.rows);
+    assert.equal(rows.length, 9);
+    const selections = rows.filter(row => row.title === 'VLE');
+    assert.equal(selections.length, 1);
+    const rt = runtime([{ status: 200, data: { success: true } }]);
+    rt.session.variables = { phone_number: '919372597458' };
+    rt.session.current_node_id = menu.id;
+    await rt.run(menu);
+    await rt.receive({ type: 'interactive', interactive: { list_reply: selections[0] } });
+    assert.equal(flow.nodes.find(node => node.id === rt.session.current_node_id).data.attributes.variable, 'name');
+    assert.equal(rt.session.variables.role, 'VLE');
+    assert.equal(rt.session.variables.details.role, 'VLE');
+    await rt.answer('VLE Member');
+    await rt.answer('vle@example.test');
+    await rt.receive({ type: 'location', location: { latitude: 17.48, longitude: 78.53 } });
+    const response = await rt.receive({ type: 'image', image: { id: 'profile-photo' } });
+    assert.equal(rt.requests.length, 1);
+    assert(rt.requests[0].url.endsWith('/stored-chat-session'));
+    const saved = rt.requests[0].data.session_data;
+    assert.equal(saved.role, 'vle');
+    assert.equal(saved.name, 'VLE Member');
+    assert.equal(saved.phone_number, '919372597458');
+    assert.equal(saved.email, 'vle@example.test');
+    assert.equal(saved.photo, 'https://example.test/profile.jpg');
+    assert.equal(saved.location.latitude, 17.48);
+    assert.equal(saved.location.longitude, 78.53);
+    assert.equal(saved.gstin, undefined);
+    assert(texts(response).some(text => text.includes('VLE')));
+  }
+});
 
 test('registered FPO greeting uses a national lookup number, sends the configured message and ends', async () => {
   const first = flow.nodes.find(node => node.id === flow.edges.find(edge => edge.source === flow.nodes.find(node => node.type === 'trigger').id).target);
